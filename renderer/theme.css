@@ -1,0 +1,42 @@
+/* 
+  This file centralizes all the design tokens (colors, fonts, etc.) for the application.
+  Using CSS variables makes it easy to maintain a consistent theme and quickly experiment
+  with new color schemes.
+*/
+
+:root {
+    /* -- App-level Colors -- */
+    --app-bg-color: #d0d0d0;
+    --app-bg-color-light: #f0f0f0;
+    --text-color-primary: #000;
+    --text-color-secondary: #333;
+    --text-color-light: #f1f1f1;
+
+    /* -- Border & Separator Colors -- */
+    --border-color-primary: #bbb;
+    --border-color-secondary: #ccc;
+
+    /* -- Tab Colors -- */
+    --tab-bg-color: #d0d0d0;
+    --tab-bg-color-active: var(--app-bg-color-light);
+    --tab-close-button-hover-bg: #c0c0c0;
+
+    /* -- Button & Control Colors -- */
+    --button-hover-bg: #e0e0e0;
+    --button-icon-color: var(--text-color-secondary);
+    --window-close-hover-bg: #e81123;
+    --window-close-hover-text: white;
+    --window-control-hover-bg: rgba(0,0,0,0.1);
+
+    /* -- Bookmark & Log Colors -- */
+    --bookmark-star-color: #666;
+    --log-viewer-bg: #2b2b2b;
+    --log-viewer-border: #444;
+    --log-error-text: #ff6b6b;
+
+    /* -- Error Page Colors -- */
+    --error-page-bg: #f9f9f9;
+    --error-page-title-color: var(--text-color-secondary);
+    --error-page-text-color: #666;
+
+} 

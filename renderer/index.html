@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>PrismBrowser</title>
+    <link rel="stylesheet" href="theme.css">
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; display: flex; flex-direction: column; background-color: #dcdcdc; -webkit-app-region: drag; /* Make the whole background draggable */ }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; display: flex; flex-direction: column; background-color: var(--app-bg-color); -webkit-app-region: drag; /* Make the whole background draggable */ }
         
         /* --- Tabs Bar --- */
         #tabs-bar {
             display: flex;
             align-items: flex-end; /* Align to bottom for better look */
-            background-color: #dcdcdc;
+            background-color: var(--app-bg-color);
             padding: 5px 5px 0 5px;
             flex-shrink: 0;
             /* -webkit-app-region: drag; // Moved to body */
@@ -37,10 +38,10 @@
             display: flex;
             align-items: center;
             padding: 8px 10px;
-            border: 1px solid #bbb;
+            border: 0;
             border-bottom: none;
             border-radius: 6px 6px 0 0;
-            background-color: #d0d0d0;
+            background-color: var(--tab-bg-color);
             margin-right: -1px;
             position: relative;
             cursor: pointer;
@@ -50,7 +51,7 @@
             -webkit-app-region: no-drag; /* Tabs are clickable */
         }
         .tab-item.active {
-            background-color: #f0f0f0;
+            background-color: var(--tab-bg-color-active);
             z-index: 2;
         }
         .tab-title {
@@ -76,17 +77,16 @@
         }
         .close-tab:hover {
             opacity: 1;
-            background-color: #c0c0c0;
+            background-color: var(--tab-close-button-hover-bg);
         }
         #new-tab-btn {
             width: 34px; /* Adjust width to be more like a square */
             height: 34px; /* Match the visual height of the tabs */
             font-size: 18px;
             margin-left: 2px;
-            /* margin-bottom: 3px;  Remove this to align with bottom */
-            border: 1px solid #bbb;
+            border: 0;
             border-radius: 4px;
-            background-color: #d0d0d0;
+            background-color: var(--tab-bg-color);
             flex-shrink: 0;
             -webkit-app-region: no-drag; /* New tab button is clickable */
             padding: 0; /* Reset padding */
@@ -115,18 +115,18 @@
         #window-controls button svg {
             width: 10px;
             height: 10px;
-            fill: #000;
+            fill: var(--text-color-primary);
         }
         #window-controls button:hover {
-            background-color: rgba(0,0,0,0.1);
+            background-color: var(--window-control-hover-bg);
         }
         #window-controls #close-btn:hover {
-            background-color: #e81123;
-            color: white;
+            background-color: var(--window-close-hover-bg);
+            color: var(--window-close-hover-text);
         }
 
         /* --- Controls Bar --- */
-        #controls { display: flex; align-items: center; padding: 8px 5px; background-color: #f0f0f0; border-bottom: 1px solid #ccc; flex-shrink: 0; position: relative; z-index: 1; -webkit-app-region: no-drag; }
+        #controls { display: flex; align-items: center; padding: 8px 5px; background-color: var(--app-bg-color-light); border-bottom: 1px solid var(--border-color-secondary); flex-shrink: 0; position: relative; z-index: 1; -webkit-app-region: no-drag; }
         #nav-buttons { display: flex; }
         #nav-buttons button { 
             width: 32px; 
@@ -141,12 +141,12 @@
             cursor: pointer;
         }
         #nav-buttons button:hover {
-            background-color: #e0e0e0;
+            background-color: var(--button-hover-bg);
         }
         #nav-buttons button svg {
             width: 20px;
             height: 20px;
-            stroke: #333;
+            stroke: var(--button-icon-color);
         }
         #url-container {
             flex-grow: 1;
@@ -154,7 +154,7 @@
             display: flex;
             align-items: center;
         }
-        #url-input { flex-grow: 1; height: 28px; padding: 0 30px 0 15px; border-radius: 16px; border: 1px solid #ccc; margin-right: 5px; }
+        #url-input { flex-grow: 1; height: 28px; padding: 0 30px 0 15px; border-radius: 16px; border: 1px solid var(--border-color-secondary); margin-right: 5px; }
         #add-bookmark {
             position: absolute;
             right: 15px;
@@ -173,12 +173,12 @@
             height: 16px;
         }
         #add-bookmark .star-fill {
-            fill: #666;
-            stroke: #666;
+            fill: var(--bookmark-star-color);
+            stroke: var(--bookmark-star-color);
         }
         #add-bookmark .star-outline {
             fill: none;
-            stroke: #666;
+            stroke: var(--bookmark-star-color);
         }
         #toggle-logs { margin-left: 5px; height: 32px; }
 
@@ -186,7 +186,7 @@
         #bookmarks-bar {
             background-color: #fff;
             padding: 4px 8px;
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px solid var(--border-color-secondary);
             flex-shrink: 0;
             white-space: nowrap;
             overflow-x: auto;
@@ -201,10 +201,10 @@
             font-size: 13px;
             cursor: pointer;
             text-decoration: none;
-            color: #333;
+            color: var(--text-color-secondary);
         }
         .bookmark-item:hover {
-            background-color: #e0e0e0;
+            background-color: var(--button-hover-bg);
         }
         .bookmark-title {
             max-width: 150px;
@@ -253,7 +253,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #f9f9f9;
+            background-color: var(--error-page-bg);
             z-index: 100;
             display: none; /* Hidden by default */
             flex-direction: column;
@@ -262,11 +262,14 @@
             text-align: center;
             font-family: sans-serif;
         }
-        #error-page h1 { font-size: 24px; color: #333; margin-bottom: 10px; }
-        #error-page p { font-size: 16px; color: #666; }
-        #error-page button { margin-top: 20px; padding: 10px 20px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; }
-        #log-viewer { height: 200px; background-color: #2b2b2b; color: #f1f1f1; font-family: monospace; overflow-y: scroll; padding: 5px; white-space: pre-wrap; word-wrap: break-word; flex-shrink: 0; display: none; }
-        .log-entry { margin: 0; padding: 2px 0; border-bottom: 1px solid #444; }
+        #error-page h1 { font-size: 24px; color: var(--error-page-title-color); margin-bottom: 10px; }
+        #error-page p { font-size: 16px; color: var(--error-page-text-color); }
+        #error-page button { margin-top: 20px; padding: 10px 20px; font-size: 16px; border: 1px solid var(--border-color-secondary); border-radius: 4px; cursor: pointer; }
+        #log-viewer { height: 200px; background-color: var(--log-viewer-bg); color: var(--text-color-light); font-family: monospace; overflow-y: scroll; padding: 5px; white-space: pre-wrap; word-wrap: break-word; flex-shrink: 0; display: none; }
+        .log-entry { margin: 0; padding: 2px 0; border-bottom: 1px solid var(--log-viewer-border); }
+        .log-entry[style*="color"] { /* A bit of a hack to ensure error color is applied */
+            color: var(--log-error-text) !important;
+        }
     </style>
 </head>
 <body>
