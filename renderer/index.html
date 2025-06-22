@@ -36,12 +36,12 @@
             border-radius: 2px;
         }
         #tabs-container::-webkit-scrollbar-thumb:hover {
-            background-color: var(--scrollbar-thumb-hover-color); /* Color on hover */
+            background-color: var(--scrollbar-thumb-hover-color); /* 鼠标悬停在滚动条滑块上时的颜色 */
         }
         .tab-item {
             display: flex;
             align-items: center; /* Vertically align icon/spinner and title */
-            padding: 8px 10px;
+            padding: 6px 10px;
             border: 0;
             border-bottom: none;
             border-radius: 6px 6px 0 0;
@@ -105,7 +105,6 @@
             height: 16px;
             border: none;
             background: transparent;
-            cursor: pointer;
             opacity: 0.5;
             padding: 0;
             border-radius: 50%;
@@ -118,8 +117,8 @@
             background-color: var(--tab-close-button-hover-bg);
         }
         #new-tab-btn {
-            width: 34px; /* Adjust width to be more like a square */
-            height: 34px; /* Match the visual height of the tabs */
+            width: 30px; /* Adjust width to be more like a square */
+            height: 30px; /* Match the visual height of the tabs */
             font-size: 18px;
             margin-left: 2px;
             border: 0;
@@ -180,7 +179,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
         }
         #nav-buttons button:hover {
             background-color: var(--button-hover-bg);
@@ -212,7 +210,6 @@
             transform: translateY(-50%);
             border: none;
             background: transparent;
-            cursor: pointer;
             padding: 4px;
             display: flex;
             align-items: center;
@@ -239,7 +236,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
             padding: 0;
             border-radius: 4px;
         }
@@ -269,7 +265,6 @@
             border-radius: 4px;
             margin-right: 5px;
             font-size: 13px;
-            cursor: pointer;
             text-decoration: none;
             color: var(--text-color-secondary);
         }
@@ -288,7 +283,6 @@
             height: 16px;
             border: none;
             background: transparent;
-            cursor: pointer;
             opacity: 0.5;
             padding: 0;
         }
@@ -334,7 +328,7 @@
         }
         #error-page h1 { font-size: 24px; color: var(--error-page-title-color); margin-bottom: 10px; }
         #error-page p { font-size: 16px; color: var(--error-page-text-color); }
-        #error-page button { margin-top: 20px; padding: 10px 20px; font-size: 16px; border: 1px solid var(--border-color-secondary); border-radius: 4px; cursor: pointer; }
+        #error-page button { margin-top: 20px; padding: 10px 20px; font-size: 16px; border: 1px solid var(--border-color-secondary); border-radius: 4px; }
         #log-viewer { 
             height: 200px; 
             background-color: var(--log-viewer-bg); 
@@ -359,7 +353,6 @@
             background: transparent;
             border: none;
             color: var(--text-color-light);
-            cursor: pointer;
             font-size: 18px;
             padding: 0 4px;
         }
@@ -371,6 +364,12 @@
             word-wrap: break-word; 
             flex-grow: 1; /* Take up remaining space */
             color: var(--text-color-light);
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border-radius: 4px;
         }
         .log-entry { 
             margin: 0; 
@@ -395,7 +394,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
             padding: 0;
             border-radius: 4px;
         }
