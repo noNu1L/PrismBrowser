@@ -42,34 +42,25 @@ function startClash() {
   clashProcess.stdout.on('data', (data) => {
     const logMessage = data.toString();
     console.log(`Mihomo stdout: ${logMessage}`);
-    if (mainWindow) {
-      mainWindow.webContents.send('mihomo-log', logMessage);
-    }
+    if (mainWindow) mainWindow.webContents.send('mihomo-log', logMessage);
   });
 
   clashProcess.stderr.on('data', (data) => {
     const logMessage = `[STDERR] ${data.toString()}`;
     console.error(`Mihomo stderr: ${logMessage}`);
-    if (mainWindow) {
-      mainWindow.webContents.send('mihomo-log', logMessage);
-    }
+    if (mainWindow) mainWindow.webContents.send('mihomo-log', logMessage);
   });
 
   clashProcess.on('close', (code) => {
     const logMessage = `Mihomo process exited with code ${code}`;
     console.log(logMessage);
-    if (mainWindow) {
-      mainWindow.webContents.send('mihomo-log', logMessage);
-    }
     clashProcess = null;
   });
 
   clashProcess.on('error', (err) => {
     const logMessage = `Failed to start Mihomo process. ${err}`;
     console.error(logMessage);
-    if (mainWindow) {
-      mainWindow.webContents.send('mihomo-log', logMessage);
-    }
+    if (mainWindow) mainWindow.webContents.send('mihomo-log', logMessage);
   });
 }
 

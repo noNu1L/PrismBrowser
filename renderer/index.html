@@ -67,6 +67,12 @@
             background-color: var(--tab-bg-color-active);
             z-index: 2;
         }
+        .tab-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
         .tab-title {
             white-space: nowrap;
             overflow: hidden;
@@ -171,7 +177,15 @@
             display: flex;
             align-items: center;
         }
-        #url-input { flex-grow: 1; height: 28px; padding: 0 30px 0 15px; border-radius: 16px; border: 1px solid var(--border-color-secondary); margin-right: 5px; }
+        #url-input { 
+            flex-grow: 1; 
+            height: 32px; /* Increased height */ 
+            padding: 0 30px 0 15px; 
+            border-radius: 16px; 
+            border: 1px solid var(--border-color-secondary); 
+            margin-right: 5px; 
+            font-size: 14px; /* Slightly larger font */
+        }
         #add-bookmark {
             position: absolute;
             right: 15px;
@@ -197,7 +211,27 @@
             fill: none;
             stroke: var(--bookmark-star-color);
         }
-        #toggle-logs { margin-left: 5px; height: 32px; }
+        #toggle-logs {
+            height: 32px;
+            width: 32px; /* Make it a square button */
+            margin-left: 5px;
+            border: none;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            border-radius: 4px;
+        }
+        #toggle-logs:hover {
+            background-color: var(--button-hover-bg);
+        }
+        #toggle-logs svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--button-icon-color);
+        }
 
         /* --- Bookmarks Bar --- */
         #bookmarks-bar {
@@ -282,10 +316,78 @@
         #error-page h1 { font-size: 24px; color: var(--error-page-title-color); margin-bottom: 10px; }
         #error-page p { font-size: 16px; color: var(--error-page-text-color); }
         #error-page button { margin-top: 20px; padding: 10px 20px; font-size: 16px; border: 1px solid var(--border-color-secondary); border-radius: 4px; cursor: pointer; }
-        #log-viewer { height: 200px; background-color: var(--log-viewer-bg); color: var(--text-color-light); font-family: monospace; overflow-y: scroll; padding: 5px; white-space: pre-wrap; word-wrap: break-word; flex-shrink: 0; display: none; }
-        .log-entry { margin: 0; padding: 2px 0; border-bottom: 1px solid var(--log-viewer-border); }
+        #log-viewer { 
+            height: 200px; 
+            background-color: var(--log-viewer-bg); 
+            flex-shrink: 0; 
+            display: none; /* Hidden by default */
+            flex-direction: column; /* To stack header and content */
+        }
+        #log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            background-color: #3a3a3a;
+            color: var(--text-color-light);
+            flex-shrink: 0;
+        }
+        #log-header-title {
+            font-family: sans-serif;
+            font-size: 13px;
+        }
+        #close-log-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-color-light);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 4px;
+        }
+        #log-content {
+            font-family: monospace; 
+            overflow-y: scroll; 
+            padding: 5px; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            flex-grow: 1; /* Take up remaining space */
+            color: var(--text-color-light);
+        }
+        .log-entry { 
+            margin: 0; 
+            padding: 2px 0; 
+            border-bottom: 1px solid var(--log-viewer-border);
+        }
         .log-entry[style*="color"] { /* A bit of a hack to ensure error color is applied */
             color: var(--log-error-text) !important;
+        }
+
+        #actions-container {
+            display: flex;
+            align-items: center;
+            margin-left: 5px;
+        }
+        #actions-container button {
+            height: 32px;
+            width: 32px;
+            margin-left: 2px;
+            border: none;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            border-radius: 4px;
+        }
+        #actions-container button:hover {
+            background-color: var(--button-hover-bg);
+        }
+        #actions-container button svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--button-icon-color);
+            fill: none;
         }
     </style>
 </head>
@@ -326,7 +428,17 @@
             <input type="text" id="url-input">
             <button id="add-bookmark" title="添加/移除收藏"></button>
         </div>
-        <button id="toggle-logs">切换日志</button>
+        <div id="actions-container">
+            <button id="toggle-logs-btn" title="切换日志">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+            </button>
+            <button id="favorites-btn" title="收藏夹 (开发中)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+            </button>
+            <button id="settings-btn" title="设置 (开发中)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+            </button>
+        </div>
     </div>
     <div id="bookmarks-bar"></div>
     <div id="main-content">
@@ -338,7 +450,13 @@
             <p id="error-desc"></p>
             <button id="reload-failed-url">重新加载</button>
         </div>
-        <div id="log-viewer"></div>
+        <div id="log-viewer">
+            <div id="log-header">
+                <span id="log-header-title">日志</span>
+                <button id="close-log-btn" title="关闭日志面板">&times;</button>
+            </div>
+            <div id="log-content"></div>
+        </div>
     </div>
 
     <script>
@@ -359,14 +477,19 @@
         const errorPage = document.getElementById('error-page');
         const errorDesc = document.getElementById('error-desc');
         const reloadFailedButton = document.getElementById('reload-failed-url');
-        const toggleLogsButton = document.getElementById('toggle-logs');
+        const toggleLogsButton = document.getElementById('toggle-logs-btn');
         const logViewer = document.getElementById('log-viewer');
+        const logContent = document.getElementById('log-content');
+        const closeLogBtn = document.getElementById('close-log-btn');
         
         let tabs = [];
         let activeTabId = null;
         let lastFailedURL = '';
         let currentBookmarks = [];
         const homeURL = 'https://www.google.com';
+
+        // --- Default Globe Icon ---
+        const defaultGlobeIcon = `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
 
         const getActiveTab = () => tabs.find(t => t.id === activeTabId);
 
@@ -377,7 +500,11 @@
             const tabEl = document.createElement('div');
             tabEl.className = 'tab-item';
             tabEl.dataset.tabId = tabId;
-            tabEl.innerHTML = `<span class="tab-title">New Tab</span><button class="close-tab" title="关闭标签页">&#x2715;</button>`;
+            tabEl.innerHTML = `
+                ${defaultGlobeIcon}
+                <span class="tab-title">New Tab</span>
+                <button class="close-tab" title="关闭标签页">&#x2715;</button>
+            `;
             tabsContainer.appendChild(tabEl);
 
             const webviewEl = document.createElement('webview');
@@ -446,9 +573,31 @@
         const addWebviewListeners = (tab) => {
             const { webview, el, id } = tab;
             const titleEl = el.querySelector('.tab-title');
+            const iconContainer = el.querySelector('.tab-icon');
+
+            webview.addEventListener('page-favicon-updated', (e) => {
+                if (e.favicons && e.favicons.length > 0) {
+                    const bestFavicon = e.favicons[0]; // Or choose the best size
+                    const faviconImg = document.createElement('img');
+                    faviconImg.className = 'tab-icon';
+                    faviconImg.src = bestFavicon;
+                    if (iconContainer.parentNode) {
+                        iconContainer.parentNode.replaceChild(faviconImg, iconContainer);
+                    }
+                }
+            });
 
             webview.addEventListener('page-title-updated', (e) => { titleEl.textContent = e.title; titleEl.title = e.title; });
-            webview.addEventListener('did-start-loading', () => { titleEl.textContent = 'Loading...'; updateNavButtonsState(); });
+            webview.addEventListener('did-start-loading', () => { 
+                titleEl.textContent = 'Loading...';
+                // Reset to default globe icon on new load
+                const currentIcon = el.querySelector('.tab-icon');
+                if (currentIcon && currentIcon.tagName === 'IMG') {
+                     const newIcon = new DOMParser().parseFromString(defaultGlobeIcon, "image/svg+xml").documentElement;
+                     currentIcon.parentNode.replaceChild(newIcon, currentIcon);
+                }
+                updateNavButtonsState(); 
+            });
             webview.addEventListener('did-stop-loading', updateNavButtonsState);
             webview.addEventListener('did-navigate', (e) => {
                 if (id === activeTabId) {
@@ -560,7 +709,12 @@
 
         // --- Log Viewer Logic ---
         toggleLogsButton.addEventListener('click', () => {
-            logViewer.style.display = logViewer.style.display === 'none' ? 'block' : 'none';
+            const isCurrentlyHidden = logViewer.style.display !== 'flex'; // It's a flex container now
+            logViewer.style.display = isCurrentlyHidden ? 'flex' : 'none';
+        });
+
+        closeLogBtn.addEventListener('click', () => {
+            logViewer.style.display = 'none';
         });
 
         window.api.onMihomoLog((log) => {
@@ -570,9 +724,11 @@
                 const logEntry = document.createElement('div');
                 logEntry.className = 'log-entry';
                 logEntry.textContent = line;
-                if (line.includes('error') || line.includes('failed')) logEntry.style.color = '#ff6b6b';
-                logViewer.appendChild(logEntry);
-                logViewer.scrollTop = logViewer.scrollHeight;
+                if (line.includes('error') || line.includes('failed')) {
+                    logEntry.style.color = 'var(--log-error-text)';
+                }
+                logContent.appendChild(logEntry); // Append to new content area
+                logContent.scrollTop = logContent.scrollHeight; // Scroll new content area
             });
         });
 

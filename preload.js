@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('api', {
   deleteBookmark: (url) => ipcRenderer.invoke('delete-bookmark', url),
   // --- Window ---
   sendWindowControl: (action) => ipcRenderer.send('window-control', action),
+  // openLogWindow: () => ipcRenderer.send('open-log-window'), // No longer needed
 });
 
 window.addEventListener('DOMContentLoaded', () => {
