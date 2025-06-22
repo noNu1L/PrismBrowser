@@ -45,7 +45,8 @@
             position: relative;
             cursor: pointer;
             flex-shrink: 0;
-            max-width: 200px;
+            width: 180px; /* Set a fixed width for all tabs */
+            box-sizing: border-box; /* Ensure padding is included in the width */
             -webkit-app-region: no-drag; /* Tabs are clickable */
         }
         .tab-item.active {
@@ -57,9 +58,10 @@
             overflow: hidden;
             text-overflow: ellipsis;
             font-size: 13px;
+            flex-grow: 1; /* Allow title to take up available space */
         }
         .close-tab {
-            margin-left: 8px;
+            margin-left: auto; /* Push the close button to the far right */
             width: 16px;
             height: 16px;
             border: none;
@@ -77,16 +79,19 @@
             background-color: #c0c0c0;
         }
         #new-tab-btn {
-            width: 28px;
-            height: 28px;
+            width: 34px; /* Adjust width to be more like a square */
+            height: 34px; /* Match the visual height of the tabs */
             font-size: 18px;
             margin-left: 2px;
-            margin-bottom: 3px; /* Align with tab bottom */
+            /* margin-bottom: 3px;  Remove this to align with bottom */
             border: 1px solid #bbb;
             border-radius: 4px;
             background-color: #d0d0d0;
             flex-shrink: 0;
             -webkit-app-region: no-drag; /* New tab button is clickable */
+            padding: 0; /* Reset padding */
+            box-sizing: border-box; /* Ensure border is included */
+            align-self: flex-end; /* Align to the bottom of the flex container */
         }
 
         #window-controls {
