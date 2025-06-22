@@ -66,8 +66,8 @@ app.whenReady().then(async () => {
 
   // Configure the proxy for all HTTP and HTTPS traffic.
   // This must be done after the app is ready.
-  // We assume Mihomo is running on port 7890 (a common default).
-  const proxyRules = 'http=127.0.0.1:7890;https=127.0.0.1:7890';
+  // We assume Mihomo is running on port 17890 now.
+  const proxyRules = 'http=127.0.0.1:17890;https=127.0.0.1:17890';
   await session.defaultSession.setProxy({
     proxyRules: proxyRules,
     // You can add bypass rules for local addresses if needed.
