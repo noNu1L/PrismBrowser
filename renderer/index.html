@@ -73,6 +73,18 @@
             margin-right: 8px;
             flex-shrink: 0;
         }
+        .loading-spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid #888;
+            border-top-color: #eee;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 2px 0;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
         .tab-title {
             white-space: nowrap;
             overflow: hidden;
@@ -488,10 +500,29 @@
         let currentBookmarks = [];
         const homeURL = 'https://www.google.com';
 
-        // --- Default Globe Icon ---
+        // --- Icon and Spinner Definitions ---
         const defaultGlobeIcon = `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
+        const loadingSpinner = `<div class="loading-spinner"></div>`;
 
         const getActiveTab = () => tabs.find(t => t.id === activeTabId);
+
+        // --- Helper function to extract hostname ---
+        const getHostname = (url) => {
+            try {
+                return new URL(url).hostname;
+            } catch (e) {
+                return url; // fallback to the original url if it's not valid
+            }
+        };
+
+        // --- Helper function to set tab icon ---
+        const setTabIcon = (tabEl, iconHTML) => {
+            const currentIcon = tabEl.querySelector('.tab-icon, .loading-spinner');
+            if (currentIcon) {
+                const newIcon = new DOMParser().parseFromString(iconHTML, "text/html").body.firstChild;
+                currentIcon.parentNode.replaceChild(newIcon, currentIcon);
+            }
+        };
 
         // --- Tab Management ---
         const createNewTab = (urlToLoad = homeURL, isHidden = false) => {
@@ -503,28 +534,33 @@
             tabEl.innerHTML = `
                 ${defaultGlobeIcon}
                 <span class="tab-title">New Tab</span>
-                <button class="close-tab" title="关闭标签页">&#x2715;</button>
+                <button class="close-tab" title="关闭标签页">&times;</button>
             `;
             tabsContainer.appendChild(tabEl);
 
             const webviewEl = document.createElement('webview');
             webviewEl.dataset.tabId = tabId;
-            webviewEl.src = urlToLoad; // Set src directly. This is more reliable for initial load.
+            webviewEl.src = urlToLoad; // Restore setting src for reliable initialization.
+            
+            // It's important to append to DOM before adding listeners in some cases.
             webviewContainer.appendChild(webviewEl);
             
             const newTab = { id: tabId, el: tabEl, webview: webviewEl };
             tabs.push(newTab);
+
+            // Attach listeners before any potential navigation from user input.
+            addWebviewListeners(newTab);
 
             tabEl.addEventListener('click', () => switchToTab(tabId));
             tabEl.querySelector('.close-tab').addEventListener('click', (e) => {
                 e.stopPropagation();
                 closeTab(tabId);
             });
-            addWebviewListeners(newTab);
             
             if (!isHidden) {
                 switchToTab(tabId);
             }
+            // No need to call loadURL again if src is set.
         };
 
         const switchToTab = (tabId) => {
@@ -570,35 +606,59 @@
             forwardButton.disabled = !tab.webview.canGoForward();
         };
 
+        // --- Event Listeners for Webviews (This is the core change) ---
         const addWebviewListeners = (tab) => {
             const { webview, el, id } = tab;
             const titleEl = el.querySelector('.tab-title');
-            const iconContainer = el.querySelector('.tab-icon');
 
             webview.addEventListener('page-favicon-updated', (e) => {
                 if (e.favicons && e.favicons.length > 0) {
-                    const bestFavicon = e.favicons[0]; // Or choose the best size
-                    const faviconImg = document.createElement('img');
-                    faviconImg.className = 'tab-icon';
-                    faviconImg.src = bestFavicon;
-                    if (iconContainer.parentNode) {
-                        iconContainer.parentNode.replaceChild(faviconImg, iconContainer);
-                    }
+                    const bestFavicon = e.favicons[0];
+                    setTabIcon(el, `<img class="tab-icon" src="${bestFavicon}">`);
                 }
             });
 
             webview.addEventListener('page-title-updated', (e) => { titleEl.textContent = e.title; titleEl.title = e.title; });
+            
             webview.addEventListener('did-start-loading', () => { 
-                titleEl.textContent = 'Loading...';
-                // Reset to default globe icon on new load
-                const currentIcon = el.querySelector('.tab-icon');
-                if (currentIcon && currentIcon.tagName === 'IMG') {
-                     const newIcon = new DOMParser().parseFromString(defaultGlobeIcon, "image/svg+xml").documentElement;
-                     currentIcon.parentNode.replaceChild(newIcon, currentIcon);
+                // Only set title to hostname if it's a brand new tab.
+                // This prevents title flicker on reloads.
+                if (titleEl.textContent === 'New Tab') {
+                    const url = webview.getURL() || webview.src;
+                    titleEl.textContent = getHostname(url);
                 }
+                setTabIcon(el, loadingSpinner);
                 updateNavButtonsState(); 
             });
-            webview.addEventListener('did-stop-loading', updateNavButtonsState);
+
+            webview.addEventListener('did-finish-load', async () => {
+                // Proactively check for favicon if the event didn't fire
+                const currentIcon = el.querySelector('.tab-icon, .loading-spinner');
+                // Only try to fetch if we are still showing a spinner (meaning favicon event failed)
+                if (currentIcon && currentIcon.classList.contains('loading-spinner')) {
+                    try {
+                        const faviconURL = await webview.executeJavaScript(`
+                            (() => {
+                                const icon = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
+                                return icon ? icon.href : null;
+                            })();
+                        `);
+                        if (faviconURL) {
+                            setTabIcon(el, `<img class="tab-icon" src="${faviconURL}">`);
+                        } else {
+                            setTabIcon(el, defaultGlobeIcon); // Fallback to globe if not found
+                        }
+                    } catch (error) {
+                        console.error('Error fetching favicon via JS:', error);
+                        setTabIcon(el, defaultGlobeIcon); // Fallback on error
+                    }
+                }
+            });
+
+            webview.addEventListener('did-stop-loading', () => {
+                updateNavButtonsState();
+            });
+
             webview.addEventListener('did-navigate', (e) => {
                 if (id === activeTabId) {
                     urlInput.value = e.url;
@@ -606,8 +666,14 @@
                 }
                 updateNavButtonsState();
             });
+
             webview.addEventListener('did-fail-load', (e) => {
-                if (e.errorCode === -3) return;
+                if (e.errorCode === -3) return; // Ignore user abort
+                setTabIcon(el, defaultGlobeIcon); // On failure, show globe
+                
+                // Explicitly set title to the failed hostname
+                titleEl.textContent = getHostname(e.validatedURL);
+
                 if (id === activeTabId) {
                     lastFailedURL = e.validatedURL;
                     errorDesc.textContent = `网址为 ${e.validatedURL} 的网页可能暂时无法连接...`;
