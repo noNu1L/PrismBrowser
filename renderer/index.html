@@ -29,11 +29,120 @@
             height: 20px;
             stroke: #333;
         }
-        #url-input { flex-grow: 1; height: 28px; padding: 0 8px; border-radius: 16px; border: 1px solid #ccc; margin-right: 5px; }
+        #url-container {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        #url-input { flex-grow: 1; height: 28px; padding: 0 30px 0 15px; border-radius: 16px; border: 1px solid #ccc; margin-right: 5px; }
+        #add-bookmark {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #add-bookmark svg {
+            width: 16px;
+            height: 16px;
+        }
+        #add-bookmark .star-fill {
+            fill: #666;
+            stroke: #666;
+        }
+        #add-bookmark .star-outline {
+            fill: none;
+            stroke: #666;
+        }
         #toggle-logs { margin-left: 5px; height: 32px; }
-        #main-content { flex-grow: 1; display: flex; flex-direction: column; }
+        #bookmarks-bar {
+            background-color: #fff;
+            padding: 4px 8px;
+            border-bottom: 1px solid #ccc;
+            flex-shrink: 0;
+            white-space: nowrap;
+            overflow-x: auto;
+        }
+        .bookmark-item {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 8px;
+            border-radius: 4px;
+            margin-right: 5px;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #333;
+        }
+        .bookmark-item:hover {
+            background-color: #e0e0e0;
+        }
+        .bookmark-title {
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bookmark-delete {
+            margin-left: 8px;
+            width: 16px;
+            height: 16px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            opacity: 0.5;
+            padding: 0;
+        }
+        .bookmark-delete:hover {
+            opacity: 1;
+        }
+        #main-content { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column;
+            position: relative; /* Needed for error page positioning */
+        }
         #webview-container { flex-grow: 1; }
         webview { height: 100%; width: 100%; display: inline-flex !important; }
+        #error-page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f9f9f9;
+            z-index: 100;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-family: sans-serif;
+        }
+        #error-page h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        #error-page p {
+            font-size: 16px;
+            color: #666;
+        }
+        #error-page button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
         #log-viewer { height: 200px; background-color: #2b2b2b; color: #f1f1f1; font-family: monospace; overflow-y: scroll; padding: 5px; white-space: pre-wrap; word-wrap: break-word; flex-shrink: 0; display: none; }
         .log-entry { margin: 0; padding: 2px 0; border-bottom: 1px solid #444; }
     </style>
@@ -54,12 +163,23 @@
                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             </button>
         </div>
-        <input type="text" id="url-input" value="https://www.google.com">
+        <div id="url-container">
+            <input type="text" id="url-input" value="https://www.google.com">
+            <button id="add-bookmark" title="添加/移除收藏">
+                <svg class="star-outline" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            </button>
+        </div>
         <button id="toggle-logs">切换日志</button>
     </div>
+    <div id="bookmarks-bar"></div>
     <div id="main-content">
         <div id="webview-container">
             <webview id="browser-view" src="https://www.google.com"></webview>
+        </div>
+        <div id="error-page">
+            <h1>无法访问此网站</h1>
+            <p id="error-desc"></p>
+            <button id="reload-failed-url">重新加载</button>
         </div>
         <div id="log-viewer"></div>
     </div>
@@ -71,13 +191,84 @@
         const forwardButton = document.getElementById('forward');
         const reloadButton = document.getElementById('reload');
         const homeButton = document.getElementById('home');
+        const addBookmarkButton = document.getElementById('add-bookmark');
+        const bookmarksBar = document.getElementById('bookmarks-bar');
         const toggleLogsButton = document.getElementById('toggle-logs');
         const logViewer = document.getElementById('log-viewer');
+        const webviewContainer = document.getElementById('webview-container');
+        const errorPage = document.getElementById('error-page');
+        const errorDesc = document.getElementById('error-desc');
+        const reloadFailedButton = document.getElementById('reload-failed-url');
         
+        let currentBookmarks = [];
+        let lastFailedURL = '';
         const homeURL = 'https://www.google.com';
+
+        // --- Bookmark Logic ---
+        const renderBookmarks = (bookmarks) => {
+            currentBookmarks = bookmarks;
+            bookmarksBar.innerHTML = ''; // Clear current bookmarks
+            bookmarks.forEach(bookmark => {
+                const item = document.createElement('a');
+                item.className = 'bookmark-item';
+                item.href = bookmark.url;
+                item.title = `${bookmark.title}\\n${bookmark.url}`;
+                
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'bookmark-title';
+                titleSpan.textContent = bookmark.title;
+                item.appendChild(titleSpan);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'bookmark-delete';
+                deleteBtn.innerHTML = '&#x2715;'; // Cross symbol
+                deleteBtn.title = '删除收藏';
+                deleteBtn.addEventListener('click', async (e) => {
+                    e.preventDefault(); // Prevent navigation
+                    e.stopPropagation();
+                    const updatedBookmarks = await window.api.deleteBookmark(bookmark.url);
+                    renderBookmarks(updatedBookmarks);
+                    updateBookmarkStar(webview.getURL());
+                });
+                item.appendChild(deleteBtn);
+
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    loadURL(item.href);
+                });
+
+                bookmarksBar.appendChild(item);
+            });
+        };
+
+        const updateBookmarkStar = (url) => {
+            const isBookmarked = currentBookmarks.some(b => b.url === url);
+            addBookmarkButton.innerHTML = isBookmarked
+                ? `<svg class="star-fill" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`
+                : `<svg class="star-outline" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
+        };
+
+        addBookmarkButton.addEventListener('click', async () => {
+            const url = webview.getURL();
+            const title = webview.getTitle();
+            const isBookmarked = currentBookmarks.some(b => b.url === url);
+
+            let updatedBookmarks;
+            if (isBookmarked) {
+                updatedBookmarks = await window.api.deleteBookmark(url);
+            } else {
+                updatedBookmarks = await window.api.addBookmark({ url, title });
+            }
+            renderBookmarks(updatedBookmarks);
+            updateBookmarkStar(url);
+        });
 
         // --- Browser Controls ---
         const loadURL = (url) => {
+            // When we try to load a new URL, hide the error page and show the webview
+            errorPage.style.display = 'none';
+            webviewContainer.style.display = 'flex';
+
             let finalURL = url;
             if (!url.startsWith('http://') && !url.startsWith('https://')) {
                 finalURL = 'http://' + url;
@@ -95,15 +286,37 @@
         forwardButton.addEventListener('click', () => webview.canGoForward() && webview.goForward());
         reloadButton.addEventListener('click', () => webview.reload());
         homeButton.addEventListener('click', () => loadURL(homeURL));
-        webview.addEventListener('did-navigate', (e) => { urlInput.value = e.url; });
+        webview.addEventListener('did-navigate', (e) => { 
+            urlInput.value = e.url; 
+            updateBookmarkStar(e.url);
+        });
         webview.addEventListener('did-fail-load', (e) => {
+            // Ignore benign errors (e.g., user aborts navigation)
+            if (e.errorCode === -3) { 
+                return;
+            }
+
             console.error('Failed to load URL:', e);
-            const logMessage = `ERROR: Failed to load ${e.url}. Reason: ${e.errorDescription}`;
+            lastFailedURL = e.validatedURL; // Store the failed URL
+
+            // Show error details in our custom log viewer
+            const logMessage = `ERROR: Failed to load ${e.validatedURL}. Reason: ${e.errorDescription} (${e.errorCode})`;
             const logEntry = document.createElement('div');
             logEntry.className = 'log-entry';
             logEntry.style.color = '#ff6b6b';
             logEntry.textContent = logMessage;
             logViewer.appendChild(logEntry);
+
+            // Show our custom error page
+            errorDesc.textContent = `网址为 ${e.validatedURL} 的网页可能暂时无法连接，或者它已永久性地移动到了新网址。错误代码: ${e.errorDescription}`;
+            webviewContainer.style.display = 'none'; // Hide the webview
+            errorPage.style.display = 'flex'; // Show the error page
+        });
+
+        reloadFailedButton.addEventListener('click', () => {
+            if (lastFailedURL) {
+                loadURL(lastFailedURL);
+            }
         });
 
         // --- Log Viewer Logic ---
@@ -130,8 +343,15 @@
             logViewer.scrollTop = logViewer.scrollHeight;
         });
 
-        // Load initial URL
-        loadURL(urlInput.value);
+        // --- Initial Load ---
+        const init = async () => {
+            const bookmarks = await window.api.getBookmarks();
+            renderBookmarks(bookmarks);
+            loadURL(urlInput.value);
+            updateBookmarkStar(urlInput.value);
+        };
+
+        init();
     </script>
 </body>
 </html> 

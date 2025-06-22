@@ -1,7 +1,9 @@
-const { app, BrowserWindow, session } = require('electron');
+const { app, BrowserWindow, session, ipcMain } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
+const Store = require('electron-store');
 
+const store = new Store();
 let clashProcess = null;
 let mainWindow = null;
 
@@ -76,6 +78,29 @@ function stopClash() {
     clashProcess = null;
   }
 }
+
+// --- IPC Handlers for Bookmarks ---
+ipcMain.handle('get-bookmarks', async () => {
+  return store.get('bookmarks', []);
+});
+
+ipcMain.handle('add-bookmark', async (event, bookmark) => {
+  const bookmarks = store.get('bookmarks', []);
+  // Avoid duplicates
+  if (bookmarks.find(b => b.url === bookmark.url)) {
+    return bookmarks;
+  }
+  const newBookmarks = [...bookmarks, bookmark];
+  store.set('bookmarks', newBookmarks);
+  return newBookmarks;
+});
+
+ipcMain.handle('delete-bookmark', async (event, url) => {
+  const bookmarks = store.get('bookmarks', []);
+  const newBookmarks = bookmarks.filter(b => b.url !== url);
+  store.set('bookmarks', newBookmarks);
+  return newBookmarks;
+});
 
 app.whenReady().then(async () => {
   // Start Mihomo first.

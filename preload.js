@@ -14,7 +14,11 @@ contextBridge.exposeInMainWorld('api', {
    */
   onMihomoLog: (callback) => {
     ipcRenderer.on('mihomo-log', (_event, value) => callback(value));
-  }
+  },
+  // --- Bookmarks ---
+  getBookmarks: () => ipcRenderer.invoke('get-bookmarks'),
+  addBookmark: (bookmark) => ipcRenderer.invoke('add-bookmark', bookmark),
+  deleteBookmark: (url) => ipcRenderer.invoke('delete-bookmark', url),
 });
 
 window.addEventListener('DOMContentLoaded', () => {
