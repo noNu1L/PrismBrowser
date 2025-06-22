@@ -138,12 +138,14 @@
         .history-item:hover {
             background-color: #f0f0f0;
         }
-        .history-item-checkbox {
-            margin-right: 16px;
+        /* 提高选择器优先级以覆盖 theme.css 中的全局设置 */
+        .history-item .history-item-checkbox, 
+        .date-group-header .group-checkbox {
+            margin-right: 20px;
         }
         .history-item-favicon {
             width: 16px; height: 16px;
-            margin-right: 12px;
+            margin-right: 16px;
         }
         .history-item-main {
             display: flex; align-items: baseline;
