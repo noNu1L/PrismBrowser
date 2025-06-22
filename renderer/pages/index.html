@@ -69,6 +69,12 @@
             width: 1px;
             background-color: var(--border-color-primary);
         }
+        .tab-item.loading .tab-icon {
+            display: none;
+        }
+        .tab-item.loading .loading-spinner {
+            display: block;
+        }
         .tab-item.active {
             background-color: var(--tab-bg-color-active);
             z-index: 2;
@@ -82,12 +88,13 @@
         .loading-spinner {
             width: 14px;
             height: 14px;
-            border: 2px solid var(--spinner-base-color);
+            border: 2px solid var(--button-primary-bg); /* 使用主题蓝色 */
+            border-left-color: transparent; /* 关键：隐藏一条边来制造"缺口" */
             border-radius: 50%;
-            border-top-color: var(--spinner-highlight-color);
-            animation: spin 0.8s linear infinite;
+            animation: spin 0.6s linear infinite; /* 调整动画速度 */
             flex-shrink: 0;
             margin-right: 8px;
+            display: none; /* 默认隐藏 */
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
@@ -542,7 +549,7 @@
 
         // --- Helper function to set tab icon ---
         const setTabIcon = (tabEl, iconHTML) => {
-            const currentIcon = tabEl.querySelector('.tab-icon, .loading-spinner');
+            const currentIcon = tabEl.querySelector('.tab-icon'); // Only select the icon itself
             if (currentIcon) {
                 const newIcon = new DOMParser().parseFromString(iconHTML, "text/html").body.firstChild;
                 // If the new icon is an img, store its src
@@ -552,6 +559,10 @@
                 }
                 currentIcon.parentNode.replaceChild(newIcon, currentIcon);
             }
+        };
+
+        const showLoadingIndicator = (tabEl, show) => {
+            tabEl.classList.toggle('loading', show);
         };
 
         // --- Tab Management ---
@@ -571,6 +582,7 @@
             tabEl.dataset.tabId = tabId;
             tabEl.innerHTML = `
                 ${defaultGlobeIcon}
+                <div class="loading-spinner"></div>
                 <span class="tab-title">New Tab</span>
                 <button class="close-tab" title="关闭标签页">&times;</button>
             `;
@@ -694,17 +706,18 @@
             webview.addEventListener('page-title-updated', (e) => { titleEl.textContent = e.title; titleEl.title = e.title; });
             
             webview.addEventListener('did-start-loading', () => { 
+                showLoadingIndicator(el, true);
                 // Only set title to hostname if it's a brand new tab.
                 // This prevents title flicker on reloads.
                 if (titleEl.textContent === 'New Tab') {
                     const url = webview.getURL() || webview.src;
                     titleEl.textContent = getHostname(url);
                 }
-                setTabIcon(el, loadingSpinner);
                 updateNavButtonsState(); 
             });
 
             webview.addEventListener('did-finish-load', async () => {
+                showLoadingIndicator(el, false);
                 const url = webview.getURL();
                 const title = webview.getTitle();
                 // Don't add blank or placeholder URLs to history
@@ -713,7 +726,7 @@
                 }
 
                 // Proactively check for favicon if the event didn't fire
-                const currentIcon = el.querySelector('.tab-icon, .loading-spinner');
+                const currentIcon = el.querySelector('.tab-icon');
                 // Only try to fetch if we are still showing a spinner (meaning favicon event failed)
                 if (currentIcon && currentIcon.classList.contains('loading-spinner')) {
                     try {
@@ -737,6 +750,7 @@
             });
 
             webview.addEventListener('did-stop-loading', () => {
+                showLoadingIndicator(el, false);
                 updateNavButtonsState();
             });
 
@@ -750,7 +764,7 @@
 
             webview.addEventListener('did-fail-load', (e) => {
                 if (e.errorCode === -3) return; // Ignore user abort
-                setTabIcon(el, defaultGlobeIcon); // On failure, show globe
+                showLoadingIndicator(el, false);
                 
                 // Explicitly set title to the failed hostname
                 titleEl.textContent = getHostname(e.validatedURL);
