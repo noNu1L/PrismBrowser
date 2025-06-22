@@ -12,28 +12,32 @@
             display: flex;
             align-items: flex-end; /* Align to bottom for better look */
             background-color: var(--app-bg-color);
-            padding: 5px 5px 0 5px;
+            padding: 5px 140px 0 5px; /* Right padding reserves space for window controls */
             flex-shrink: 0;
             /* -webkit-app-region: drag; // Moved to body */
         }
         #tabs-container {
+            flex-shrink: 1;
             display: flex;
+            overflow-x: auto;
+            overflow-y: hidden; /* Prevent vertical scrollbar */
             -webkit-app-region: no-drag; /* Exclude scrollable area from drag */
+            /* Hide scrollbar by default, will be styled below */
+            scrollbar-width: none; /* For Firefox */
         }
-        /*!* --- Custom Scrollbar for Tabs --- *!*/
-        /*#tabs-container::-webkit-scrollbar {*/
-        /*    height: 4px; !* Set height of the scrollbar *!*/
-        /*}*/
-        /*#tabs-container::-webkit-scrollbar-track {*/
-        /*    background: transparent; !* Make the track invisible *!*/
-        /*}*/
-        /*#tabs-container::-webkit-scrollbar-thumb {*/
-        /*    background-color: #aaa; !* Color of the scroll thumb *!*/
-        /*    border-radius: 2px;*/
-        /*}*/
-        /*#tabs-container::-webkit-scrollbar-thumb:hover {*/
-        /*    background-color: #888; !* Color on hover *!*/
-        /*}*/
+        #tabs-container::-webkit-scrollbar {
+            height: 4px; /* Set height of the scrollbar */
+        }
+        #tabs-container::-webkit-scrollbar-track {
+            background: transparent; /* Make the track invisible */
+        }
+        #tabs-container::-webkit-scrollbar-thumb {
+            background-color: #aaa; /* Color of the scroll thumb */
+            border-radius: 2px;
+        }
+        #tabs-container::-webkit-scrollbar-thumb:hover {
+            background-color: #888; /* Color on hover */
+        }
         .tab-item {
             display: flex;
             align-items: center; /* Vertically align icon/spinner and title */
@@ -45,11 +49,13 @@
             margin-right: -1px;
             position: relative;
             cursor: pointer;
-            flex-shrink: 0;
-            width: 180px; /* Set a fixed width for all tabs */
+            flex-shrink: 1;   /* Allow tabs to shrink */
+            min-width: 80px; /* But not too much */
+            max-width: 180px; /* And not too large */
+            width: 180px;     /* Default width */
             box-sizing: border-box; /* Ensure padding is included in the width */
             -webkit-app-region: no-drag; /* Tabs are clickable */
-            transition: background-color 0.2s ease-in-out; /* Add smooth transition for hover effect */
+            transition: background-color 0.2s ease-in-out, width 0.15s ease-in-out; /* Add smooth transition */
         }
         .tab-item:not(.active):hover {
             background-color: var(--tab-hover-bg-color); /* Use the new theme variable */
@@ -501,6 +507,16 @@
         let currentBookmarks = [];
         const homeURL = 'https://www.google.com';
 
+        // --- Wheel scrolling for tabs ---
+        tabsContainer.addEventListener('wheel', (e) => {
+            // e.deltaY is the vertical scroll amount.
+            // We prevent the default vertical scroll and apply it horizontally.
+            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                e.preventDefault();
+                tabsContainer.scrollLeft += e.deltaY;
+            }
+        });
+
         // --- Icon and Spinner Definitions ---
         const defaultGlobeIcon = `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
         const loadingSpinner = `<div class="loading-spinner"></div>`;
@@ -575,6 +591,18 @@
                 tab.webview.classList.toggle('active', tab.id === tabId);
             });
             
+            // Scroll the active tab into view if it's not fully visible
+            const tabEl = tabToActivate.el;
+            const container = tabsContainer;
+            const tabRect = tabEl.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+
+            if (tabRect.left < containerRect.left) {
+                container.scrollLeft -= containerRect.left - tabRect.left;
+            } else if (tabRect.right > containerRect.right) {
+                container.scrollLeft += tabRect.right - containerRect.right;
+            }
+
             urlInput.value = tabToActivate.webview.getURL() || tabToActivate.webview.src;
             updateNavButtonsState();
             updateBookmarkStar(tabToActivate.webview.getURL());
