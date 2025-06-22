@@ -45,10 +45,10 @@ function createBookmarkPopup(data) {
     }
     const bounds = mainWindow.getBounds();
     bookmarkPopup = new BrowserWindow({
-        x: bounds.x + (bounds.width / 2) - 200, // Center horizontally
+        x: bounds.x + (bounds.width / 2) - 190, // Center horizontally
         y: bounds.y + 100, // Position near the top
         width: 400,
-        height: 230,
+        height: 250,
         frame: false,
         parent: mainWindow,
         modal: true,
@@ -85,7 +85,7 @@ function createAddFolderPopup(data) {
         x: bounds.x + (bounds.width / 2) - 180, // Center horizontally
         y: bounds.y + 150, // Position near the top
         width: 360,
-        height: 200,
+        height: 210,
         frame: false,
         parent: mainWindow,
         modal: true,
