@@ -1,0 +1,19 @@
+{
+  "name": "PrismBrowser",
+  "version": "1.0.0",
+  "description": "An Electron browser with built-in Clash.Meta",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [
+    "Electron",
+    "Browser",
+    "Clash"
+  ],
+  "author": "YourName",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^29.1.5"
+  }
+} 

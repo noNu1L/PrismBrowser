@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PrismBrowser</title>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; }
+        #controls { display: flex; align-items: center; padding: 5px; background-color: #f0f0f0; border-bottom: 1px solid #ccc; }
+        #nav-buttons button { width: 28px; height: 28px; margin-right: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        #url-input { flex-grow: 1; height: 24px; padding: 0 8px; }
+        #webview-container { height: calc(100% - 40px); }
+        webview { height: 100%; width: 100%; display: inline-flex !important; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div id="nav-buttons">
+            <button id="back" title="Back">◀</button>
+            <button id="forward" title="Forward">▶</button>
+            <button id="reload" title="Reload">↻</button>
+        </div>
+        <input type="text" id="url-input" value="https://www.baidu.com">
+    </div>
+    <div id="webview-container">
+        <webview id="browser-view" src="https://www.baidu.com"></webview>
+    </div>
+
+    <script>
+        const webview = document.getElementById('browser-view');
+        const urlInput = document.getElementById('url-input');
+        const backButton = document.getElementById('back');
+        const forwardButton = document.getElementById('forward');
+        const reloadButton = document.getElementById('reload');
+
+        const loadURL = (url) => {
+            let finalURL = url;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                finalURL = 'http://' + url;
+            }
+            webview.loadURL(finalURL);
+        };
+
+        urlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                loadURL(urlInput.value);
+            }
+        });
+
+        backButton.addEventListener('click', () => {
+            if (webview.canGoBack()) {
+                webview.goBack();
+            }
+        });
+
+        forwardButton.addEventListener('click', () => {
+            if (webview.canGoForward()) {
+                webview.goForward();
+            }
+        });
+
+        reloadButton.addEventListener('click', () => {
+            webview.reload();
+        });
+
+        webview.addEventListener('did-navigate', (e) => {
+            urlInput.value = e.url;
+        });
+        
+        webview.addEventListener('did-fail-load', (e) => {
+            console.error('Failed to load URL:', e);
+            // You could show an error page here.
+            // For example: webview.loadURL(`file://${__dirname}/error.html`);
+        });
+    </script>
+</body>
+</html> 
