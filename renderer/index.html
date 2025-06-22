@@ -6,9 +6,31 @@
     <style>
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; display: flex; flex-direction: column; }
         #controls { display: flex; align-items: center; padding: 5px; background-color: #f0f0f0; border-bottom: 1px solid #ccc; flex-shrink: 0; }
-        #nav-buttons button { width: 28px; height: 28px; margin-right: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        #url-input { flex-grow: 1; height: 24px; padding: 0 8px; }
-        #toggle-logs { margin-left: 5px; }
+        #nav-buttons {
+            display: flex;
+        }
+        #nav-buttons button { 
+            width: 32px; 
+            height: 32px; 
+            margin-right: 4px; 
+            border: 1px solid transparent; 
+            border-radius: 4px; 
+            background-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        #nav-buttons button:hover {
+            background-color: #e0e0e0;
+        }
+        #nav-buttons button svg {
+            width: 20px;
+            height: 20px;
+            stroke: #333;
+        }
+        #url-input { flex-grow: 1; height: 28px; padding: 0 8px; border-radius: 16px; border: 1px solid #ccc; margin-right: 5px; }
+        #toggle-logs { margin-left: 5px; height: 32px; }
         #main-content { flex-grow: 1; display: flex; flex-direction: column; }
         #webview-container { flex-grow: 1; }
         webview { height: 100%; width: 100%; display: inline-flex !important; }
@@ -19,9 +41,18 @@
 <body>
     <div id="controls">
         <div id="nav-buttons">
-            <button id="back" title="后退">◀</button>
-            <button id="forward" title="前进">▶</button>
-            <button id="reload" title="刷新">↻</button>
+            <button id="back" title="后退">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <button id="forward" title="前进">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+            <button id="reload" title="刷新">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            </button>
+            <button id="home" title="主页">
+                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </button>
         </div>
         <input type="text" id="url-input" value="https://www.google.com">
         <button id="toggle-logs">切换日志</button>
@@ -39,8 +70,11 @@
         const backButton = document.getElementById('back');
         const forwardButton = document.getElementById('forward');
         const reloadButton = document.getElementById('reload');
+        const homeButton = document.getElementById('home');
         const toggleLogsButton = document.getElementById('toggle-logs');
         const logViewer = document.getElementById('log-viewer');
+        
+        const homeURL = 'https://www.google.com';
 
         // --- Browser Controls ---
         const loadURL = (url) => {
@@ -60,6 +94,7 @@
         backButton.addEventListener('click', () => webview.canGoBack() && webview.goBack());
         forwardButton.addEventListener('click', () => webview.canGoForward() && webview.goForward());
         reloadButton.addEventListener('click', () => webview.reload());
+        homeButton.addEventListener('click', () => loadURL(homeURL));
         webview.addEventListener('did-navigate', (e) => { urlInput.value = e.url; });
         webview.addEventListener('did-fail-load', (e) => {
             console.error('Failed to load URL:', e);
