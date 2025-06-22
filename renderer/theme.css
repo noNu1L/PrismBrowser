@@ -21,6 +21,7 @@
     --tab-bg-color-active: var(--app-bg-color-light);
     --tab-hover-bg-color: #e0e0e0;
     --tab-close-button-hover-bg: #c0c0c0;
+    --new-tab-button-hover-bg: #b0b0b0;
 
     /* -- Button & Control Colors -- */
     --button-hover-bg: #e0e0e0;
