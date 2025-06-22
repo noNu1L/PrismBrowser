@@ -19,6 +19,18 @@ contextBridge.exposeInMainWorld('api', {
   getBookmarks: () => ipcRenderer.invoke('get-bookmarks'),
   addBookmark: (bookmark) => ipcRenderer.invoke('add-bookmark', bookmark),
   deleteBookmark: (url) => ipcRenderer.invoke('delete-bookmark', url),
+  // --- History ---
+  getHistory: () => ipcRenderer.invoke('get-history'),
+  addHistory: (item) => ipcRenderer.invoke('add-history', item),
+  deleteHistoryItem: (url) => ipcRenderer.invoke('delete-history-item', url),
+  clearHistory: () => ipcRenderer.invoke('clear-history'),
+  openInNewTab: (url) => ipcRenderer.send('open-in-new-tab', url),
+  onHistoryUpdated: (callback) => {
+    ipcRenderer.on('history-updated', (_event) => callback());
+  },
+  onNewTabRequest: (callback) => {
+    ipcRenderer.on('new-tab-request', (_event, url) => callback(url));
+  },
   // --- Window ---
   sendWindowControl: (action) => ipcRenderer.send('window-control', action),
   // openLogWindow: () => ipcRenderer.send('open-log-window'), // No longer needed

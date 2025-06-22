@@ -95,6 +95,41 @@ ipcMain.handle('delete-bookmark', async (event, url) => {
   return newBookmarks;
 });
 
+// --- IPC Handlers for History ---
+ipcMain.handle('get-history', async () => {
+    return store.get('history', []);
+});
+
+ipcMain.handle('add-history', async (event, item) => {
+    const history = store.get('history', []);
+    // To prevent the history from growing indefinitely, let's cap it at 1000 entries.
+    // Also remove potential duplicates by URL, keeping the last visit.
+    const newHistory = history.filter(h => h.url !== item.url).slice(-999);
+    newHistory.push(item);
+    store.set('history', newHistory);
+    // Notify windows that history has been updated
+    return newHistory;
+});
+
+ipcMain.handle('delete-history-item', async (event, url) => {
+    const history = store.get('history', []);
+    const newHistory = history.filter(h => h.url !== url);
+    store.set('history', newHistory);
+    return newHistory;
+});
+
+ipcMain.handle('clear-history', async () => {
+    store.set('history', []);
+    return [];
+});
+
+ipcMain.on('open-in-new-tab', (event, url) => {
+    if (mainWindow) {
+        mainWindow.webContents.send('new-tab-request', url);
+        mainWindow.focus();
+    }
+});
+
 // --- Window Controls ---
 ipcMain.on('window-control', (event, action) => {
     if (!mainWindow) return;
