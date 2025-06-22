@@ -4,12 +4,16 @@
     <meta charset="UTF-8">
     <title>PrismBrowser</title>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; }
-        #controls { display: flex; align-items: center; padding: 5px; background-color: #f0f0f0; border-bottom: 1px solid #ccc; }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; display: flex; flex-direction: column; }
+        #controls { display: flex; align-items: center; padding: 5px; background-color: #f0f0f0; border-bottom: 1px solid #ccc; flex-shrink: 0; }
         #nav-buttons button { width: 28px; height: 28px; margin-right: 5px; border: 1px solid #ccc; border-radius: 4px; }
         #url-input { flex-grow: 1; height: 24px; padding: 0 8px; }
-        #webview-container { height: calc(100% - 40px); }
+        #toggle-logs { margin-left: 5px; }
+        #main-content { flex-grow: 1; display: flex; flex-direction: column; }
+        #webview-container { flex-grow: 1; }
         webview { height: 100%; width: 100%; display: inline-flex !important; }
+        #log-viewer { height: 200px; background-color: #2b2b2b; color: #f1f1f1; font-family: monospace; overflow-y: scroll; padding: 5px; white-space: pre-wrap; word-wrap: break-word; flex-shrink: 0; display: none; }
+        .log-entry { margin: 0; padding: 2px 0; border-bottom: 1px solid #444; }
     </style>
 </head>
 <body>
@@ -19,10 +23,14 @@
             <button id="forward" title="Forward">▶</button>
             <button id="reload" title="Reload">↻</button>
         </div>
-        <input type="text" id="url-input" value="https://www.baidu.com">
+        <input type="text" id="url-input" value="https://www.google.com">
+        <button id="toggle-logs">Toggle Logs</button>
     </div>
-    <div id="webview-container">
-        <webview id="browser-view" src="https://www.baidu.com"></webview>
+    <div id="main-content">
+        <div id="webview-container">
+            <webview id="browser-view" src="https://www.google.com"></webview>
+        </div>
+        <div id="log-viewer"></div>
     </div>
 
     <script>
@@ -31,7 +39,10 @@
         const backButton = document.getElementById('back');
         const forwardButton = document.getElementById('forward');
         const reloadButton = document.getElementById('reload');
+        const toggleLogsButton = document.getElementById('toggle-logs');
+        const logViewer = document.getElementById('log-viewer');
 
+        // --- Browser Controls ---
         const loadURL = (url) => {
             let finalURL = url;
             if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -46,31 +57,46 @@
             }
         });
 
-        backButton.addEventListener('click', () => {
-            if (webview.canGoBack()) {
-                webview.goBack();
-            }
-        });
-
-        forwardButton.addEventListener('click', () => {
-            if (webview.canGoForward()) {
-                webview.goForward();
-            }
-        });
-
-        reloadButton.addEventListener('click', () => {
-            webview.reload();
-        });
-
-        webview.addEventListener('did-navigate', (e) => {
-            urlInput.value = e.url;
-        });
-        
+        backButton.addEventListener('click', () => webview.canGoBack() && webview.goBack());
+        forwardButton.addEventListener('click', () => webview.canGoForward() && webview.goForward());
+        reloadButton.addEventListener('click', () => webview.reload());
+        webview.addEventListener('did-navigate', (e) => { urlInput.value = e.url; });
         webview.addEventListener('did-fail-load', (e) => {
             console.error('Failed to load URL:', e);
-            // You could show an error page here.
-            // For example: webview.loadURL(`file://${__dirname}/error.html`);
+            const logMessage = `ERROR: Failed to load ${e.url}. Reason: ${e.errorDescription}`;
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.style.color = '#ff6b6b';
+            logEntry.textContent = logMessage;
+            logViewer.appendChild(logEntry);
         });
+
+        // --- Log Viewer Logic ---
+        toggleLogsButton.addEventListener('click', () => {
+            const isHidden = logViewer.style.display === 'none';
+            logViewer.style.display = isHidden ? 'block' : 'none';
+        });
+
+        // Use the API exposed from preload.js to listen for logs
+        window.api.onMihomoLog((log) => {
+            // Split logs by newline in case multiple log entries arrive at once
+            const lines = log.trim().split(/\\r?\\n/);
+            lines.forEach(line => {
+                if (line.trim() === '') return;
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = line;
+                if (line.startsWith('[STDERR]') || line.toLowerCase().includes('error')) {
+                    logEntry.style.color = '#ff6b6b';
+                }
+                logViewer.appendChild(logEntry);
+            });
+            // Auto-scroll to the bottom
+            logViewer.scrollTop = logViewer.scrollHeight;
+        });
+
+        // Load initial URL
+        loadURL(urlInput.value);
     </script>
 </body>
 </html> 

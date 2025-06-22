@@ -3,9 +3,10 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 let clashProcess = null;
+let mainWindow = null;
 
 function createWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
@@ -35,20 +36,36 @@ function startClash() {
   clashProcess = spawn(clashPath, ['-d', path.join(__dirname, 'clash-meta')]);
 
   clashProcess.stdout.on('data', (data) => {
-    console.log(`Mihomo stdout: ${data}`);
+    const logMessage = data.toString();
+    console.log(`Mihomo stdout: ${logMessage}`);
+    if (mainWindow) {
+      mainWindow.webContents.send('mihomo-log', logMessage);
+    }
   });
 
   clashProcess.stderr.on('data', (data) => {
-    console.error(`Mihomo stderr: ${data}`);
+    const logMessage = `[STDERR] ${data.toString()}`;
+    console.error(`Mihomo stderr: ${logMessage}`);
+    if (mainWindow) {
+      mainWindow.webContents.send('mihomo-log', logMessage);
+    }
   });
 
   clashProcess.on('close', (code) => {
-    console.log(`Mihomo process exited with code ${code}`);
+    const logMessage = `Mihomo process exited with code ${code}`;
+    console.log(logMessage);
+    if (mainWindow) {
+      mainWindow.webContents.send('mihomo-log', logMessage);
+    }
     clashProcess = null;
   });
 
   clashProcess.on('error', (err) => {
-    console.error('Failed to start Mihomo process.', err);
+    const logMessage = `Failed to start Mihomo process. ${err}`;
+    console.error(logMessage);
+    if (mainWindow) {
+      mainWindow.webContents.send('mihomo-log', logMessage);
+    }
   });
 }
 
