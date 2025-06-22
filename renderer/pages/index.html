@@ -79,22 +79,36 @@
             background-color: var(--tab-bg-color-active);
             z-index: 2;
         }
-        .tab-icon {
+        .tab-icon-container {
             width: 16px;
             height: 16px;
             margin-right: 8px;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .tab-icon {
+            width: 16px;
+            height: 16px;
+        }
+        .tab-item.loading .tab-icon {
+            display: none;
+        }
+        .tab-item .loading-spinner { /* spinner is always inside a tab-item */
+            display: none; /* Default hide */
+        }
+        .tab-item.loading .loading-spinner {
+            display: block;
         }
         .loading-spinner {
-            width: 14px;
-            height: 14px;
+            width: 16px; /* 统一尺寸 */
+            height: 16px; /* 统一尺寸 */
             border: 2px solid var(--button-primary-bg); /* 使用主题蓝色 */
             border-left-color: transparent; /* 关键：隐藏一条边来制造"缺口" */
             border-radius: 50%;
             animation: spin 0.6s linear infinite; /* 调整动画速度 */
-            flex-shrink: 0;
-            margin-right: 8px;
-            display: none; /* 默认隐藏 */
+            box-sizing: border-box; /* 确保边框包含在尺寸内 */
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
@@ -549,20 +563,34 @@
 
         // --- Helper function to set tab icon ---
         const setTabIcon = (tabEl, iconHTML) => {
-            const currentIcon = tabEl.querySelector('.tab-icon'); // Only select the icon itself
-            if (currentIcon) {
-                const newIcon = new DOMParser().parseFromString(iconHTML, "text/html").body.firstChild;
-                // If the new icon is an img, store its src
-                if (newIcon.tagName === 'IMG') {
-                    const activeTab = getActiveTab();
-                    if(activeTab) activeTab.favicon = newIcon.src;
-                }
-                currentIcon.parentNode.replaceChild(newIcon, currentIcon);
+            const iconContainer = tabEl.querySelector('.tab-icon-container');
+            const newIcon = new DOMParser().parseFromString(iconHTML, "text/html").body.firstChild;
+            
+            // Clear current content (removes old icon or spinner)
+            iconContainer.innerHTML = ''; 
+            
+            // Append the new one
+            iconContainer.appendChild(newIcon);
+
+            // If the new icon is an img, store its src
+            if (newIcon.tagName === 'IMG') {
+                const activeTab = getActiveTab();
+                if(activeTab) activeTab.favicon = newIcon.src;
             }
         };
 
         const showLoadingIndicator = (tabEl, show) => {
-            tabEl.classList.toggle('loading', show);
+            const iconContainer = tabEl.querySelector('.tab-icon-container');
+            const spinner = iconContainer.querySelector('.loading-spinner');
+            const icon = iconContainer.querySelector('.tab-icon');
+
+            if (show) {
+                if (icon) icon.style.display = 'none';
+                if (spinner) spinner.style.display = 'block';
+            } else {
+                if (spinner) spinner.style.display = 'none';
+                if (icon) icon.style.display = 'block';
+            }
         };
 
         // --- Tab Management ---
@@ -581,8 +609,10 @@
             tabEl.className = 'tab-item';
             tabEl.dataset.tabId = tabId;
             tabEl.innerHTML = `
-                ${defaultGlobeIcon}
-                <div class="loading-spinner"></div>
+                <div class="tab-icon-container">
+                    ${defaultGlobeIcon}
+                    <div class="loading-spinner"></div>
+                </div>
                 <span class="tab-title">New Tab</span>
                 <button class="close-tab" title="关闭标签页">&times;</button>
             `;
