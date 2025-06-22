@@ -4,21 +4,35 @@
     <meta charset="UTF-8">
     <title>PrismBrowser</title>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; display: flex; flex-direction: column; background-color: #dcdcdc; }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; display: flex; flex-direction: column; background-color: #dcdcdc; -webkit-app-region: drag; /* Make the whole background draggable */ }
         
         /* --- Tabs Bar --- */
         #tabs-bar {
             display: flex;
-            align-items: center;
+            align-items: flex-end; /* Align to bottom for better look */
             background-color: #dcdcdc;
             padding: 5px 5px 0 5px;
             flex-shrink: 0;
+            /* -webkit-app-region: drag; // Moved to body */
         }
         #tabs-container {
             display: flex;
-            flex-grow: 1;
-            overflow-x: auto;
+            -webkit-app-region: no-drag; /* Exclude scrollable area from drag */
         }
+        /*!* --- Custom Scrollbar for Tabs --- *!*/
+        /*#tabs-container::-webkit-scrollbar {*/
+        /*    height: 4px; !* Set height of the scrollbar *!*/
+        /*}*/
+        /*#tabs-container::-webkit-scrollbar-track {*/
+        /*    background: transparent; !* Make the track invisible *!*/
+        /*}*/
+        /*#tabs-container::-webkit-scrollbar-thumb {*/
+        /*    background-color: #aaa; !* Color of the scroll thumb *!*/
+        /*    border-radius: 2px;*/
+        /*}*/
+        /*#tabs-container::-webkit-scrollbar-thumb:hover {*/
+        /*    background-color: #888; !* Color on hover *!*/
+        /*}*/
         .tab-item {
             display: flex;
             align-items: center;
@@ -32,6 +46,7 @@
             cursor: pointer;
             flex-shrink: 0;
             max-width: 200px;
+            -webkit-app-region: no-drag; /* Tabs are clickable */
         }
         .tab-item.active {
             background-color: #f0f0f0;
@@ -65,15 +80,48 @@
             width: 28px;
             height: 28px;
             font-size: 18px;
-            margin-left: 5px;
+            margin-left: 2px;
+            margin-bottom: 3px; /* Align with tab bottom */
             border: 1px solid #bbb;
             border-radius: 4px;
             background-color: #d0d0d0;
             flex-shrink: 0;
+            -webkit-app-region: no-drag; /* New tab button is clickable */
+        }
+
+        #window-controls {
+            display: flex;
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 30px; /* Adjust as needed */
+            -webkit-app-region: no-drag; /* These are clickable */
+            z-index: 9999;
+        }
+        #window-controls button {
+            width: 46px;
+            height: 100%;
+            border: none;
+            background-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #window-controls button svg {
+            width: 10px;
+            height: 10px;
+            fill: #000;
+        }
+        #window-controls button:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+        #window-controls #close-btn:hover {
+            background-color: #e81123;
+            color: white;
         }
 
         /* --- Controls Bar --- */
-        #controls { display: flex; align-items: center; padding: 8px 5px; background-color: #f0f0f0; border-bottom: 1px solid #ccc; flex-shrink: 0; position: relative; z-index: 1; }
+        #controls { display: flex; align-items: center; padding: 8px 5px; background-color: #f0f0f0; border-bottom: 1px solid #ccc; flex-shrink: 0; position: relative; z-index: 1; -webkit-app-region: no-drag; }
         #nav-buttons { display: flex; }
         #nav-buttons button { 
             width: 32px; 
@@ -137,6 +185,7 @@
             flex-shrink: 0;
             white-space: nowrap;
             overflow-x: auto;
+            -webkit-app-region: no-drag;
         }
         .bookmark-item {
             display: inline-flex;
@@ -178,6 +227,7 @@
             display: flex; 
             flex-direction: column;
             position: relative; /* Needed for error page positioning */
+            -webkit-app-region: no-drag;
         }
         #webview-container { position: relative; flex-grow: 1; background-color: #fff; }
         webview { 
@@ -215,6 +265,17 @@
     </style>
 </head>
 <body>
+    <div id="window-controls">
+        <button id="minimize-btn" title="最小化">
+            <svg x="0px" y="0px" viewBox="0 0 10.2 1"><rect x="0" y="0" width="10.2" height="1"></rect></svg>
+        </button>
+        <button id="maximize-btn" title="最大化">
+            <svg x="0px" y="0px" viewBox="0 0 10.2 10.2"><path d="M0,0v10.2h10.2V0H0z M9.2,9.2H1V1h8.2V9.2z"></path></svg>
+        </button>
+        <button id="close-btn" title="关闭">
+            <svg x="0px" y="0px" viewBox="0 0 10.2 10.2"><polygon points="10.2,0.7 9.5,0 5.1,4.4 0.7,0 0,0.7 4.4,5.1 0,9.5 0.7,10.2 5.1,5.8 9.5,10.2 10.2,9.5 5.8,5.1"></polygon></svg>
+        </button>
+    </div>
     <div id="tabs-bar">
         <div id="tabs-container">
             <!-- Tabs will be dynamically inserted here -->
@@ -257,6 +318,9 @@
 
     <script>
         // --- Element References ---
+        const minimizeBtn = document.getElementById('minimize-btn');
+        const maximizeBtn = document.getElementById('maximize-btn');
+        const closeBtn = document.getElementById('close-btn');
         const tabsContainer = document.getElementById('tabs-container');
         const newTabBtn = document.getElementById('new-tab-btn');
         const webviewContainer = document.getElementById('webview-container');
@@ -486,6 +550,11 @@
                 logViewer.scrollTop = logViewer.scrollHeight;
             });
         });
+
+        // --- Window Controls ---
+        minimizeBtn.addEventListener('click', () => window.api.sendWindowControl('minimize'));
+        maximizeBtn.addEventListener('click', () => window.api.sendWindowControl('maximize'));
+        closeBtn.addEventListener('click', () => window.api.sendWindowControl('close'));
 
         // --- Init ---
         const init = async () => {

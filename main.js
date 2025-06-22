@@ -11,6 +11,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    frame: false,
+    titleBarStyle: 'hidden',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       // For security reasons, contextIsolation is recommended to be true.
@@ -100,6 +102,20 @@ ipcMain.handle('delete-bookmark', async (event, url) => {
   const newBookmarks = bookmarks.filter(b => b.url !== url);
   store.set('bookmarks', newBookmarks);
   return newBookmarks;
+});
+
+// --- Window Controls ---
+ipcMain.on('window-control', (event, action) => {
+    if (!mainWindow) return;
+    if (action === 'minimize') mainWindow.minimize();
+    if (action === 'maximize') {
+        if (mainWindow.isMaximized()) {
+            mainWindow.unmaximize();
+        } else {
+            mainWindow.maximize();
+        }
+    }
+    if (action === 'close') mainWindow.close();
 });
 
 app.whenReady().then(async () => {
