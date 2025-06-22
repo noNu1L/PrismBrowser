@@ -35,7 +35,7 @@
 
     /* -- 边框和分隔线颜色 -- */
     /* 主要边框颜色，当前用于标签页之间的分隔线 */
-    --border-color-primary: #d8d8d8;
+    --border-color-primary: #606060;
     /* 次要边框，用于控制栏底部边框等元素 */
     --border-color-secondary: #ccc;
 
