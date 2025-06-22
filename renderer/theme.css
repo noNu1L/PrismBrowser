@@ -5,7 +5,17 @@
 */
 
 :root {
+    /* -- 全局字体 -- */
+    /* 我们使用一个系统字体栈，优先使用系统自带的现代字体，无需额外下载，性能好且美观。 */
+    --app-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
     /* -- 应用级别颜色 -- */
+    --setting-card-bg: #ffffff;
+    --setting-card-border: #e0e0e0;
+    --input-bg: #f5f5f5;
+    --input-border: #dcdcdc;
+    --button-primary-bg: #3498db;
+    --button-primary-hover-bg: #2980b9;
     /* 应用程序的整体背景色，应用于 body 和标签栏背景 */
     --app-bg-color: #d0d0d0;
     /* 较亮的背景，用于主 UI 元素，如地址栏/控制栏和活动标签页的背景 */
@@ -86,6 +96,10 @@
 }
 
 /* --- 通用控件样式 --- */
+body, html {
+    font-family: var(--app-font-family);
+}
+
 input[type="checkbox"] {
     /* 增加复选框的尺寸以提高可点击性 */
     width: 16px;

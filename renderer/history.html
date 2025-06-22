@@ -6,13 +6,12 @@
     <link rel="stylesheet" href="theme.css">
     <style>
         :root {
-            --sidebar-width: 250px;
-            --header-height: 50px;
+            --sidebar-width: 240px;
+            --header-height: 60px;
         }
 
         body, html {
             margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             display: flex;
             background-color: var(--app-bg-color-light);
             color: var(--text-color-primary);
@@ -24,10 +23,10 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            padding: 12px;
+            padding: 20px 12px;
             box-sizing: border-box;
             background-color: var(--app-bg-color);
-            border-right: 1px solid var(--border-color-secondary);
+            border-right: 1px solid var(--setting-card-border);
         }
         #main-content {
             flex-grow: 1;
@@ -38,8 +37,9 @@
         
         /* --- 侧边栏 --- */
         #sidebar h1 {
-            font-size: 24px;
-            margin: 8px 0 20px 8px;
+            font-size: 22px;
+            font-weight: 600;
+            margin: 0 0 30px 12px;
         }
         #search-box {
             position: relative;
@@ -47,44 +47,38 @@
         }
         #search-input {
             width: 100%;
-            height: 32px;
-            padding-left: 30px;
+            height: 38px;
+            padding-left: 38px;
             box-sizing: border-box;
-            border-radius: 4px;
-            border: 1px solid var(--border-color-secondary);
+            border-radius: 6px;
+            border: 1px solid var(--input-border);
+            background-color: var(--input-bg);
+            font-size: 14px;
         }
         #search-icon {
             position: absolute;
-            left: 8px;
-            top: 8px;
+            left: 12px;
+            top: 11px;
             width: 16px;
             height: 16px;
             stroke: var(--text-color-secondary);
         }
         #nav-list .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
+            display: flex; align-items: center; padding: 10px 12px; border-radius: 6px;
+            cursor: pointer; font-size: 15px; font-weight: 500;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
-        #nav-list .nav-item:hover {
-            background-color: var(--button-hover-bg);
+        #nav-list .nav-item:hover { background-color: var(--button-hover-bg); }
+        #nav-list .nav-item.active { 
+            background-color: var(--button-primary-bg); 
+            color: white; 
         }
-        #nav-list .nav-item.active {
-            background-color: #cce5ff;
-            color: #004085;
-        }
-        #nav-list .nav-item svg {
-            width: 18px;
-            height: 18px;
-            margin-right: 12px;
+        #nav-list .nav-item svg { 
+            width: 20px; height: 20px; margin-right: 14px; 
             stroke: var(--text-color-secondary);
+            transition: stroke 0.2s ease;
         }
-        #nav-list .nav-item.active svg {
-            stroke: #004085;
-        }
+        #nav-list .nav-item.active svg { stroke: white; }
 
         /* --- 主内容区 --- */
         #content-header {
@@ -92,46 +86,38 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 24px;
+            padding: 0 32px;
             flex-shrink: 0;
-            border-bottom: 1px solid var(--border-color-secondary);
+            border-bottom: 1px solid var(--setting-card-border);
+            background-color: var(--app-bg-color-light);
         }
         #content-header h2 {
             margin: 0;
-            font-size: 18px;
+            font-size: 20px;
+            font-weight: 600;
         }
         #header-actions {
             display: flex;
             align-items: center;
         }
         #header-actions button {
-            display: flex;
-            align-items: center;
-            gap: 6px; /* 图标和文字的间距 */
-            margin-left: 8px;
-            padding: 6px 12px;
-            font-size: 13px;
-            border-radius: 4px;
-            border: 1px solid var(--border-color-secondary);
-            background-color: var(--app-bg-color-light);
-            cursor: pointer;
-        }
-        #header-actions button:hover:not(:disabled) {
-            background-color: var(--button-hover-bg);
+            display: flex; align-items: center; gap: 6px;
+            margin-left: 12px; padding: 8px 16px; font-size: 14px;
+            border-radius: 6px; border: 1px solid var(--input-border);
+            cursor: pointer; font-weight: 500;
         }
         #header-actions button svg {
-            width: 14px;
-            height: 14px;
+            width: 16px; height: 16px;
             stroke: var(--text-color-secondary);
         }
         #header-actions button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+            opacity: 0.5; cursor: not-allowed;
         }
+        
         #history-container {
             flex-grow: 1;
             overflow-y: auto;
-            padding: 16px 24px;
+            padding: 16px 32px;
         }
 
         /* --- 历史记录列表 --- */
@@ -139,73 +125,63 @@
             margin-bottom: 24px;
         }
         .date-group-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid var(--border-color-secondary);
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 14px; font-weight: 600;
+            margin-bottom: 12px; padding-bottom: 8px;
+            border-bottom: 1px solid var(--setting-card-border);
         }
         .history-item {
-            display: flex;
-            align-items: center;
-            padding: 10px 4px;
-            border-radius: 4px;
+            display: flex; align-items: center;
+            padding: 8px;
+            border-radius: 6px;
         }
         .history-item:hover {
-            background-color: var(--button-hover-bg);
+            background-color: #f0f0f0;
         }
-        .history-item-checkbox, .group-checkbox {
-            margin-right: 12px;
+        .history-item-checkbox {
+            margin-right: 16px;
         }
         .history-item-favicon {
-            width: 16px;
-            height: 16px;
+            width: 16px; height: 16px;
+            margin-right: 12px;
+        }
+        .history-item-main {
+            display: flex; align-items: baseline;
+            flex-grow: 1;
+            gap: 12px;
         }
         .history-item-title {
-            flex-basis: 50%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             font-size: 14px;
-            cursor: pointer;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            cursor: pointer; flex-shrink: 1;
         }
-         .history-item-title:hover {
-            text-decoration: underline;
-        }
+        .history-item-title:hover { text-decoration: underline; }
         .history-item-url {
-            flex-basis: 35%;
             color: var(--text-color-secondary);
-            font-size: 12px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: 13px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            flex-shrink: 10; /* Give less priority to shrink */
         }
         .history-item-time {
-            flex-grow: 1;
-            text-align: right;
-            font-size: 12px;
-            color: var(--text-color-secondary);
+            width: 60px; text-align: right;
+            font-size: 13px; color: var(--text-color-secondary);
+            flex-shrink: 0;
+            margin-left: auto;
+            padding-left: 16px;
         }
         .history-item-delete {
             width: 24px; height: 24px;
-            border: none; background: transparent; opacity: 0.5;
+            border: none; background: transparent; opacity: 0;
             padding: 0; font-size: 18px;
-            cursor: pointer;
-            margin-left: 8px;
-            visibility: hidden; /* Hide by default */
+            cursor: pointer; margin-left: 12px;
+            transition: opacity 0.2s ease;
         }
         .history-item:hover .history-item-delete {
-            visibility: visible; /* Show on hover */
+            opacity: 0.5;
         }
-        .history-item-delete:hover {
-            opacity: 1;
-        }
+        .history-item-delete:hover { opacity: 1; }
         .no-results {
-            text-align: center;
-            margin-top: 50px;
+            text-align: center; margin-top: 50px;
             color: var(--text-color-secondary);
         }
     </style>
@@ -214,16 +190,16 @@
     <aside id="sidebar">
         <h1>历史记录</h1>
         <div id="search-box">
-            <svg id="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <svg id="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input type="text" id="search-input" placeholder="搜索历史记录">
         </div>
         <nav id="nav-list">
             <div class="nav-item active" data-view="all">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 <span>全部</span>
             </div>
             <div class="nav-item" data-view="recent">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2"></path><path d="M22 4H2"></path><path d="M22 20H2"></path></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9h-8a1 1 0 0 0-1 1z"></path><path d="M14 9L9 4H4a2 2 0 0 0-2 2v4a1 1 0 0 0 1 1h9z"></path></svg>
                 <span>最近关闭</span>
             </div>
         </nav>
@@ -234,11 +210,11 @@
             <h2 id="content-title">全部</h2>
             <div id="header-actions">
                  <button id="delete-selected-btn" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     <span>删除</span>
                  </button>
                  <button id="clear-all-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
                     <span>清除浏览数据</span>
                 </button>
             </div>
@@ -291,8 +267,8 @@
 
             // Filter data
             const filteredData = data.filter(item =>
-                item.title.toLowerCase().includes(state.searchQuery) ||
-                item.url.toLowerCase().includes(state.searchQuery)
+                (item.title && item.title.toLowerCase().includes(state.searchQuery)) ||
+                (item.url && item.url.toLowerCase().includes(state.searchQuery))
             );
 
             historyContainer.innerHTML = '';
@@ -333,8 +309,10 @@
                     itemEl.innerHTML = `
                         <input type="checkbox" class="history-item-checkbox" data-url="${item.url}" ${isChecked ? 'checked' : ''}>
                         ${item.favicon ? `<img src="${item.favicon}" class="history-item-favicon">` : globeIcon}
-                        <span class="history-item-title" title="${item.title}">${item.title}</span>
-                        <span class="history-item-url" title="${item.url}">${getHostname(item.url)}</span>
+                        <div class="history-item-main">
+                           <span class="history-item-title" title="${item.title}">${item.title}</span>
+                           <span class="history-item-url" title="${item.url}">${getHostname(item.url)}</span>
+                        </div>
                         <span class="history-item-time">${new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
                         <button class="history-item-delete" data-url="${item.url}">&times;</button>
                     `;
@@ -349,7 +327,8 @@
 
         function updateHeaderActions() {
             deleteSelectedBtn.disabled = state.selectedUrls.size === 0;
-            clearAllBtn.disabled = (state.currentView === 'all' && state.historyData.length === 0) || (state.currentView === 'recent' && state.recentlyClosedData.length === 0);
+            const data = state.currentView === 'all' ? state.historyData : state.recentlyClosedData;
+            clearAllBtn.disabled = data.length === 0;
         }
 
         // --- Event Listeners ---
@@ -358,13 +337,14 @@
                 el.addEventListener('change', (e) => {
                     const url = e.target.dataset.url;
                     e.target.checked ? state.selectedUrls.add(url) : state.selectedUrls.delete(url);
-                    updateHeaderActions();
+                    render(); // Re-render to update group checkbox state
                 });
             });
             document.querySelectorAll('.group-checkbox').forEach(el => {
                 el.addEventListener('change', (e) => {
                     const dateKey = e.target.dataset.dateKey;
-                    const urlsInGroup = (state.currentView === 'all' ? state.historyData : state.recentlyClosedData)
+                    const data = state.currentView === 'all' ? state.historyData : state.recentlyClosedData;
+                    const urlsInGroup = data
                         .filter(item => item.timestamp.startsWith(dateKey))
                         .map(item => item.url);
                     
