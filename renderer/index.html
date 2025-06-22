@@ -510,6 +510,7 @@
         let activeTabId = null;
         let lastFailedURL = '';
         let currentBookmarks = [];
+        let bookmarkTreeCache = [];
         let homeURL = 'https://www.google.com';
         let newTabURL = 'about:blank';
         let currentFavicon = null;
@@ -555,6 +556,14 @@
 
         // --- Tab Management ---
         const createNewTab = (urlToLoad, isHidden = false) => {
+            // If no URL is provided, it means it's a "new tab" action.
+            // We let the main process decide the URL (which will be the new tab page setting).
+            // For other cases (like clicking a bookmark or history item), a specific URL is provided.
+            if (urlToLoad === null || typeof urlToLoad === 'undefined') {
+                window.api.openInNewTab(); // Request main process for new tab URL
+                return; 
+            }
+
             const tabId = `tab-${Date.now()}`;
             
             const tabEl = document.createElement('div');
@@ -749,7 +758,7 @@
         };
 
         // --- Controls Event Listeners ---
-        newTabBtn.addEventListener('click', () => createNewTab(newTabURL));
+        newTabBtn.addEventListener('click', () => createNewTab());
         backButton.addEventListener('click', () => getActiveTab()?.webview.goBack());
         forwardButton.addEventListener('click', () => getActiveTab()?.webview.goForward());
         reloadButton.addEventListener('click', () => {
@@ -783,10 +792,26 @@
         });
 
         // --- Bookmark Logic ---
+        // Helper to recursively find a bookmark by URL in the tree
+        function findBookmarkByUrl(nodes, url) {
+            for (const node of nodes) {
+                if (node.type === 'bookmark' && node.url === url) {
+                    return node;
+                }
+                if (node.type === 'folder' && node.children) {
+                    const found = findBookmarkByUrl(node.children, url);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
         const renderBookmarks = (bookmarks) => {
             currentBookmarks = bookmarks;
             bookmarksBar.innerHTML = '';
             bookmarks.forEach(bookmark => {
+                if (bookmark.type !== 'bookmark') return; // Only show bookmarks on the bar
+
                 const item = document.createElement('a');
                 item.className = 'bookmark-item';
                 item.href = bookmark.url;
@@ -803,9 +828,8 @@
                 deleteBtn.title = '删除收藏';
                 deleteBtn.addEventListener('click', async (e) => {
                     e.preventDefault(); e.stopPropagation();
-                    const updatedBookmarks = await window.api.deleteBookmark(bookmark.url);
-                    renderBookmarks(updatedBookmarks);
-                    updateBookmarkStar(getActiveTab()?.webview.getURL());
+                    await window.api.deleteBookmarks([bookmark.id]);
+                    refreshBookmarks();
                 });
                 item.appendChild(deleteBtn);
                 item.addEventListener('click', (e) => { e.preventDefault(); createNewTab(item.href); });
@@ -817,7 +841,8 @@
             if (!url) {
                 addBookmarkButton.innerHTML = ''; return;
             }
-            const isBookmarked = currentBookmarks.some(b => b.url === url);
+            // Search the entire tree to see if the URL is bookmarked anywhere
+            const isBookmarked = findBookmarkByUrl(bookmarkTreeCache, url) !== null;
             addBookmarkButton.innerHTML = isBookmarked
                 ? `<svg class="star-fill" viewBox="0 0 24 24" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`
                 : `<svg class="star-outline" viewBox="0 0 24 24" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
@@ -830,14 +855,28 @@
             const title = activeTab.webview.getTitle();
             if (!url || !title) return;
 
-            const isBookmarked = currentBookmarks.some(b => b.url === url);
-            const updatedBookmarks = isBookmarked
-                ? await window.api.deleteBookmark(url)
-                : await window.api.addBookmark({ url, title });
+            const existingBookmark = findBookmarkByUrl(bookmarkTreeCache, url);
             
-            renderBookmarks(updatedBookmarks);
-            updateBookmarkStar(url);
+            window.api.openAddBookmarkPopup({
+                url,
+                title,
+                bookmark: existingBookmark, // Will be null if not bookmarked
+                bookmarksTree: bookmarkTreeCache
+            });
         });
+
+        async function refreshBookmarks() {
+            const bookmarkTree = await window.api.getBookmarksTree();
+            bookmarkTreeCache = bookmarkTree; // Update the cache
+            const toolbarFolder = bookmarkTree.find(node => node.id === 'toolbar');
+            const toolbarBookmarks = toolbarFolder ? toolbarFolder.children : [];
+            renderBookmarks(toolbarBookmarks);
+            // Also update the star for the current tab
+            const activeTab = getActiveTab();
+            if (activeTab) {
+                updateBookmarkStar(activeTab.webview.getURL());
+            }
+        }
 
         // --- Log Viewer Logic ---
         toggleLogsButton.addEventListener('click', () => {
@@ -852,6 +891,10 @@
         historyBtn.addEventListener('click', () => {
             // Open history.html in a new tab instead of a new window
             createNewTab('history.html');
+        });
+
+        document.getElementById('favorites-btn').addEventListener('click', () => {
+            createNewTab('bookmarks.html');
         });
 
         document.getElementById('settings-btn').addEventListener('click', () => {
@@ -887,21 +930,23 @@
         const init = async () => {
             homeURL = await window.api.getSetting('settings.homePage') || 'https://www.google.com';
             newTabURL = await window.api.getSetting('settings.newTabPage') || 'about:blank';
-            const bookmarks = await window.api.getBookmarks();
-            renderBookmarks(bookmarks);
+            await refreshBookmarks();
             createNewTab(homeURL);
         };
 
         init();
+
+        // Listen for requests to refresh bookmarks from other windows
+        window.api.onBookmarkUpdated(() => {
+            refreshBookmarks();
+        });
 
         // 监听从其他窗口传来的设置更新
         window.api.onSettingUpdated(({ key, value }) => {
             if (key === 'settings.homePage') {
                 homeURL = value;
             }
-            if (key === 'settings.newTabPage') {
-                newTabURL = value;
-            }
+            // No longer need to update newTabURL here, main process handles it.
         });
     </script>
 </body>

@@ -7,9 +7,15 @@ const fs = require('fs').promises;
 const store = new Store();
 let clashProcess = null;
 let mainWindow = null;
+let bookmarkPopup = null;
+let addFolderPopup = null;
 
 function getHomePage() {
     return store.get('settings.homePage', 'https://www.google.com');
+}
+
+function getNewTabPageUrl() {
+    return store.get('settings.newTabPage', 'about:blank');
 }
 
 function createWindow() {
@@ -30,6 +36,79 @@ function createWindow() {
   });
 
   mainWindow.loadFile('renderer/index.html');
+}
+
+function createBookmarkPopup(data) {
+    if (bookmarkPopup) {
+        bookmarkPopup.focus();
+        return;
+    }
+    const bounds = mainWindow.getBounds();
+    bookmarkPopup = new BrowserWindow({
+        x: bounds.x + (bounds.width / 2) - 200, // Center horizontally
+        y: bounds.y + 100, // Position near the top
+        width: 400,
+        height: 230,
+        frame: false,
+        parent: mainWindow,
+        modal: true,
+        resizable: false,
+        maximizable: false,
+        minimizable: false,
+        show: false, // Don't show until ready
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+        }
+    });
+
+    bookmarkPopup.loadFile('renderer/add-bookmark-popup.html');
+
+    bookmarkPopup.once('ready-to-show', () => {
+        bookmarkPopup.show();
+        // Send initial data to the popup window
+        bookmarkPopup.webContents.send('popup-data', data);
+    });
+
+    bookmarkPopup.on('closed', () => {
+        bookmarkPopup = null;
+    });
+}
+
+function createAddFolderPopup(data) {
+    if (addFolderPopup) {
+        addFolderPopup.focus();
+        return;
+    }
+    const bounds = mainWindow.getBounds();
+    addFolderPopup = new BrowserWindow({
+        x: bounds.x + (bounds.width / 2) - 180, // Center horizontally
+        y: bounds.y + 150, // Position near the top
+        width: 360,
+        height: 200,
+        frame: false,
+        parent: mainWindow,
+        modal: true,
+        resizable: false,
+        maximizable: false,
+        minimizable: false,
+        show: false, 
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+        }
+    });
+
+    addFolderPopup.loadFile('renderer/add-folder-popup.html');
+
+    addFolderPopup.once('ready-to-show', () => {
+        addFolderPopup.show();
+        addFolderPopup.webContents.send('popup-data', data);
+    });
+
+    addFolderPopup.on('closed', () => {
+        addFolderPopup = null;
+    });
 }
 
 function startClash() {
@@ -77,27 +156,129 @@ function stopClash() {
   }
 }
 
-// --- IPC Handlers for Bookmarks ---
-ipcMain.handle('get-bookmarks', async () => {
-  return store.get('bookmarks', []);
+// --- IPC Handlers for Bookmarks (New Tree Structure) ---
+function initializeBookmarks() {
+    const bookmarks = store.get('bookmarks');
+    // A more robust check. If the data is not an array, is empty, or doesn't contain the essential folders, reset it.
+    const hasToolbar = bookmarks && Array.isArray(bookmarks) && bookmarks.some(folder => folder.id === 'toolbar');
+    const hasOther = bookmarks && Array.isArray(bookmarks) && bookmarks.some(folder => folder.id === 'other');
+
+    if (!hasToolbar || !hasOther) {
+        // If bookmarks are old format, non-existent, or missing essential folders, reset.
+        store.set('bookmarks', [
+            { id: 'toolbar', type: 'folder', title: '收藏栏', children: [] },
+            { id: 'other', type: 'folder', title: '其他收藏', children: [] }
+        ]);
+    }
+}
+
+const PROTECTED_FOLDER_IDS = ['toolbar', 'other'];
+
+// Helper for recursive search
+function findItem(nodes, id) {
+    for (const node of nodes) {
+        if (node.id === id) return { node, parent: nodes };
+        if (node.type === 'folder' && node.children) {
+            const found = findItem(node.children, id);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
+ipcMain.handle('get-bookmarks-tree', async () => {
+    return store.get('bookmarks', []);
 });
 
-ipcMain.handle('add-bookmark', async (event, bookmark) => {
-  const bookmarks = store.get('bookmarks', []);
-  // Avoid duplicates
-  if (bookmarks.find(b => b.url === bookmark.url)) {
-    return bookmarks;
-  }
-  const newBookmarks = [...bookmarks, bookmark];
-  store.set('bookmarks', newBookmarks);
-  return newBookmarks;
+ipcMain.handle('add-bookmark', async (event, { parentId, title, url }) => {
+    const bookmarks = store.get('bookmarks', []);
+    const parentFolder = findItem(bookmarks, parentId)?.node;
+    if (parentFolder && parentFolder.type === 'folder') {
+        const newBookmark = { id: `bm-${Date.now()}`, type: 'bookmark', title, url };
+        parentFolder.children.push(newBookmark);
+        store.set('bookmarks', bookmarks);
+        return { success: true };
+    }
+    return { success: false };
 });
 
-ipcMain.handle('delete-bookmark', async (event, url) => {
-  const bookmarks = store.get('bookmarks', []);
-  const newBookmarks = bookmarks.filter(b => b.url !== url);
-  store.set('bookmarks', newBookmarks);
-  return newBookmarks;
+ipcMain.handle('update-bookmark', async (event, { id, title, url }) => {
+    const bookmarks = store.get('bookmarks', []);
+    const item = findItem(bookmarks, id)?.node;
+    if (item && item.type === 'bookmark') {
+        item.title = title;
+        item.url = url;
+        store.set('bookmarks', bookmarks);
+        return { success: true };
+    }
+    return { success: false };
+});
+
+ipcMain.handle('delete-bookmarks', async (event, ids) => {
+    let bookmarks = store.get('bookmarks', []);
+    // Prevent deletion of protected folders
+    const filteredIds = ids.filter(id => !PROTECTED_FOLDER_IDS.includes(id));
+    const originalLength = bookmarks.length;
+
+    function filterRecursive(nodes) {
+        return nodes.filter(node => !filteredIds.includes(node.id)).map(node => {
+            if (node.type === 'folder' && node.children) {
+                node.children = filterRecursive(node.children);
+            }
+            return node;
+        });
+    }
+    bookmarks = filterRecursive(bookmarks);
+    store.set('bookmarks', bookmarks);
+    return { success: true };
+});
+
+
+ipcMain.handle('add-bookmark-folder', async (event, { parentId, title }) => {
+    const bookmarks = store.get('bookmarks', []);
+    const parentFolder = findItem(bookmarks, parentId || 'other')?.node; // Default to 'other' if no parent
+     if (parentFolder && parentFolder.type === 'folder') {
+        const newFolder = { id: `f-${Date.now()}`, type: 'folder', title, children: [] };
+        parentFolder.children.push(newFolder);
+        store.set('bookmarks', bookmarks);
+        return { success: true };
+    }
+    return { success: false };
+});
+
+ipcMain.handle('update-bookmark-folder', async (event, { id, title }) => {
+    if (PROTECTED_FOLDER_IDS.includes(id)) return { success: false, error: 'Cannot rename protected folder' }; 
+
+     const bookmarks = store.get('bookmarks', []);
+    const item = findItem(bookmarks, id)?.node;
+    if (item && item.type === 'folder') {
+        item.title = title;
+        store.set('bookmarks', bookmarks);
+        return { success: true };
+    }
+    return { success: false };
+});
+
+// Note: deleteBookmarkFolder is covered by deleteBookmarks, so we need to protect it there.
+
+// --- IPC Handlers for Popup ---
+ipcMain.on('open-add-bookmark-popup', (event, data) => {
+    createBookmarkPopup(data);
+});
+
+ipcMain.on('open-add-folder-popup', (event, data) => {
+    createAddFolderPopup(data);
+});
+
+ipcMain.on('close-popup-and-refresh', (event) => {
+    if (bookmarkPopup) {
+        bookmarkPopup.close();
+    }
+    if (addFolderPopup) {
+        addFolderPopup.close();
+    }
+    // Notify main window to refresh its bookmark state
+    mainWindow.webContents.send('bookmark-updated');
 });
 
 // --- IPC Handlers for History ---
@@ -149,7 +330,9 @@ ipcMain.handle('add-recently-closed', async (event, item) => {
 
 ipcMain.on('open-in-new-tab', (event, url) => {
     if (mainWindow) {
-        mainWindow.webContents.send('new-tab-request', url || getHomePage());
+        // If a specific URL is provided, open it. Otherwise, use the new tab page setting.
+        const urlToOpen = url || getNewTabPageUrl();
+        mainWindow.webContents.send('new-tab-request', urlToOpen);
         mainWindow.focus();
     }
 });
@@ -221,6 +404,9 @@ ipcMain.on('window-control', (event, action) => {
 app.whenReady().then(async () => {
   // Start Mihomo first.
   startClash();
+  
+  // Initialize data stores
+  initializeBookmarks();
 
   // Configure the proxy for all HTTP and HTTPS traffic.
   // This must be done after the app is ready.

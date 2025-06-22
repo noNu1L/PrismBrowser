@@ -15,10 +15,13 @@ contextBridge.exposeInMainWorld('api', {
   onMihomoLog: (callback) => {
     ipcRenderer.on('mihomo-log', (_event, value) => callback(value));
   },
-  // --- Bookmarks ---
-  getBookmarks: () => ipcRenderer.invoke('get-bookmarks'),
-  addBookmark: (bookmark) => ipcRenderer.invoke('add-bookmark', bookmark),
-  deleteBookmark: (url) => ipcRenderer.invoke('delete-bookmark', url),
+  // --- Bookmarks (Tree Structure) ---
+  getBookmarksTree: () => ipcRenderer.invoke('get-bookmarks-tree'),
+  addBookmark: (data) => ipcRenderer.invoke('add-bookmark', data),
+  updateBookmark: (data) => ipcRenderer.invoke('update-bookmark', data),
+  deleteBookmarks: (ids) => ipcRenderer.invoke('delete-bookmarks', ids),
+  addBookmarkFolder: (data) => ipcRenderer.invoke('add-bookmark-folder', data),
+  updateBookmarkFolder: (data) => ipcRenderer.invoke('update-bookmark-folder', data),
   // --- History ---
   getHistory: () => ipcRenderer.invoke('get-history'),
   addHistory: (item) => ipcRenderer.invoke('add-history', item),
@@ -45,6 +48,12 @@ contextBridge.exposeInMainWorld('api', {
   // --- Window ---
   sendWindowControl: (action) => ipcRenderer.send('window-control', action),
   // openLogWindow: () => ipcRenderer.send('open-log-window'), // No longer needed
+  // --- Popups ---
+  openAddBookmarkPopup: (data) => ipcRenderer.send('open-add-bookmark-popup', data),
+  openAddFolderPopup: (data) => ipcRenderer.send('open-add-folder-popup', data),
+  onPopupData: (callback) => ipcRenderer.on('popup-data', (_event, data) => callback(data)),
+  closePopupAndRefresh: () => ipcRenderer.send('close-popup-and-refresh'),
+  onBookmarkUpdated: (callback) => ipcRenderer.on('bookmark-updated', () => callback()),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

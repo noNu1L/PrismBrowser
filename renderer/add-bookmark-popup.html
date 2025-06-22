@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>编辑收藏</title>
+    <link rel="stylesheet" href="theme.css">
+    <style>
+        body, html {
+            margin: 0; padding: 0; 
+            overflow: hidden;
+            font-family: var(--app-font-family);
+            background-color: var(--card-bg);
+            color: var(--text-color-primary);
+        }
+        .container {
+            padding: 16px 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        #close-btn {
+             font-size: 20px;
+             background: none;
+             border: none;
+             cursor: pointer;
+             opacity: 0.6;
+        }
+        .form-group {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+        }
+        .form-group label {
+            width: 50px;
+            font-size: 14px;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        .form-group input, .form-group select {
+            flex-grow: 1;
+            height: 36px;
+            padding: 0 10px;
+            border-radius: 6px;
+            border: 1px solid var(--input-border);
+            background-color: var(--input-bg);
+            font-size: 14px;
+        }
+        footer {
+            margin-top: 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            border: 1px solid var(--input-border);
+            cursor: pointer;
+        }
+        #done-btn {
+            background-color: var(--button-primary-bg);
+            border-color: var(--button-primary-bg);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>已添加到收藏夹</h1>
+            <button id="close-btn">&times;</button>
+        </header>
+
+        <div class="form-group">
+            <label for="name-input">名称</label>
+            <input type="text" id="name-input">
+        </div>
+        <div class="form-group">
+            <label for="folder-select">文件夹</label>
+            <select id="folder-select">
+                <!-- Folder options will be populated by script -->
+            </select>
+        </div>
+
+        <footer>
+            <button id="remove-btn">删除</button>
+            <button id="done-btn">完成</button>
+        </footer>
+    </div>
+    <script>
+        const nameInput = document.getElementById('name-input');
+        const folderSelect = document.getElementById('folder-select');
+        const doneBtn = document.getElementById('done-btn');
+        const removeBtn = document.getElementById('remove-btn');
+        const closeBtn = document.getElementById('close-btn');
+
+        let pageData = null;
+
+        // Populate folder dropdown from the bookmarks tree
+        function populateFolders(nodes, level = 0) {
+            nodes.forEach(node => {
+                if (node.type === 'folder') {
+                    const option = document.createElement('option');
+                    option.value = node.id;
+                    // Add indentation for visual hierarchy
+                    option.textContent = '  '.repeat(level) + node.title;
+                    folderSelect.appendChild(option);
+                    if (node.children) {
+                        populateFolders(node.children, level + 1);
+                    }
+                }
+            });
+        }
+        
+        // Find the parent folder ID of an existing bookmark
+        function findParentFolderId(nodes, bookmarkId, parentId = 'root') {
+             for (const node of nodes) {
+                if (node.id === bookmarkId) return parentId;
+                if (node.type === 'folder' && node.children) {
+                    const foundId = findParentFolderId(node.children, bookmarkId, node.id);
+                    if (foundId) return foundId;
+                }
+            }
+            return null;
+        }
+
+        window.api.onPopupData((data) => {
+            pageData = data;
+            nameInput.value = data.title;
+            populateFolders(data.bookmarksTree);
+
+            if (data.bookmark) { // Existing bookmark
+                const parentId = findParentFolderId(data.bookmarksTree, data.bookmark.id);
+                folderSelect.value = parentId || 'root';
+                removeBtn.style.display = 'block';
+            } else { // New bookmark
+                folderSelect.value = 'toolbar'; // Default to toolbar
+                removeBtn.style.display = 'none';
+            }
+        });
+        
+        doneBtn.addEventListener('click', async () => {
+            const name = nameInput.value;
+            const parentId = folderSelect.value;
+
+            if (pageData.bookmark) { // Update existing
+                await window.api.updateBookmark({
+                    id: pageData.bookmark.id,
+                    title: name,
+                    url: pageData.url, // URL doesn't change, but good to be explicit
+                });
+                // Note: Moving folders is not implemented in this step
+            } else { // Add new
+                await window.api.addBookmark({
+                    parentId,
+                    title: name,
+                    url: pageData.url,
+                });
+            }
+            window.api.closePopupAndRefresh();
+        });
+
+        removeBtn.addEventListener('click', async () => {
+            if (pageData.bookmark) {
+                await window.api.deleteBookmarks([pageData.bookmark.id]);
+                window.api.closePopupAndRefresh();
+            }
+        });
+
+        closeBtn.addEventListener('click', () => {
+            // Simply close without saving
+             window.api.closePopupAndRefresh();
+        });
+    </script>
+</body>
+</html> 

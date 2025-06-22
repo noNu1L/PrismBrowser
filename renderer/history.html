@@ -26,7 +26,7 @@
             padding: 20px 12px;
             box-sizing: border-box;
             background-color: var(--app-bg-color);
-            border-right: 1px solid var(--setting-card-border);
+            border-right: 1px solid var(--card-border);
         }
         #main-content {
             flex-grow: 1;
@@ -88,7 +88,7 @@
             justify-content: space-between;
             padding: 0 32px;
             flex-shrink: 0;
-            border-bottom: 1px solid var(--setting-card-border);
+            border-bottom: 1px solid var(--card-border);
             background-color: var(--app-bg-color-light);
         }
         #content-header h2 {
@@ -127,16 +127,26 @@
         .date-group-header {
             display: flex; align-items: center; justify-content: space-between;
             font-size: 14px; font-weight: 600;
-            margin-bottom: 12px; padding-bottom: 8px;
-            border-bottom: 1px solid var(--setting-card-border);
+            margin-bottom: 12px; padding: 0 8px;
         }
         .history-item {
             display: flex; align-items: center;
-            padding: 8px;
-            border-radius: 6px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            background-color: var(--card-bg);
+            border: 1px solid transparent;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            margin-bottom: 8px;
+            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
         .history-item:hover {
-            background-color: #f0f0f0;
+            border-color: #ccc;
+            background-color: var(--item-hover-bg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        .history-item.selected {
+            background-color: var(--item-selected-bg);
+            border-color: var(--item-selected-border);
         }
         /* 提高选择器优先级以覆盖 theme.css 中的全局设置 */
         .history-item .history-item-checkbox, 
@@ -307,6 +317,9 @@
                     const itemEl = document.createElement('div');
                     itemEl.className = 'history-item';
                     const isChecked = state.selectedUrls.has(item.url);
+                    if (isChecked) {
+                        itemEl.classList.add('selected');
+                    }
 
                     itemEl.innerHTML = `
                         <input type="checkbox" class="history-item-checkbox" data-url="${item.url}" ${isChecked ? 'checked' : ''}>
@@ -338,7 +351,14 @@
             document.querySelectorAll('.history-item-checkbox').forEach(el => {
                 el.addEventListener('change', (e) => {
                     const url = e.target.dataset.url;
-                    e.target.checked ? state.selectedUrls.add(url) : state.selectedUrls.delete(url);
+                    const itemEl = e.target.closest('.history-item');
+                    if (e.target.checked) {
+                        state.selectedUrls.add(url);
+                        itemEl.classList.add('selected');
+                    } else {
+                        state.selectedUrls.delete(url);
+                        itemEl.classList.remove('selected');
+                    }
                     render(); // Re-render to update group checkbox state
                 });
             });

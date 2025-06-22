@@ -10,15 +10,8 @@
     --app-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
     /* -- 应用级别颜色 -- */
-    --setting-card-bg: #ffffff;
-    --setting-card-border: #e0e0e0;
-    --input-bg: #f5f5f5;
-    --input-border: #dcdcdc;
-    --button-primary-bg: #3498db;
-    --button-primary-hover-bg: #2980b9;
-    /* 应用程序的整体背景色，应用于 body 和标签栏背景 */
     --app-bg-color: #d0d0d0;
-    /* 较亮的背景，用于主 UI 元素，如地址栏/控制栏和活动标签页的背景 */
+    /* 较亮的背景，用于主 UI 元素，如控制栏 */
     --app-bg-color-light: #f0f0f0;
     /* 主要文本颜色，用于常规显示 */
     --text-color-primary: #000;
@@ -26,11 +19,24 @@
     --text-color-secondary: #333;
     /* 浅色文本，用于深色背景（如日志查看器）上的文本 */
     --text-color-light: #f1f1f1;
+    /* 辅助或描述性文本颜色 */
+    --text-muted: #666; 
+
+    /* -- 通用 UI 组件颜色 -- */
+    --card-bg: #ffffff;                      /* 卡片背景 (如: 设置页、历史记录项) */
+    --card-border: #e0e0e0;                  /* 卡片边框 */
+    --input-bg: #f5f5f5;                      /* 输入框背景 */
+    --input-border: #dcdcdc;                  /* 输入框边框 */
+    --button-primary-bg: #3498db;             /* 主按钮背景 (蓝色) */
+    --button-primary-hover-bg: #2980b9;      /* 主按钮悬停背景 */
+    --item-hover-bg: #f0f0f0;                  /* 列表项悬停背景 */
+    --item-selected-bg: #d0d0d0;              /* 列表项选中背景 */
+    --item-selected-border: #919191;          /* 列表项选中边框 */
 
     /* -- 边框和分隔线颜色 -- */
     /* 主要边框颜色，当前用于标签页之间的分隔线 */
     --border-color-primary: #d8d8d8;
-    /* 次要边框颜色，用于控制栏下边框和 URL 输入框边框 */
+    /* 次要边框，用于控制栏底部边框等元素 */
     --border-color-secondary: #ccc;
 
     /* -- 标签页颜色 -- */
@@ -86,9 +92,9 @@
     --scrollbar-thumb-hover-color: #888;
 
     /* -- 错误页面颜色 -- */
-    /* "找不到页面"错误屏幕的背景 */
+    /* "无法访问此网站"错误页面的背景色 */
     --error-page-bg: #f9f9f9;
-    /* 错误页面上的标题文本颜色 */
+    /* 错误页面标题的文本颜色 */
     --error-page-title-color: var(--text-color-secondary);
     /* 错误页面上的描述文本颜色 */
     --error-page-text-color: #666;
@@ -102,7 +108,8 @@ body, html {
 
 input[type="checkbox"] {
     /* 增加复选框的尺寸以提高可点击性 */
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     margin: 0; /* 重置部分浏览器默认的边距 */
+    accent-color: var(--button-primary-bg); /* 改变勾选后的背景色 */
 } 
