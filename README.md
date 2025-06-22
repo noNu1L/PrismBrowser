@@ -1,10 +1,14 @@
 # PrismBrowser 
 
-![License](https://img.shields.io/github/license/mashape/apistatus.svg)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=flat-square&logo=javascript)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![Electron](https://img.shields.io/badge/Electron-29.1.5-47848F?style=flat-square&logo=electron)](https://www.electronjs.org/)
+[![Clash.Meta](https://img.shields.io/badge/Clash.Meta-v1.19.10-1ddde0?style=flat-square)](https://github.com/MetaCubeX/mihomo)
+[![Yacd-meta](https://img.shields.io/badge/Dashboard-Yacd--meta-blueviolet?style=flat-square)](https://github.com/MetaCubeX/Yacd-meta)
+[![License](https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square)](LICENSE)
 
 **PrismBrowser 是一款基于 Electron 构建的、内置 Clash.Meta 核心的轻量级浏览器，旨在提供一个开箱即用、集成了强大网络代理功能的浏览环境。**
 
-*（建议在此处添加一张应用截图）*
+![https://github.com/noNu1L/PrismBrowser/blob/master/document/img.png](img.png)
 
 ---
 
