@@ -1,44 +1,79 @@
 /* 
-  This file centralizes all the design tokens (colors, fonts, etc.) for the application.
-  Using CSS variables makes it easy to maintain a consistent theme and quickly experiment
-  with new color schemes.
+  该文件集中了应用程序的所有设计令牌（颜色、字体等）。
+  使用 CSS 变量可以轻松地保持一致的主题，并快速尝试新的配色方案。
 */
 
 :root {
-    /* -- App-level Colors -- */
+    /* -- 应用级别颜色 -- */
+    /* 主应用程序背景（例如，标签页周围、标题栏区域） */
     --app-bg-color: #d0d0d0;
+    /* 较亮的背景，用于主 UI 元素，如控制栏 */
     --app-bg-color-light: #f0f0f0;
+    /* 浅色背景上深色文本的默认颜色 */
     --text-color-primary: #000;
+    /* 次要文本颜色，稍浅（例如，用于图标） */
     --text-color-secondary: #333;
+    /* 用于深色背景上的文本颜色（例如，日志） */
     --text-color-light: #f1f1f1;
 
-    /* -- Border & Separator Colors -- */
-    --border-color-primary: #707070;
+    /* -- 边框和分隔线颜色 -- */
+    /* 主边框，用于标签页分隔符 */
+    --border-color-primary: #c0c0c0;
+    /* 次要边框，用于控制栏底部边框等元素 */
     --border-color-secondary: #ccc;
 
-    /* -- Tab Colors -- */
+    /* -- 标签页颜色 -- */
+    /* 非活动标签页的默认背景 */
     --tab-bg-color: #d0d0d0;
+    /* 当前活动标签页的背景 */
     --tab-bg-color-active: var(--app-bg-color-light);
+    /* 鼠标悬停在非活动标签页上时的背景 */
     --tab-hover-bg-color: #e0e0e0;
+    /* 鼠标悬停在标签页关闭按钮上时的背景 */
     --tab-close-button-hover-bg: #c0c0c0;
+    /* 鼠标悬停在"新建标签页"按钮上时的背景 */
     --new-tab-button-hover-bg: #b0b0b0;
 
-    /* -- Button & Control Colors -- */
+    /* -- 按钮和控件颜色 -- */
+    /* 鼠标悬停在按钮上时的通用背景（例如，导航、操作按钮） */
     --button-hover-bg: #e0e0e0;
+    /* 按钮内部图标的颜色 */
     --button-icon-color: var(--text-color-secondary);
+    /* 鼠标悬停在主窗口关闭按钮上时的背景（通常为红色） */
     --window-close-hover-bg: #e81123;
+    /* 鼠标悬停在主窗口关闭按钮上时的文本/图标颜色 */
     --window-close-hover-text: white;
+    /* 鼠标悬停在窗口控件（最小化/最大化）上时的背景 */
     --window-control-hover-bg: rgba(0,0,0,0.1);
 
-    /* -- Bookmark & Log Colors -- */
+    /* -- 书签和内容区域颜色 -- */
+    /* 书签星形图标的填充/描边颜色 */
     --bookmark-star-color: #666;
+    /* 内容区域的背景，如书签栏和 webview 容器 */
+    --content-bg-color: #fff;
+    
+    /* -- 日志查看器颜色 -- */
+    /* 整个日志查看器面板的背景 */
     --log-viewer-bg: #2b2b2b;
+    /* 用于分隔日志条目的边框颜色 */
     --log-viewer-border: #444;
+    /* 日志查看器的标题栏背景 */
+    --log-header-bg: #3a3a3a;
+    /* 表示错误的日志条目的颜色 */
     --log-error-text: #ff6b6b;
 
-    /* -- Error Page Colors -- */
+    /* -- 滚动条颜色 -- */
+    /* 标签容器中滚动条滑块的颜色 */
+    --scrollbar-thumb-color: #aaa;
+    /* 鼠标悬停在滚动条滑块上时的颜色 */
+    --scrollbar-thumb-hover-color: #888;
+
+    /* -- 错误页面颜色 -- */
+    /* "找不到页面"错误屏幕的背景 */
     --error-page-bg: #f9f9f9;
+    /* 错误页面上的标题文本颜色 */
     --error-page-title-color: var(--text-color-secondary);
+    /* 错误页面上的描述文本颜色 */
     --error-page-text-color: #666;
 
 } 
