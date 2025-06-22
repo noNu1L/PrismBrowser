@@ -4,16 +4,42 @@
   "description": "An Electron browser with built-in Clash.Meta",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder"
   },
   "keywords": [
     "Electron",
     "Browser",
     "Clash"
   ],
-  "author": "YourName",
+  "author": "noNu1L",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^29.1.5"
+    "electron": "^29.1.5",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.prismbrowser.app",
+    "productName": "PrismBrowser",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/electron-builder/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "clash-meta",
+        "to": "clash-meta",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    }
   }
 } 
