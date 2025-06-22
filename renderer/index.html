@@ -101,16 +101,18 @@
         }
         .close-tab {
             margin-left: auto; /* Push the close button to the far right */
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             border: none;
             background: transparent;
             opacity: 0.5;
             padding: 0;
             border-radius: 50%;
-            font-size: 12px;
-            line-height: 16px;
-            text-align: center;
+            font-size: 16px; /* 放大图标 */
+            font-weight: 700; /* 加粗图标 */
+            display: flex; /* 使用 flex 确保完美居中 */
+            align-items: center;
+            justify-content: center;
         }
         .close-tab:hover {
             opacity: 1;
@@ -508,7 +510,8 @@
         let activeTabId = null;
         let lastFailedURL = '';
         let currentBookmarks = [];
-        const homeURL = 'https://www.google.com';
+        let homeURL = 'https://www.google.com';
+        let newTabURL = 'about:blank';
         let currentFavicon = null;
 
         // --- Wheel scrolling for tabs ---
@@ -551,7 +554,7 @@
         };
 
         // --- Tab Management ---
-        const createNewTab = (urlToLoad = homeURL, isHidden = false) => {
+        const createNewTab = (urlToLoad, isHidden = false) => {
             const tabId = `tab-${Date.now()}`;
             
             const tabEl = document.createElement('div');
@@ -746,7 +749,7 @@
         };
 
         // --- Controls Event Listeners ---
-        newTabBtn.addEventListener('click', () => createNewTab());
+        newTabBtn.addEventListener('click', () => createNewTab(newTabURL));
         backButton.addEventListener('click', () => getActiveTab()?.webview.goBack());
         forwardButton.addEventListener('click', () => getActiveTab()?.webview.goForward());
         reloadButton.addEventListener('click', () => {
@@ -851,6 +854,10 @@
             createNewTab('history.html');
         });
 
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            createNewTab('settings.html');
+        });
+
         window.api.onMihomoLog((log) => {
             const lines = log.trim().split(/\\r?\\n/);
             lines.forEach(line => {
@@ -878,12 +885,24 @@
 
         // --- Init ---
         const init = async () => {
+            homeURL = await window.api.getSetting('settings.homePage') || 'https://www.google.com';
+            newTabURL = await window.api.getSetting('settings.newTabPage') || 'about:blank';
             const bookmarks = await window.api.getBookmarks();
             renderBookmarks(bookmarks);
-            createNewTab();
+            createNewTab(homeURL);
         };
 
         init();
+
+        // 监听从其他窗口传来的设置更新
+        window.api.onSettingUpdated(({ key, value }) => {
+            if (key === 'settings.homePage') {
+                homeURL = value;
+            }
+            if (key === 'settings.newTabPage') {
+                newTabURL = value;
+            }
+        });
     </script>
 </body>
 </html> 

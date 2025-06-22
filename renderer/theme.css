@@ -83,4 +83,12 @@
     /* 错误页面上的描述文本颜色 */
     --error-page-text-color: #666;
 
+}
+
+/* --- 通用控件样式 --- */
+input[type="checkbox"] {
+    /* 增加复选框的尺寸以提高可点击性 */
+    width: 16px;
+    height: 16px;
+    margin: 0; /* 重置部分浏览器默认的边距 */
 } 

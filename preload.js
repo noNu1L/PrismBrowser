@@ -33,6 +33,15 @@ contextBridge.exposeInMainWorld('api', {
   onNewTabRequest: (callback) => {
     ipcRenderer.on('new-tab-request', (_event, url) => callback(url));
   },
+  // --- Settings ---
+  getSetting: (key) => ipcRenderer.invoke('get-setting', key),
+  setSetting: (key, value) => ipcRenderer.invoke('set-setting', { key, value }),
+  getClashConfig: () => ipcRenderer.invoke('get-clash-config'),
+  restartClash: () => ipcRenderer.invoke('restart-clash'),
+  clearBrowsingData: (dataTypes) => ipcRenderer.invoke('clear-browsing-data', dataTypes),
+  onSettingUpdated: (callback) => {
+    ipcRenderer.on('setting-updated', (_event, { key, value }) => callback({ key, value }));
+  },
   // --- Window ---
   sendWindowControl: (action) => ipcRenderer.send('window-control', action),
   // openLogWindow: () => ipcRenderer.send('open-log-window'), // No longer needed

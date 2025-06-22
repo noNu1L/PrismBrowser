@@ -2,10 +2,15 @@ const { app, BrowserWindow, session, ipcMain } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const Store = require('electron-store');
+const fs = require('fs').promises;
 
 const store = new Store();
 let clashProcess = null;
 let mainWindow = null;
+
+function getHomePage() {
+    return store.get('settings.homePage', 'https://www.google.com');
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -144,8 +149,58 @@ ipcMain.handle('add-recently-closed', async (event, item) => {
 
 ipcMain.on('open-in-new-tab', (event, url) => {
     if (mainWindow) {
-        mainWindow.webContents.send('new-tab-request', url);
+        mainWindow.webContents.send('new-tab-request', url || getHomePage());
         mainWindow.focus();
+    }
+});
+
+// --- IPC Handlers for Settings ---
+ipcMain.handle('get-setting', (event, key) => {
+    return store.get(key, null);
+});
+
+ipcMain.handle('set-setting', (event, { key, value }) => {
+    store.set(key, value);
+    // 通知所有窗口设置已更新，以便实时生效
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('setting-updated', { key, value });
+    });
+    return { success: true };
+});
+
+ipcMain.handle('get-clash-config', async () => {
+    try {
+        const configPath = path.join(__dirname, 'clash-meta', 'config.yaml');
+        const configData = await fs.readFile(configPath, 'utf-8');
+        return configData;
+    } catch (error) {
+        console.error('Error reading Clash config:', error);
+        return `# 无法读取配置文件: ${error.message}`;
+    }
+});
+
+ipcMain.handle('restart-clash', async () => {
+    console.log('Restarting Clash process requested...');
+    stopClash();
+    // Give it a moment to release resources before starting again
+    setTimeout(() => {
+        startClash();
+    }, 500);
+    return { success: true };
+});
+
+ipcMain.handle('clear-browsing-data', async (event, dataTypes) => {
+    try {
+        if (dataTypes.includes('cache')) {
+            await session.defaultSession.clearCache();
+        }
+        if (dataTypes.includes('cookies')) {
+            await session.defaultSession.clearStorageData({ storages: ['cookies'] });
+        }
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to clear browsing data:', error);
+        return { success: false, error: error.message };
     }
 });
 
