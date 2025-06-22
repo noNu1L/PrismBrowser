@@ -509,6 +509,7 @@
         let lastFailedURL = '';
         let currentBookmarks = [];
         const homeURL = 'https://www.google.com';
+        let currentFavicon = null;
 
         // --- Wheel scrolling for tabs ---
         tabsContainer.addEventListener('wheel', (e) => {
@@ -540,6 +541,11 @@
             const currentIcon = tabEl.querySelector('.tab-icon, .loading-spinner');
             if (currentIcon) {
                 const newIcon = new DOMParser().parseFromString(iconHTML, "text/html").body.firstChild;
+                // If the new icon is an img, store its src
+                if (newIcon.tagName === 'IMG') {
+                    const activeTab = getActiveTab();
+                    if(activeTab) activeTab.favicon = newIcon.src;
+                }
                 currentIcon.parentNode.replaceChild(newIcon, currentIcon);
             }
         };
@@ -568,7 +574,7 @@
             // It's important to append to DOM before adding listeners in some cases.
             webviewContainer.appendChild(webviewEl);
             
-            const newTab = { id: tabId, el: tabEl, webview: webviewEl };
+            const newTab = { id: tabId, el: tabEl, webview: webviewEl, favicon: null };
             tabs.push(newTab);
 
             // Attach listeners before any potential navigation from user input.
@@ -620,6 +626,19 @@
             if (tabIndex === -1) return;
 
             const tabToClose = tabs[tabIndex];
+
+            // Add to recently closed list if it's a valid web page
+            const url = tabToClose.webview.getURL();
+            const title = tabToClose.webview.getTitle();
+            if (url && title && !url.startsWith('file://') && url !== 'about:blank') {
+                window.api.addRecentlyClosed({
+                    url,
+                    title,
+                    favicon: tabToClose.favicon,
+                    timestamp: new Date().toISOString()
+                });
+            }
+
             tabToClose.el.remove();
             webviewContainer.removeChild(tabToClose.webview); // Proper removal
             tabs.splice(tabIndex, 1);
@@ -649,6 +668,7 @@
             webview.addEventListener('page-favicon-updated', (e) => {
                 if (e.favicons && e.favicons.length > 0) {
                     const bestFavicon = e.favicons[0];
+                    tab.favicon = bestFavicon; // Save favicon URL to tab object
                     setTabIcon(el, `<img class="tab-icon" src="${bestFavicon}">`);
                 }
             });
@@ -671,7 +691,7 @@
                 const title = webview.getTitle();
                 // Don't add blank or placeholder URLs to history
                 if (url && title && url !== 'about:blank' && !url.startsWith('file://')) {
-                    window.api.addHistory({ url, title, timestamp: new Date().toISOString() });
+                    window.api.addHistory({ url, title, favicon: tab.favicon, timestamp: new Date().toISOString() });
                 }
 
                 // Proactively check for favicon if the event didn't fire
@@ -686,6 +706,7 @@
                             })();
                         `);
                         if (faviconURL) {
+                            tab.favicon = faviconURL; // Save favicon URL
                             setTabIcon(el, `<img class="tab-icon" src="${faviconURL}">`);
                         } else {
                             setTabIcon(el, defaultGlobeIcon); // Fallback to globe if not found

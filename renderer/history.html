@@ -5,140 +5,449 @@
     <title>历史记录</title>
     <link rel="stylesheet" href="theme.css">
     <style>
+        :root {
+            --sidebar-width: 250px;
+            --header-height: 50px;
+        }
+
         body, html {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            background-color: var(--app-bg-color-light);
+            color: var(--text-color-primary);
+        }
+
+        /* --- 主布局 --- */
+        #sidebar {
+            width: var(--sidebar-width);
             height: 100%;
-            width: 100%;
-            overflow: hidden;
-            font-family: sans-serif;
             display: flex;
             flex-direction: column;
-            background-color: var(--app-bg-color-light);
+            padding: 12px;
+            box-sizing: border-box;
+            background-color: var(--app-bg-color);
+            border-right: 1px solid var(--border-color-secondary);
         }
-        #header {
+        #main-content {
+            flex-grow: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* --- 侧边栏 --- */
+        #sidebar h1 {
+            font-size: 24px;
+            margin: 8px 0 20px 8px;
+        }
+        #search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #search-input {
+            width: 100%;
+            height: 32px;
+            padding-left: 30px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            border: 1px solid var(--border-color-secondary);
+        }
+        #search-icon {
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            width: 16px;
+            height: 16px;
+            stroke: var(--text-color-secondary);
+        }
+        #nav-list .nav-item {
             display: flex;
             align-items: center;
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--border-color-secondary);
-            flex-shrink: 0;
-        }
-        #header h1 {
-            font-size: 16px;
-            margin: 0;
-            flex-grow: 1;
-        }
-        #clear-history-btn {
-            padding: 4px 8px;
-            font-size: 12px;
+            padding: 8px;
             border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
         }
-        #history-list {
+        #nav-list .nav-item:hover {
+            background-color: var(--button-hover-bg);
+        }
+        #nav-list .nav-item.active {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+        #nav-list .nav-item svg {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            stroke: var(--text-color-secondary);
+        }
+        #nav-list .nav-item.active svg {
+            stroke: #004085;
+        }
+
+        /* --- 主内容区 --- */
+        #content-header {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border-color-secondary);
+        }
+        #content-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        #header-actions {
+            display: flex;
+            align-items: center;
+        }
+        #header-actions button {
+            display: flex;
+            align-items: center;
+            gap: 6px; /* 图标和文字的间距 */
+            margin-left: 8px;
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color-secondary);
+            background-color: var(--app-bg-color-light);
+            cursor: pointer;
+        }
+        #header-actions button:hover:not(:disabled) {
+            background-color: var(--button-hover-bg);
+        }
+        #header-actions button svg {
+            width: 14px;
+            height: 14px;
+            stroke: var(--text-color-secondary);
+        }
+        #header-actions button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #history-container {
             flex-grow: 1;
             overflow-y: auto;
-            padding: 8px;
+            padding: 16px 24px;
+        }
+
+        /* --- 历史记录列表 --- */
+        .date-group {
+            margin-bottom: 24px;
+        }
+        .date-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border-color-secondary);
         }
         .history-item {
             display: flex;
             align-items: center;
-            padding: 6px 8px;
+            padding: 10px 4px;
             border-radius: 4px;
-            margin-bottom: 4px;
-            cursor: pointer;
         }
         .history-item:hover {
             background-color: var(--button-hover-bg);
         }
+        .history-item-checkbox, .group-checkbox {
+            width: 16px;
+            height: 16px;
+            margin-right: 12px;
+        }
+        .history-item-favicon {
+            width: 16px;
+            height: 16px;
+            margin-right: 12px;
+        }
         .history-item-title {
-            flex-grow: 1;
+            flex-basis: 50%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             font-size: 14px;
+            cursor: pointer;
+        }
+         .history-item-title:hover {
+            text-decoration: underline;
         }
         .history-item-url {
+            flex-basis: 35%;
             color: var(--text-color-secondary);
             font-size: 12px;
-            margin-left: 16px;
-            max-width: 40%;
-             white-space: nowrap;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .delete-history-item-btn {
-            margin-left: 8px;
-            width: 20px;
-            height: 20px;
-            border: none;
-            background: transparent;
-            opacity: 0.5;
-            padding: 0;
-            font-size: 16px;
+        .history-item-time {
+            flex-grow: 1;
+            text-align: right;
+            font-size: 12px;
+            color: var(--text-color-secondary);
         }
-        .delete-history-item-btn:hover {
+        .history-item-delete {
+            width: 24px; height: 24px;
+            border: none; background: transparent; opacity: 0.5;
+            padding: 0; font-size: 18px;
+            cursor: pointer;
+            margin-left: 8px;
+            visibility: hidden; /* Hide by default */
+        }
+        .history-item:hover .history-item-delete {
+            visibility: visible; /* Show on hover */
+        }
+        .history-item-delete:hover {
             opacity: 1;
+        }
+        .no-results {
+            text-align: center;
+            margin-top: 50px;
+            color: var(--text-color-secondary);
         }
     </style>
 </head>
 <body>
-    <div id="header">
+    <aside id="sidebar">
         <h1>历史记录</h1>
-        <button id="clear-history-btn">清空所有历史记录</button>
-    </div>
-    <div id="history-list">
-        <!-- History items will be dynamically inserted here -->
-    </div>
+        <div id="search-box">
+            <svg id="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="search-input" placeholder="搜索历史记录">
+        </div>
+        <nav id="nav-list">
+            <div class="nav-item active" data-view="all">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+                <span>全部</span>
+            </div>
+            <div class="nav-item" data-view="recent">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2"></path><path d="M22 4H2"></path><path d="M22 20H2"></path></svg>
+                <span>最近关闭</span>
+            </div>
+        </nav>
+    </aside>
+
+    <main id="main-content">
+        <header id="content-header">
+            <h2 id="content-title">全部</h2>
+            <div id="header-actions">
+                 <button id="delete-selected-btn" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span>删除</span>
+                 </button>
+                 <button id="clear-all-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                    <span>清除浏览数据</span>
+                </button>
+            </div>
+        </header>
+        <div id="history-container">
+            <!-- Items will be injected here -->
+        </div>
+    </main>
 
     <script>
-        const historyList = document.getElementById('history-list');
-        const clearHistoryBtn = document.getElementById('clear-history-btn');
+        const globeIcon = `<svg class="history-item-favicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
+        
+        // --- DOM Elements ---
+        const searchInput = document.getElementById('search-input');
+        const navItems = document.querySelectorAll('.nav-item');
+        const contentTitle = document.getElementById('content-title');
+        const historyContainer = document.getElementById('history-container');
+        const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+        const clearAllBtn = document.getElementById('clear-all-btn');
 
-        async function renderHistory() {
-            const history = await window.api.getHistory();
-            historyList.innerHTML = '';
-            // Reverse for chronological order (most recent first)
-            history.reverse().forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'history-item';
-                div.title = `${item.title}\\n${item.url}`;
+        // --- App State ---
+        let state = {
+            currentView: 'all', // 'all' or 'recent'
+            searchQuery: '',
+            historyData: [],
+            recentlyClosedData: [],
+            selectedUrls: new Set()
+        };
+
+        // --- Helper Functions ---
+        const getHostname = (url) => {
+            try { return new URL(url).hostname; } catch (e) { return url; }
+        };
+
+        const formatDateGroup = (dateStr) => {
+            const date = new Date(dateStr);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            if (date.toDateString() === today.toDateString()) return '今天';
+            if (date.toDateString() === yesterday.toDateString()) return '昨天';
+            
+            return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+        };
+
+        // --- Rendering ---
+        function render() {
+            const data = state.currentView === 'all' ? state.historyData : state.recentlyClosedData;
+
+            // Filter data
+            const filteredData = data.filter(item =>
+                item.title.toLowerCase().includes(state.searchQuery) ||
+                item.url.toLowerCase().includes(state.searchQuery)
+            );
+
+            historyContainer.innerHTML = '';
+            
+            if (filteredData.length === 0) {
+                 historyContainer.innerHTML = `<div class="no-results">找不到匹配的历史记录。</div>`;
+                 return;
+            }
+
+            // Group by date
+            const groupedData = filteredData.reduce((acc, item) => {
+                const dateKey = item.timestamp.split('T')[0];
+                if (!acc[dateKey]) acc[dateKey] = [];
+                acc[dateKey].push(item);
+                return acc;
+            }, {});
+
+            const sortedGroups = Object.keys(groupedData).sort().reverse();
+            
+            for (const dateKey of sortedGroups) {
+                const groupEl = document.createElement('div');
+                groupEl.className = 'date-group';
                 
-                div.innerHTML = `
-                    <span class="history-item-title">${item.title}</span>
-                    <span class="history-item-url">${item.url}</span>
-                    <button class="delete-history-item-btn" data-url="${item.url}">&times;</button>
+                const isAllSelected = groupedData[dateKey].every(item => state.selectedUrls.has(item.url));
+
+                groupEl.innerHTML = `
+                    <div class="date-group-header">
+                        <span>${formatDateGroup(dateKey)}</span>
+                        <input type="checkbox" class="group-checkbox" data-date-key="${dateKey}" ${isAllSelected ? 'checked' : ''}>
+                    </div>
                 `;
-
-                div.addEventListener('click', (e) => {
-                    // Don't open if delete button was clicked
-                    if (e.target.classList.contains('delete-history-item-btn')) return;
-                    window.api.openInNewTab(item.url);
-                });
                 
-                div.querySelector('.delete-history-item-btn').addEventListener('click', async (e) => {
+                groupedData[dateKey].forEach(item => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'history-item';
+                    const isChecked = state.selectedUrls.has(item.url);
+
+                    itemEl.innerHTML = `
+                        <input type="checkbox" class="history-item-checkbox" data-url="${item.url}" ${isChecked ? 'checked' : ''}>
+                        ${item.favicon ? `<img src="${item.favicon}" class="history-item-favicon">` : globeIcon}
+                        <span class="history-item-title" title="${item.title}">${item.title}</span>
+                        <span class="history-item-url" title="${item.url}">${getHostname(item.url)}</span>
+                        <span class="history-item-time">${new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <button class="history-item-delete" data-url="${item.url}">&times;</button>
+                    `;
+                    groupEl.appendChild(itemEl);
+                });
+                historyContainer.appendChild(groupEl);
+            }
+            
+            updateHeaderActions();
+            attachEventListeners();
+        }
+
+        function updateHeaderActions() {
+            deleteSelectedBtn.disabled = state.selectedUrls.size === 0;
+            clearAllBtn.disabled = (state.currentView === 'all' && state.historyData.length === 0) || (state.currentView === 'recent' && state.recentlyClosedData.length === 0);
+        }
+
+        // --- Event Listeners ---
+        function attachEventListeners() {
+            document.querySelectorAll('.history-item-checkbox').forEach(el => {
+                el.addEventListener('change', (e) => {
+                    const url = e.target.dataset.url;
+                    e.target.checked ? state.selectedUrls.add(url) : state.selectedUrls.delete(url);
+                    updateHeaderActions();
+                });
+            });
+            document.querySelectorAll('.group-checkbox').forEach(el => {
+                el.addEventListener('change', (e) => {
+                    const dateKey = e.target.dataset.dateKey;
+                    const urlsInGroup = (state.currentView === 'all' ? state.historyData : state.recentlyClosedData)
+                        .filter(item => item.timestamp.startsWith(dateKey))
+                        .map(item => item.url);
+                    
+                    if (e.target.checked) {
+                        urlsInGroup.forEach(url => state.selectedUrls.add(url));
+                    } else {
+                        urlsInGroup.forEach(url => state.selectedUrls.delete(url));
+                    }
+                    render();
+                });
+            });
+
+            document.querySelectorAll('.history-item-title').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    const itemEl = e.target.closest('.history-item');
+                    const checkbox = itemEl.querySelector('.history-item-checkbox');
+                    window.api.openInNewTab(checkbox.dataset.url);
+                });
+            });
+
+            document.querySelectorAll('.history-item-delete').forEach(el => {
+                el.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const urlToDelete = e.target.dataset.url;
-                    await window.api.deleteHistoryItem(urlToDelete);
-                    renderHistory(); // Re-render the list
+                    await window.api.deleteHistoryItems([urlToDelete]);
+                    fetchData();
                 });
-
-                historyList.appendChild(div);
             });
         }
 
-        clearHistoryBtn.addEventListener('click', async () => {
-            if (confirm('确定要清空所有历史记录吗？此操作无法撤销。')) {
-                await window.api.clearHistory();
-                renderHistory();
+        searchInput.addEventListener('input', (e) => {
+            state.searchQuery = e.target.value.toLowerCase();
+            render();
+        });
+
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                const view = e.currentTarget.dataset.view;
+                if (state.currentView === view) return;
+
+                state.currentView = view;
+                state.selectedUrls.clear(); // Clear selection when switching views
+
+                navItems.forEach(i => i.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                contentTitle.textContent = e.currentTarget.querySelector('span').textContent;
+
+                fetchData();
+            });
+        });
+
+        deleteSelectedBtn.addEventListener('click', async () => {
+            if (state.selectedUrls.size === 0) return;
+            await window.api.deleteHistoryItems([...state.selectedUrls]);
+            state.selectedUrls.clear();
+            fetchData();
+        });
+
+        clearAllBtn.addEventListener('click', async () => {
+            if (confirm(`确定要清除所有"${contentTitle.textContent}"记录吗？此操作无法撤销。`)) {
+                if(state.currentView === 'all') {
+                    await window.api.clearHistory();
+                } 
+                // Note: No "clear all" for recently closed in this design
+                fetchData();
             }
         });
 
-        // Initial render
-        renderHistory();
-        
-        // Listen for updates from other windows
-        window.api.onHistoryUpdated(() => {
-            renderHistory();
-        });
+        // --- Data Fetching ---
+        async function fetchData() {
+            state.historyData = await window.api.getHistory();
+            state.recentlyClosedData = await window.api.getRecentlyClosed();
+            state.historyData.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            state.recentlyClosedData.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            render();
+        }
+
+        // --- Initialization ---
+        fetchData();
+        window.api.onHistoryUpdated(fetchData);
 
     </script>
 </body>

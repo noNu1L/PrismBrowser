@@ -102,18 +102,21 @@ ipcMain.handle('get-history', async () => {
 
 ipcMain.handle('add-history', async (event, item) => {
     const history = store.get('history', []);
-    // To prevent the history from growing indefinitely, let's cap it at 1000 entries.
-    // Also remove potential duplicates by URL, keeping the last visit.
+    // 为了防止历史记录无限增长，我们将其限制在1000条。
+    // 同时通过 URL 删除可能的重复项，保留最后一次访问的记录。
     const newHistory = history.filter(h => h.url !== item.url).slice(-999);
     newHistory.push(item);
     store.set('history', newHistory);
-    // Notify windows that history has been updated
+    // 通知窗口历史记录已更新
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('history-updated');
+    });
     return newHistory;
 });
 
-ipcMain.handle('delete-history-item', async (event, url) => {
+ipcMain.handle('delete-history-items', async (event, urls) => {
     const history = store.get('history', []);
-    const newHistory = history.filter(h => h.url !== url);
+    const newHistory = history.filter(h => !urls.includes(h.url));
     store.set('history', newHistory);
     return newHistory;
 });
@@ -121,6 +124,22 @@ ipcMain.handle('delete-history-item', async (event, url) => {
 ipcMain.handle('clear-history', async () => {
     store.set('history', []);
     return [];
+});
+
+// --- IPC Handlers for Recently Closed Tabs ---
+ipcMain.handle('get-recently-closed', async () => {
+    return store.get('recentlyClosed', []);
+});
+
+ipcMain.handle('add-recently-closed', async (event, item) => {
+    const recentlyClosed = store.get('recentlyClosed', []);
+    // 限制最近关闭列表的数量，例如20个
+    const newRecentlyClosed = [item, ...recentlyClosed.filter(h => h.url !== item.url)].slice(0, 20);
+    store.set('recentlyClosed', newRecentlyClosed);
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('history-updated');
+    });
+    return newRecentlyClosed;
 });
 
 ipcMain.on('open-in-new-tab', (event, url) => {

@@ -22,8 +22,10 @@ contextBridge.exposeInMainWorld('api', {
   // --- History ---
   getHistory: () => ipcRenderer.invoke('get-history'),
   addHistory: (item) => ipcRenderer.invoke('add-history', item),
-  deleteHistoryItem: (url) => ipcRenderer.invoke('delete-history-item', url),
+  deleteHistoryItems: (urls) => ipcRenderer.invoke('delete-history-items', urls),
   clearHistory: () => ipcRenderer.invoke('clear-history'),
+  getRecentlyClosed: () => ipcRenderer.invoke('get-recently-closed'),
+  addRecentlyClosed: (item) => ipcRenderer.invoke('add-recently-closed', item),
   openInNewTab: (url) => ipcRenderer.send('open-in-new-tab', url),
   onHistoryUpdated: (callback) => {
     ipcRenderer.on('history-updated', (_event) => callback());
