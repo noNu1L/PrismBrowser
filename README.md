@@ -8,7 +8,7 @@
 
 **PrismBrowser 是一款基于 Electron 构建的、内置 Clash.Meta 核心的轻量级浏览器，旨在提供一个开箱即用、集成了强大网络代理功能的浏览环境。**
 
-![https://github.com/noNu1L/PrismBrowser/blob/master/document/img.png](img.png)
+![img.png](https://github.com/noNu1L/PrismBrowser/blob/master/document/img.png?raw=true)
 
 ---
 
