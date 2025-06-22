@@ -13,12 +13,13 @@
     --text-color-light: #f1f1f1;
 
     /* -- Border & Separator Colors -- */
-    --border-color-primary: #bbb;
+    --border-color-primary: #707070;
     --border-color-secondary: #ccc;
 
     /* -- Tab Colors -- */
     --tab-bg-color: #d0d0d0;
     --tab-bg-color-active: var(--app-bg-color-light);
+    --tab-hover-bg-color: #e0e0e0;
     --tab-close-button-hover-bg: #c0c0c0;
 
     /* -- Button & Control Colors -- */
