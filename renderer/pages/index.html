@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>PrismBrowser</title>
-    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="../styles/theme.css">
     <style>
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; display: flex; flex-direction: column; background-color: var(--app-bg-color); -webkit-app-region: drag; /* Make the whole background draggable */ }
         
@@ -580,8 +580,14 @@
             webviewEl.dataset.tabId = tabId;
             // For local pages like history, we need to inject the preload script
             // to give it access to the `window.api` functions.
-            webviewEl.setAttribute('preload', '../preload.js');
-            webviewEl.src = urlToLoad; // Restore setting src for reliable initialization.
+            webviewEl.setAttribute('preload', '../../preload.js');
+            
+            // Prepend local page paths correctly
+            let finalUrl = urlToLoad;
+            if (['history.html', 'bookmarks.html', 'settings.html'].includes(urlToLoad)) {
+                finalUrl = './' + urlToLoad;
+            }
+            webviewEl.src = finalUrl;
             
             // It's important to append to DOM before adding listeners in some cases.
             webviewContainer.appendChild(webviewEl);

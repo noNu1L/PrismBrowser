@@ -35,7 +35,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile('renderer/index.html');
+  mainWindow.loadFile('renderer/pages/index.html');
 }
 
 function createBookmarkPopup(data) {
@@ -62,7 +62,7 @@ function createBookmarkPopup(data) {
         }
     });
 
-    bookmarkPopup.loadFile('renderer/add-bookmark-popup.html');
+    bookmarkPopup.loadFile('renderer/popups/add-bookmark-popup.html');
 
     bookmarkPopup.once('ready-to-show', () => {
         bookmarkPopup.show();
@@ -99,7 +99,7 @@ function createAddFolderPopup(data) {
         }
     });
 
-    addFolderPopup.loadFile('renderer/add-folder-popup.html');
+    addFolderPopup.loadFile('renderer/popups/add-folder-popup.html');
 
     addFolderPopup.once('ready-to-show', () => {
         addFolderPopup.show();
