@@ -112,16 +112,19 @@ function createAddFolderPopup(data) {
 }
 
 function startClash() {
-  // Path to the Clash.Meta executable, assuming it's for Windows and in the 'clash-meta' directory.
   const clashExe = 'mihomo.exe';
-  const clashPath = path.join(__dirname, 'clash-meta', clashExe);
-  const configPath = path.join(__dirname, 'clash-meta', 'config.yaml');
+  // Determine the base path based on whether the app is packaged or not.
+  const basePath = app.isPackaged
+    ? path.join(process.resourcesPath, 'clash-meta')
+    : path.join(__dirname, 'clash-meta');
+
+  const clashPath = path.join(basePath, clashExe);
 
   console.log(`Starting Mihomo (Clash.Meta) from: ${clashPath}`);
 
   // Start the Mihomo process.
   // The '-d' argument specifies the directory where config.yaml is located.
-  clashProcess = spawn(clashPath, ['-d', path.join(__dirname, 'clash-meta')]);
+  clashProcess = spawn(clashPath, ['-d', basePath]);
 
   clashProcess.stdout.on('data', (data) => {
     const logMessage = data.toString();
