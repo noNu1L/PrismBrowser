@@ -502,53 +502,7 @@
                 tabsManager.createNewTab(e.url);
             });
 
-            // 处理下载事件
-            webview.addEventListener('will-download', (e) => {
-                console.log('下载事件触发:', e);
-                
-                const downloadItem = {
-                    id: `download-${Date.now()}`,
-                    filename: e.filename || 'download_file',
-                    url: e.url || webview.getURL(),
-                    status: 'downloading',
-                    startTime: new Date().toISOString(),
-                    totalBytes: e.totalBytes || 0,
-                    receivedBytes: 0,
-                    speed: 0,
-                    filePath: null
-                };
 
-                // 添加到下载记录
-                window.api.addDownload(downloadItem);
-                
-
-                
-                console.log('下载已记录:', downloadItem);
-            });
-
-            // 尝试通过其他方式监听下载
-            webview.addEventListener('new-window', (e) => {
-                // 检查是否是下载链接
-                if (e.disposition === 'save-as' || e.disposition === 'attachment') {
-                    e.preventDefault();
-                    
-                    const downloadItem = {
-                        id: `download-${Date.now()}`,
-                        filename: e.url.split('/').pop() || 'download_file',
-                        url: e.url,
-                        status: 'downloading',
-                        startTime: new Date().toISOString(),
-                        totalBytes: 0,
-                        receivedBytes: 0,
-                        speed: 0,
-                        filePath: null
-                    };
-
-                    // 添加到下载记录
-                    window.api.addDownload(downloadItem);
-                    console.log('通过new-window事件检测到下载:', downloadItem);
-                }
-            });
         };
 
         // 设置全局函数可访问
@@ -571,11 +525,21 @@
 
         // 监听下载事件
         window.api.onDownloadStarted((downloadItem) => {
-            console.log('下载开始:', downloadItem);
+            console.log('Renderer received download started event:', downloadItem);
+            // 自动显示下载弹窗，稍微延迟以确保组件已完全初始化
+            setTimeout(() => {
+                console.log('Attempting to show downloads popup, addressBarManager:', !!window.addressBarManager);
+                if (window.addressBarManager && window.addressBarManager.showDownloadsPopup) {
+                    console.log('Calling showDownloadsPopup...');
+                    window.addressBarManager.showDownloadsPopup();
+                } else {
+                    console.error('addressBarManager or showDownloadsPopup method not available');
+                }
+            }, 500);
         });
 
         window.api.onDownloadProgress((downloadItem) => {
-            console.log('下载进度更新:', downloadItem);
+            console.log('Download progress updated:', downloadItem);
             // 如果下载弹窗打开，刷新内容
             const popup = document.getElementById('downloads-popup');
             if (popup && popup.style.display === 'block' && window.addressBarManager) {
@@ -584,7 +548,7 @@
         });
 
         window.api.onDownloadCompleted((downloadItem) => {
-            console.log('下载完成:', downloadItem);
+            console.log('Download completed:', downloadItem);
             // 如果下载弹窗打开，刷新内容
             const popup = document.getElementById('downloads-popup');
             if (popup && popup.style.display === 'block' && window.addressBarManager) {
@@ -698,6 +662,25 @@
                 
                 tabsManager.createNewTab(startupUrl);
                 console.log('✅ 应用程序初始化完成');
+                
+                // 测试下载弹窗是否工作（调试用）
+                setTimeout(() => {
+                    console.log('Testing downloads popup functionality...');
+                    if (window.addressBarManager && window.addressBarManager.showDownloadsPopup) {
+                        console.log('addressBarManager.showDownloadsPopup available');
+                        
+                        // 添加测试快捷键 Ctrl+Shift+D 来手动触发下载弹窗
+                        document.addEventListener('keydown', (e) => {
+                            if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+                                console.log('Manual test: showing downloads popup...');
+                                window.addressBarManager.showDownloadsPopup();
+                            }
+                        });
+                        
+                    } else {
+                        console.error('addressBarManager.showDownloadsPopup not available during init');
+                    }
+                }, 2000);
             } catch (error) {
                 console.error('❌ 应用程序初始化失败:', error);
             }

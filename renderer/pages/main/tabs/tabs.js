@@ -128,6 +128,8 @@ class TabsManager {
         // 以便它可以访问 `window.api` 函数
         const preloadPath = await window.api.getPreloadPath();
         webviewEl.setAttribute('preload', preloadPath);
+        // 设置partition让webview使用主窗口的session，这样下载事件可以被正确监听
+        webviewEl.setAttribute('partition', 'persist:main');
         
         // 确定最终要加载的URL
         let finalUrl;

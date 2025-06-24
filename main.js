@@ -2,7 +2,7 @@ const { app, BrowserWindow, session, ipcMain, screen, shell } = require('electro
 const { spawn } = require('child_process');
 const path = require('path');
 const Store = require('electron-store');
-const fs = require('fs').promises;
+const fs = require('fs');
 
 const store = new Store();
 let clashProcess = null;
@@ -71,20 +71,45 @@ function createWindow() {
     }
   });
 
-  // 监听所有webContents的下载事件
-  mainWindow.webContents.session.on('will-download', (event, item, webContents) => {
-    console.log('主进程检测到下载:', item.getFilename());
+  // 监听主session和webview session的下载事件
+  const mainSession = session.fromPartition('persist:main');
+  const defaultSession = session.defaultSession;
+  
+  // 下载处理函数
+  const handleDownload = (event, item, webContents) => {
+    console.log('Main process detected download:', item.getFilename());
+    
+    // 设置下载路径到用户的下载文件夹，避免显示保存对话框
+    const downloadsPath = app.getPath('downloads');
+    const originalFilename = item.getFilename();
+    
+    // 处理重复文件名
+    let filename = originalFilename;
+    let counter = 1;
+    let filePath = path.join(downloadsPath, filename);
+    
+    // 检查文件是否已存在，如果存在则添加数字后缀
+    while (fs.existsSync(filePath)) {
+      const ext = path.extname(originalFilename);
+      const nameWithoutExt = path.basename(originalFilename, ext);
+      filename = `${nameWithoutExt} (${counter})${ext}`;
+      filePath = path.join(downloadsPath, filename);
+      counter++;
+    }
+    
+    // 设置保存路径，这样就不会显示系统的保存对话框
+    item.setSavePath(filePath);
     
     const downloadItem = {
       id: `download-${Date.now()}`,
-      filename: item.getFilename(),
+      filename: filename,
       url: item.getURL(),
       status: 'downloading',
       startTime: new Date().toISOString(),
       totalBytes: item.getTotalBytes(),
       receivedBytes: item.getReceivedBytes(),
       speed: 0,
-      filePath: null
+      filePath: filePath
     };
 
     // 保存到下载记录
@@ -93,6 +118,7 @@ function createWindow() {
     store.set('downloads', downloads);
 
     // 通知渲染进程
+    console.log('Sending download-started event to renderer:', downloadItem.filename);
     mainWindow.webContents.send('download-started', downloadItem);
 
     // 监听下载进度
@@ -138,9 +164,13 @@ function createWindow() {
 
       // 通知渲染进程下载完成
       mainWindow.webContents.send('download-completed', downloadItem);
-      console.log('下载完成:', downloadItem.filename, '状态:', downloadItem.status);
+      console.log('Download completed:', downloadItem.filename, 'Status:', downloadItem.status);
     });
-  });
+  };
+  
+  // 为不同session设置下载监听
+  mainSession.on('will-download', handleDownload);
+  defaultSession.on('will-download', handleDownload);
 }
 
 function createBookmarkPopup(data) {
@@ -662,23 +692,20 @@ ipcMain.handle('get-window-bounds', () => {
 });
 
 app.whenReady().then(async () => {
-  // Start Mihomo first.
-  startClash();
+  // 默认关闭Mihomo代理功能，如需使用请在设置中手动启动
+  // startClash();
   
   // Initialize data stores
   initializeBookmarks();
 
-  // Configure the proxy for all HTTP and HTTPS traffic.
-  // This must be done after the app is ready.
-  // We assume Mihomo is running on port 17890 now.
-  const proxyRules = 'http=127.0.0.1:17890;https=127.0.0.1:17890';
-  await session.defaultSession.setProxy({
-    proxyRules: proxyRules,
-    // You can add bypass rules for local addresses if needed.
-    proxyBypassRules: '<local>'
-  });
-  console.log(`Proxy configured to: ${proxyRules}`);
-
+  // 默认关闭代理配置，使用直连模式
+  // const proxyRules = 'http=127.0.0.1:17890;https=127.0.0.1:17890';
+  // await session.defaultSession.setProxy({
+  //   proxyRules: proxyRules,
+  //   // You can add bypass rules for local addresses if needed.
+  //   proxyBypassRules: '<local>'
+  // });
+  // console.log(`Proxy configured to: ${proxyRules}`);
 
   createWindow();
 
