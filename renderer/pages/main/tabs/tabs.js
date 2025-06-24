@@ -133,7 +133,7 @@ class TabsManager {
         if (systemPageInfo) {
             finalUrl = systemPageInfo.file;
         } else if (['history.html', 'bookmarks.html', 'settings.html'].includes(urlToLoad)) {
-            finalUrl = './' + urlToLoad;
+            finalUrl = '../' + urlToLoad;
         } else if (urlToLoad.includes('dashboard')) {
             finalUrl = '../dashboard/index.html';
         } else {
