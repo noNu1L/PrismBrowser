@@ -610,13 +610,16 @@
         };
 
         // --- Tab Management ---
-        const createNewTab = (urlToLoad, isHidden = false) => {
+        const createNewTab = async (urlToLoad, isHidden = false) => {
             // If no URL is provided, it means it's a "new tab" action.
-            // We let the main process decide the URL (which will be the new tab page setting).
-            // For other cases (like clicking a bookmark or history item), a specific URL is provided.
+            // We need to determine what to show based on new tab settings.
             if (urlToLoad === null || typeof urlToLoad === 'undefined') {
-                window.api.openInNewTab(); // Request main process for new tab URL
-                return; 
+                const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
+                if (newtabOption === 'blank') {
+                    urlToLoad = 'about:blank';
+                } else {
+                    urlToLoad = await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com';
+                }
             }
 
             const tabId = `tab-${Date.now()}`;
@@ -845,10 +848,21 @@
                 tab.webview.loadURL(lastFailedURL);
             }
         });
-        homeButton.addEventListener('click', () => {
+        homeButton.addEventListener('click', async () => {
             const tab = getActiveTab();
             if (tab) {
-                tab.webview.loadURL(normalizeUrl(homeURL));
+                const homepageOption = await window.api.getSetting('settings.homepageOption') || 'custom';
+                let url;
+                
+                if (homepageOption === 'newtab') {
+                    const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
+                    url = newtabOption === 'blank' ? 'about:blank' : 
+                          (await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com');
+                } else {
+                    url = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
+                }
+                
+                tab.webview.loadURL(normalizeUrl(url));
             }
         });
         urlInput.addEventListener('keydown', (e) => {
@@ -1001,10 +1015,35 @@
 
         // --- Init ---
         const init = async () => {
-            homeURL = await window.api.getSetting('settings.homePage') || 'https://www.google.com';
-            newTabURL = await window.api.getSetting('settings.newTabPage') || 'about:blank';
+            homeURL = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
+            newTabURL = await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com';
             await refreshBookmarks();
-            createNewTab(homeURL);
+            
+            // 根据启动时设置决定打开什么页面
+            const startupOption = await window.api.getSetting('settings.startupOption') || 'homepage';
+            let startupUrl;
+            
+            if (startupOption === 'homepage') {
+                const homepageOption = await window.api.getSetting('settings.homepageOption') || 'custom';
+                if (homepageOption === 'newtab') {
+                    const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
+                    startupUrl = newtabOption === 'blank' ? 'about:blank' : 
+                                (await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com');
+                } else {
+                    startupUrl = homeURL;
+                }
+            } else if (startupOption === 'newtab') {
+                const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
+                startupUrl = newtabOption === 'blank' ? 'about:blank' : 
+                            (await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com');
+            } else if (startupOption === 'custom') {
+                startupUrl = await window.api.getSetting('settings.startupCustomUrl') || 'https://www.google.com';
+            } else {
+                // lastsession 暂时使用主页
+                startupUrl = homeURL;
+            }
+            
+            createNewTab(startupUrl);
         };
 
         init();
@@ -1016,7 +1055,7 @@
 
         // 监听从其他窗口传来的设置更新
         window.api.onSettingUpdated(({ key, value }) => {
-            if (key === 'settings.homePage') {
+            if (key === 'settings.homepageCustomUrl') {
                 homeURL = value;
             }
             // No longer need to update newTabURL here, main process handles it.

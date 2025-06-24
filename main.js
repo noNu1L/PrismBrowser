@@ -11,11 +11,38 @@ let bookmarkPopup = null;
 let addFolderPopup = null;
 
 function getHomePage() {
-    return store.get('settings.homePage', 'https://www.google.com');
+    const option = store.get('settings.homepageOption', 'custom');
+    if (option === 'newtab') {
+        return getNewTabPageUrl();
+    } else if (option === 'custom') {
+        return store.get('settings.homepageCustomUrl', 'https://www.google.com');
+    }
+    return 'https://www.google.com';
 }
 
 function getNewTabPageUrl() {
-    return store.get('settings.newTabPage', 'about:blank');
+    const option = store.get('settings.newtabOption', 'blank');
+    if (option === 'blank') {
+        return 'about:blank';
+    } else if (option === 'custom') {
+        return store.get('settings.newtabCustomUrl', 'https://www.google.com');
+    }
+    return 'about:blank';
+}
+
+function getStartupUrl() {
+    const option = store.get('settings.startupOption', 'homepage');
+    if (option === 'homepage') {
+        return getHomePage();
+    } else if (option === 'newtab') {
+        return getNewTabPageUrl();
+    } else if (option === 'custom') {
+        return store.get('settings.startupCustomUrl', 'https://www.google.com');
+    } else if (option === 'lastsession') {
+        // TODO: 实现恢复上次会话的功能
+        return getHomePage(); // 暂时回退到主页
+    }
+    return getHomePage();
 }
 
 function createWindow() {

@@ -115,6 +115,21 @@
         .checkbox-group input[type="checkbox"] {
             margin-right: 10px;
         }
+        .radio-group {
+            margin-bottom: 16px;
+        }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px 0;
+        }
+        .radio-group input[type="radio"] {
+            margin-right: 12px;
+            accent-color: var(--button-primary-bg);
+        }
         .actions {
             margin-top: 24px;
             text-align: right;
@@ -168,27 +183,46 @@
         <!-- 浏览器设置 -->
         <div id="browser-settings" class="view-content">
             <div class="setting-card">
-                <h2>主页</h2>
-                <p>浏览器启动时以及点击主页按钮时打开的页面。</p>
-                <div class="form-group">
-                    <label for="home-page-input">主页 URL</label>
-                    <input type="text" id="home-page-input" placeholder="输入网址，例如 https://www.google.com">
+                <h2>启动时</h2>
+                <p>选择浏览器启动时的行为。</p>
+                <div class="radio-group">
+                    <label><input type="radio" name="startup-option" value="homepage"> 打开主页</label>
+                    <label><input type="radio" name="startup-option" value="newtab"> 打开新标签页</label>
+                    <label><input type="radio" name="startup-option" value="lastsession"> 继续浏览上次打开的页面</label>
+                    <label><input type="radio" name="startup-option" value="custom"> 打开特定页面或一组页面</label>
                 </div>
-                <div class="actions">
-                    <button id="save-home-page-btn" class="primary">保存</button>
+                <div id="startup-custom-url" class="form-group" style="display: none; margin-left: 20px;">
+                    <label for="startup-custom-input">自定义启动页面</label>
+                    <input type="text" id="startup-custom-input" placeholder="输入网址，例如 https://www.google.com">
                 </div>
             </div>
+
             <div class="setting-card">
-                <h2>新建标签页</h2>
-                <p>点击"+"按钮时打开的页面。输入 <code>about:blank</code> 可打开空白页。</p>
-                <div class="form-group">
-                    <label for="new-tab-page-input">新标签页URL</label>
-                    <input type="text" id="new-tab-page-input" placeholder="输入网址或 about:blank">
+                <h2>主页按钮</h2>
+                <p>选择点击主页按钮时打开的页面。</p>
+                <div class="radio-group">
+                    <label><input type="radio" name="homepage-option" value="newtab"> 新标签页</label>
+                    <label><input type="radio" name="homepage-option" value="custom"> 自定义页面</label>
                 </div>
-                <div class="actions">
-                    <button id="save-new-tab-page-btn" class="primary">保存</button>
+                <div id="homepage-custom-url" class="form-group" style="display: none; margin-left: 20px;">
+                    <label for="homepage-custom-input">自定义主页</label>
+                    <input type="text" id="homepage-custom-input" placeholder="输入网址，例如 https://www.google.com">
                 </div>
             </div>
+
+            <div class="setting-card">
+                <h2>新标签页</h2>
+                <p>选择打开新标签页时显示的内容。</p>
+                <div class="radio-group">
+                    <label><input type="radio" name="newtab-option" value="blank"> 空白页</label>
+                    <label><input type="radio" name="newtab-option" value="custom"> 自定义页面</label>
+                </div>
+                <div id="newtab-custom-url" class="form-group" style="display: none; margin-left: 20px;">
+                    <label for="newtab-custom-input">自定义新标签页</label>
+                    <input type="text" id="newtab-custom-input" placeholder="输入网址，例如 https://www.google.com">
+                </div>
+            </div>
+
             <div class="setting-card">
                 <h2>清除浏览数据</h2>
                 <p>清除浏览器生成的缓存文件和 Cookie，这有助于解决一些网站加载问题或保护您的隐私。</p>
@@ -223,10 +257,22 @@
         // --- DOM Elements ---
         const navItems = document.querySelectorAll('.nav-item');
         const views = document.querySelectorAll('.view-content');
-        const homePageInput = document.getElementById('home-page-input');
-        const saveHomePageBtn = document.getElementById('save-home-page-btn');
-        const newTabPageInput = document.getElementById('new-tab-page-input');
-        const saveNewTabPageBtn = document.getElementById('save-new-tab-page-btn');
+        
+        // 启动时设置
+        const startupOptions = document.querySelectorAll('input[name="startup-option"]');
+        const startupCustomDiv = document.getElementById('startup-custom-url');
+        const startupCustomInput = document.getElementById('startup-custom-input');
+        
+        // 主页按钮设置
+        const homepageOptions = document.querySelectorAll('input[name="homepage-option"]');
+        const homepageCustomDiv = document.getElementById('homepage-custom-url');
+        const homepageCustomInput = document.getElementById('homepage-custom-input');
+        
+        // 新标签页设置
+        const newtabOptions = document.querySelectorAll('input[name="newtab-option"]');
+        const newtabCustomDiv = document.getElementById('newtab-custom-url');
+        const newtabCustomInput = document.getElementById('newtab-custom-input');
+        
         const clearDataBtn = document.getElementById('clear-data-btn');
         const clashConfigDiv = document.getElementById('clash-config');
         const restartClashBtn = document.getElementById('restart-clash-btn');
@@ -245,23 +291,46 @@
         });
 
         // --- Browser Settings Logic ---
-        saveHomePageBtn.addEventListener('click', async () => {
-            const newUrl = homePageInput.value;
-            if (newUrl && (newUrl.startsWith('http://') || newUrl.startsWith('https://'))) {
-                await window.api.setSetting('settings.homePage', newUrl);
-                alert('主页已保存！');
-            } else {
-                alert('请输入一个有效的网址 (以 http:// 或 https:// 开头)');
+        
+        // 启动时设置
+        startupOptions.forEach(option => {
+            option.addEventListener('change', async () => {
+                await window.api.setSetting('settings.startupOption', option.value);
+                startupCustomDiv.style.display = option.value === 'custom' ? 'block' : 'none';
+            });
+        });
+        
+        startupCustomInput.addEventListener('blur', async () => {
+            if (startupCustomInput.value) {
+                await window.api.setSetting('settings.startupCustomUrl', startupCustomInput.value);
             }
         });
         
-        saveNewTabPageBtn.addEventListener('click', async () => {
-            const newUrl = newTabPageInput.value;
-            if (newUrl) { // 允许任何字符串，包括 about:blank
-                await window.api.setSetting('settings.newTabPage', newUrl);
-                alert('新标签页设置已保存！');
-            } else {
-                alert('输入不能为空。');
+        // 主页按钮设置
+        homepageOptions.forEach(option => {
+            option.addEventListener('change', async () => {
+                await window.api.setSetting('settings.homepageOption', option.value);
+                homepageCustomDiv.style.display = option.value === 'custom' ? 'block' : 'none';
+            });
+        });
+        
+        homepageCustomInput.addEventListener('blur', async () => {
+            if (homepageCustomInput.value) {
+                await window.api.setSetting('settings.homepageCustomUrl', homepageCustomInput.value);
+            }
+        });
+        
+        // 新标签页设置
+        newtabOptions.forEach(option => {
+            option.addEventListener('change', async () => {
+                await window.api.setSetting('settings.newtabOption', option.value);
+                newtabCustomDiv.style.display = option.value === 'custom' ? 'block' : 'none';
+            });
+        });
+        
+        newtabCustomInput.addEventListener('blur', async () => {
+            if (newtabCustomInput.value) {
+                await window.api.setSetting('settings.newtabCustomUrl', newtabCustomInput.value);
             }
         });
         
@@ -295,11 +364,29 @@
 
         // --- Initialization ---
         async function init() {
-            const savedHomePage = await window.api.getSetting('settings.homePage') || 'https://www.google.com';
-            homePageInput.value = savedHomePage;
+            // 启动时设置
+            const startupOption = await window.api.getSetting('settings.startupOption') || 'homepage';
+            document.querySelector(`input[name="startup-option"][value="${startupOption}"]`).checked = true;
+            startupCustomDiv.style.display = startupOption === 'custom' ? 'block' : 'none';
             
-            const savedNewTabPage = await window.api.getSetting('settings.newTabPage') || 'about:blank';
-            newTabPageInput.value = savedNewTabPage;
+            const startupCustomUrl = await window.api.getSetting('settings.startupCustomUrl') || 'https://www.google.com';
+            startupCustomInput.value = startupCustomUrl;
+            
+            // 主页按钮设置
+            const homepageOption = await window.api.getSetting('settings.homepageOption') || 'custom';
+            document.querySelector(`input[name="homepage-option"][value="${homepageOption}"]`).checked = true;
+            homepageCustomDiv.style.display = homepageOption === 'custom' ? 'block' : 'none';
+            
+            const homepageCustomUrl = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
+            homepageCustomInput.value = homepageCustomUrl;
+            
+            // 新标签页设置
+            const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
+            document.querySelector(`input[name="newtab-option"][value="${newtabOption}"]`).checked = true;
+            newtabCustomDiv.style.display = newtabOption === 'custom' ? 'block' : 'none';
+            
+            const newtabCustomUrl = await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com';
+            newtabCustomInput.value = newtabCustomUrl;
 
             loadClashConfig();
         }
