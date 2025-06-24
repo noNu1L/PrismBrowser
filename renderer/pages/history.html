@@ -445,8 +445,12 @@
         }
 
         // --- Initialization ---
-        fetchData();
-        window.api.onHistoryUpdated(fetchData);
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchData();
+            if (window.api?.onHistoryUpdated) {
+                window.api.onHistoryUpdated(fetchData);
+            }
+        });
 
     </script>
 </body>

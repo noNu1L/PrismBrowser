@@ -17,8 +17,8 @@ class AddressBarManager {
         this.historyBtn = document.getElementById('history-btn');
         this.favoritesBtn = document.getElementById('favorites-btn');
         this.settingsBtn = document.getElementById('settings-btn');
-        this.clashDashboardBtn = document.getElementById('clash-dashboard-btn');
         this.toggleLogsBtn = document.getElementById('toggle-logs-btn');
+        this.mainMenuBtn = document.getElementById('main-menu-btn');
         
         // 状态
         this.bookmarkTreeCache = [];
@@ -129,9 +129,41 @@ class AddressBarManager {
             // 请求主进程获取窗口位置，然后打开弹窗
             const windowBounds = await window.api.getWindowBounds();
             
+            // 弹窗尺寸（与CSS中设置的尺寸保持一致）
+            const popupWidth = 320;
+            const popupHeight = 200; // 估算高度
+            
+            // 计算弹窗位置
+            let popupX = windowBounds.x + buttonRect.left;
+            let popupY = windowBounds.y + buttonRect.bottom + 8;
+            
+            // 获取屏幕尺寸
+            const screenWidth = window.screen.width;
+            const screenHeight = window.screen.height;
+            
+            // 检查右边界，如果弹窗会超出屏幕右边界，则向左调整
+            if (popupX + popupWidth > screenWidth - 20) { // 留20px边距
+                popupX = screenWidth - popupWidth - 20;
+            }
+            
+            // 检查左边界，确保不会超出屏幕左边
+            if (popupX < 20) {
+                popupX = 20;
+            }
+            
+            // 检查下边界，如果弹窗会超出屏幕下边界，则显示在按钮上方
+            if (popupY + popupHeight > screenHeight - 50) {
+                popupY = windowBounds.y + buttonRect.top - popupHeight - 8;
+            }
+            
+            // 检查上边界
+            if (popupY < 50) {
+                popupY = 50;
+            }
+            
             const buttonPosition = {
-                x: windowBounds.x + buttonRect.left,
-                y: windowBounds.y + buttonRect.bottom + 8 // 在按钮下方8px处显示（考虑边框等）
+                x: popupX,
+                y: popupY
             };
             
             window.api.openAddBookmarkPopup({
@@ -156,15 +188,95 @@ class AddressBarManager {
             window.tabsManager.createNewTab('prism://settings');
         });
 
-        this.clashDashboardBtn.addEventListener('click', () => {
-            window.tabsManager.createNewTab('prism://dashboard');
-        });
-
         this.toggleLogsBtn.addEventListener('click', () => {
             // 调用日志查看器组件的切换方法
             if (window.logViewerManager) {
                 window.logViewerManager.toggle();
+            } else {
+                console.warn('日志查看器管理器尚未初始化');
             }
+        });
+
+        this.mainMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleMainMenu();
+        });
+    }
+
+    // --- 主菜单管理 ---
+    toggleMainMenu() {
+        const menu = document.getElementById('main-menu-popup');
+        if (!menu || menu.style.display !== 'none') {
+            this.hideMainMenu();
+        } else {
+            this.showMainMenu();
+        }
+    }
+
+    showMainMenu() {
+        const menu = document.getElementById('main-menu-popup');
+        if (!menu) return;
+
+        // 创建菜单项
+        menu.innerHTML = this.createMenuItems();
+
+        // 定位菜单
+        const buttonRect = this.mainMenuBtn.getBoundingClientRect();
+        menu.style.display = 'block';
+        menu.style.top = `${buttonRect.bottom + 5}px`;
+        menu.style.right = `${window.innerWidth - buttonRect.right}px`;
+
+        // 添加菜单项的事件监听
+        this.addMenuItemListeners(menu);
+
+        // 添加点击外部关闭菜单的监听
+        setTimeout(() => {
+            document.addEventListener('click', () => this.hideMainMenu(), { once: true });
+        }, 0);
+    }
+
+    hideMainMenu() {
+        const menu = document.getElementById('main-menu-popup');
+        if (menu) {
+            menu.style.display = 'none';
+        }
+    }
+
+    createMenuItems() {
+        const menuItems = [
+            { id: 'menu-dashboard', icon: window.SYSTEM_ICONS.dashboard, text: '代理面板', action: 'prism://dashboard' },
+            { id: 'menu-devtools', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>', text: '开发者工具', action: 'devtools' },
+        ];
+
+        return menuItems.map(item => {
+            if (item.separator) {
+                return `<div class="popup-menu-separator"></div>`;
+            }
+            return `
+                <div class="popup-menu-item" id="${item.id}" data-action="${item.action}">
+                    ${item.icon}
+                    <span>${item.text}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    addMenuItemListeners(menu) {
+        menu.querySelectorAll('.popup-menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const action = e.currentTarget.dataset.action;
+                if (action) {
+                    if (action === 'devtools') {
+                        const activeTab = window.tabsManager.getActiveTab();
+                        if (activeTab && activeTab.webview) {
+                            activeTab.webview.openDevTools();
+                        }
+                    } else {
+                        window.tabsManager.createNewTab(action);
+                    }
+                }
+                this.hideMainMenu();
+            });
         });
     }
 

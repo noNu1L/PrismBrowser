@@ -81,12 +81,9 @@ function createBookmarkPopup(data) {
     // 使用按钮位置信息定位弹窗，如果没有提供则使用默认位置
     let x, y;
     if (data.buttonPosition && typeof data.buttonPosition.x === 'number' && typeof data.buttonPosition.y === 'number') {
-        console.log('Button position received:', data.buttonPosition);
-        
         // 获取屏幕工作区域信息
         const display = screen.getPrimaryDisplay();
         const workArea = display.workArea;
-        console.log('Screen work area:', workArea);
 
         // 计算弹窗位置（弹窗宽度408，居中对齐按钮）
         x = Math.round(data.buttonPosition.x - 204);
@@ -98,15 +95,11 @@ function createBookmarkPopup(data) {
 
         x = Math.max(workArea.x, Math.min(x, workArea.x + workArea.width - popupWidth));
         y = Math.max(workArea.y, Math.min(y, workArea.y + workArea.height - popupHeight));
-
-        console.log('Final calculated popup position:', { x, y });
     } else {
-        console.log('No valid button position provided, using default center position');
         // 默认位置（居中）
         const bounds = mainWindow.getBounds();
         x = bounds.x + (bounds.width / 2) - 204;
         y = bounds.y + 100;
-        console.log('Using default position:', { x, y });
     }
     
     bookmarkPopup = new BrowserWindow({
@@ -483,6 +476,18 @@ ipcMain.on('window-control', (event, action) => {
         }
     }
     if (action === 'close') mainWindow.close();
+    if (action === 'devtools') {
+        // 切换主窗口的开发者工具
+        if (mainWindow.webContents.isDevToolsOpened()) {
+            mainWindow.webContents.closeDevTools();
+        } else {
+            mainWindow.webContents.openDevTools();
+        }
+    }
+});
+
+ipcMain.handle('get-preload-path', () => {
+    return path.join(__dirname, 'preload.js');
 });
 
 ipcMain.handle('get-window-bounds', () => {

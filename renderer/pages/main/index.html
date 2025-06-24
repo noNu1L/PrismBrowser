@@ -87,6 +87,42 @@
         #error-page p { font-size: 16px; color: var(--error-page-text-color); }
         #error-page button { margin-top: 20px; padding: 10px 20px; font-size: 16px; border: 1px solid var(--border-color-secondary); border-radius: 4px; }
 
+        /* --- 主菜单弹窗 --- */
+        .popup-menu {
+            position: fixed;
+            z-index: 10000;
+            background-color: var(--card-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color-secondary);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            padding: 8px;
+            min-width: 200px;
+        }
+        .popup-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-color-primary);
+        }
+        .popup-menu-item:hover {
+            background-color: var(--button-hover-bg);
+        }
+        .popup-menu-item svg {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            stroke: var(--text-color-secondary);
+            fill: none;
+        }
+        .popup-menu-separator {
+            height: 1px;
+            background-color: var(--border-color-secondary);
+            margin: 8px -8px;
+        }
+
     </style>
 </head>
 <body>
@@ -117,6 +153,9 @@
         </div>
         <div id="log-viewer-container"></div>
     </div>
+    <div id="main-menu-popup" class="popup-menu" style="display: none;">
+        <!-- 菜单项将在这里动态生成 -->
+    </div>
 
     <!-- 组件脚本 -->
     <script src="tabs/tabs.js"></script>
@@ -133,7 +172,7 @@
             'prism://settings': { file: '../settings.html', title: '设置', icon: 'settings' },
             'prism://history': { file: '../history.html', title: '历史记录', icon: 'history' },
             'prism://bookmarks': { file: '../bookmarks.html', title: '收藏夹', icon: 'bookmarks' },
-            'prism://dashboard': { file: '../dashboard/index.html', title: '代理面板', icon: 'dashboard' }
+            'prism://dashboard': { file: '../../dashboard/index.html', title: '代理面板', icon: 'dashboard' }
         };
 
         // 系统页面图标

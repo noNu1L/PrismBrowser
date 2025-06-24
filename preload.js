@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld('api', {
   onPopupData: (callback) => ipcRenderer.on('popup-data', (_event, data) => callback(data)),
   closePopupAndRefresh: () => ipcRenderer.send('close-popup-and-refresh'),
   onBookmarkUpdated: (callback) => ipcRenderer.on('bookmark-updated', () => callback()),
+  getPreloadPath: () => ipcRenderer.invoke('get-preload-path'),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

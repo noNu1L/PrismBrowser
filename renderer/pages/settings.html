@@ -364,31 +364,55 @@
 
         // --- Initialization ---
         async function init() {
-            // 启动时设置
-            const startupOption = await window.api.getSetting('settings.startupOption') || 'homepage';
-            document.querySelector(`input[name="startup-option"][value="${startupOption}"]`).checked = true;
-            startupCustomDiv.style.display = startupOption === 'custom' ? 'block' : 'none';
-            
-            const startupCustomUrl = await window.api.getSetting('settings.startupCustomUrl') || 'https://www.google.com';
-            startupCustomInput.value = startupCustomUrl;
-            
-            // 主页按钮设置
-            const homepageOption = await window.api.getSetting('settings.homepageOption') || 'custom';
-            document.querySelector(`input[name="homepage-option"][value="${homepageOption}"]`).checked = true;
-            homepageCustomDiv.style.display = homepageOption === 'custom' ? 'block' : 'none';
-            
-            const homepageCustomUrl = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
-            homepageCustomInput.value = homepageCustomUrl;
-            
-            // 新标签页设置
-            const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
-            document.querySelector(`input[name="newtab-option"][value="${newtabOption}"]`).checked = true;
-            newtabCustomDiv.style.display = newtabOption === 'custom' ? 'block' : 'none';
-            
-            const newtabCustomUrl = await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com';
-            newtabCustomInput.value = newtabCustomUrl;
+            try {
+                // 启动时设置
+                const startupOption = await window.api.getSetting('settings.startupOption') || 'homepage';
+                const startupRadio = document.querySelector(`input[name="startup-option"][value="${startupOption}"]`);
+                if (startupRadio) {
+                    startupRadio.checked = true;
+                } else {
+                    // 如果没有找到对应选项，默认选择第一个
+                    document.querySelector('input[name="startup-option"]').checked = true;
+                }
+                startupCustomDiv.style.display = startupOption === 'custom' ? 'block' : 'none';
+                
+                const startupCustomUrl = await window.api.getSetting('settings.startupCustomUrl') || 'https://www.google.com';
+                startupCustomInput.value = startupCustomUrl;
+                
+                // 主页按钮设置 - 修复默认值问题
+                const homepageOption = await window.api.getSetting('settings.homepageOption') || 'newtab';
+                const homepageRadio = document.querySelector(`input[name="homepage-option"][value="${homepageOption}"]`);
+                if (homepageRadio) {
+                    homepageRadio.checked = true;
+                } else {
+                    // 如果没有找到对应选项，默认选择"新标签页"
+                    const defaultHomepageRadio = document.querySelector('input[name="homepage-option"][value="newtab"]');
+                    if (defaultHomepageRadio) defaultHomepageRadio.checked = true;
+                }
+                homepageCustomDiv.style.display = homepageOption === 'custom' ? 'block' : 'none';
+                
+                const homepageCustomUrl = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
+                homepageCustomInput.value = homepageCustomUrl;
+                
+                // 新标签页设置
+                const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
+                const newtabRadio = document.querySelector(`input[name="newtab-option"][value="${newtabOption}"]`);
+                if (newtabRadio) {
+                    newtabRadio.checked = true;
+                } else {
+                    // 如果没有找到对应选项，默认选择"空白页"
+                    const defaultNewtabRadio = document.querySelector('input[name="newtab-option"][value="blank"]');
+                    if (defaultNewtabRadio) defaultNewtabRadio.checked = true;
+                }
+                newtabCustomDiv.style.display = newtabOption === 'custom' ? 'block' : 'none';
+                
+                const newtabCustomUrl = await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com';
+                newtabCustomInput.value = newtabCustomUrl;
 
-            loadClashConfig();
+                await loadClashConfig();
+            } catch (error) {
+                console.error('设置页面初始化失败:', error);
+            }
         }
 
         init();

@@ -126,7 +126,8 @@ class TabsManager {
         webviewEl.dataset.tabId = tabId;
         // 对于历史记录等本地页面，我们需要注入预加载脚本
         // 以便它可以访问 `window.api` 函数
-        webviewEl.setAttribute('preload', '../../preload.js');
+        const preloadPath = await window.api.getPreloadPath();
+        webviewEl.setAttribute('preload', preloadPath);
         
         // 确定最终要加载的URL
         let finalUrl;
