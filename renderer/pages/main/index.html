@@ -6,12 +6,14 @@
     <link rel="stylesheet" href="../../styles/theme.css">
     <link rel="stylesheet" href="tabs/tabs.css">
     <link rel="stylesheet" href="addressbar/addressbar.css">
+    <link rel="stylesheet" href="bookmarks-bar/bookmarks-bar.css">
+    <link rel="stylesheet" href="log-viewer/log-viewer.css">
     <style>
         body, html { 
             margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; 
             font-family: sans-serif; display: flex; flex-direction: column; 
             background-color: var(--app-bg-color); 
-            -webkit-app-region: drag; /* Make the whole background draggable */ 
+            -webkit-app-region: drag; /* 使整个背景可拖拽 */ 
         }
 
         #window-controls {
@@ -45,49 +47,7 @@
             color: var(--window-close-hover-text);
         }
 
-        /* --- Bookmarks Bar --- */
-        #bookmarks-bar {
-            background-color: var(--content-bg-color);
-            padding: 4px 8px;
-            border-bottom: 1px solid var(--border-color-secondary);
-            flex-shrink: 0;
-            white-space: nowrap;
-            overflow-x: auto;
-            -webkit-app-region: no-drag;
-        }
-        .bookmark-item {
-            display: inline-flex;
-            align-items: center;
-            padding: 5px 8px;
-            border-radius: 4px;
-            margin-right: 5px;
-            font-size: 13px;
-            text-decoration: none;
-            color: var(--text-color-secondary);
-        }
-        .bookmark-item:hover {
-            background-color: var(--button-hover-bg);
-        }
-        .bookmark-title {
-            max-width: 150px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .bookmark-delete {
-            margin-left: 8px;
-            width: 16px;
-            height: 16px;
-            border: none;
-            background: transparent;
-            opacity: 0.5;
-            padding: 0;
-        }
-        .bookmark-delete:hover {
-            opacity: 1;
-        }
-        
-        /* --- Main Content --- */
+        /* --- 主要内容区域 --- */
         #main-content { 
             flex-grow: 1; 
             display: flex; 
@@ -126,56 +86,7 @@
         #error-page h1 { font-size: 24px; color: var(--error-page-title-color); margin-bottom: 10px; }
         #error-page p { font-size: 16px; color: var(--error-page-text-color); }
         #error-page button { margin-top: 20px; padding: 10px 20px; font-size: 16px; border: 1px solid var(--border-color-secondary); border-radius: 4px; }
-        #log-viewer { 
-            height: 200px; 
-            background-color: var(--log-viewer-bg); 
-            flex-shrink: 0; 
-            display: none;
-            flex-direction: column;
-        }
-        #log-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 4px 8px;
-            background-color: var(--log-header-bg);
-            color: var(--text-color-light);
-            flex-shrink: 0;
-        }
-        #log-header-title {
-            font-family: sans-serif;
-            font-size: 13px;
-        }
-        #close-log-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-color-light);
-            font-size: 18px;
-            padding: 0 4px;
-        }
-        #log-content {
-            font-family: monospace; 
-            overflow-y: scroll; 
-            padding: 5px; 
-            white-space: pre-wrap; 
-            word-wrap: break-word; 
-            flex-grow: 1;
-            color: var(--text-color-light);
-            background: transparent;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            border-radius: 4px;
-        }
-        .log-entry { 
-            margin: 0; 
-            padding: 2px 0; 
-            border-bottom: 1px solid var(--log-viewer-border);
-        }
-        .log-entry[style*="color"] {
-            color: var(--log-error-text) !important;
-        }
+
     </style>
 </head>
 <body>
@@ -194,34 +105,27 @@
     <!-- 组件容器，将通过动态加载填充 -->
     <div id="tabs-bar-container"></div>
     <div id="addressbar-container"></div>
-    
-    <div id="bookmarks-bar"></div>
+    <div id="bookmarks-bar-container"></div>
     <div id="main-content">
         <div id="webview-container">
-            <!-- Webviews will be dynamically inserted here -->
+            <!-- 网页视图将在这里动态插入 -->
         </div>
         <div id="error-page">
             <h1>无法访问此网站</h1>
             <p id="error-desc"></p>
             <button id="reload-failed-url">重新加载</button>
         </div>
-        <div id="log-viewer">
-            <div id="log-header">
-                <span id="log-header-title">日志</span>
-                <button id="close-log-btn" title="关闭日志面板">&times;</button>
-            </div>
-            <div id="log-content"></div>
-        </div>
+        <div id="log-viewer-container"></div>
     </div>
 
     <!-- 组件脚本 -->
     <script src="tabs/tabs.js"></script>
     <script src="addressbar/addressbar.js"></script>
+    <script src="bookmarks-bar/bookmarks-bar.js"></script>
+    <script src="log-viewer/log-viewer.js"></script>
     
     <script>
         // --- 全局变量和常量 ---
-        let homeURL = 'https://www.google.com';
-        let newTabURL = 'about:blank';
         let lastFailedURL = '';
 
         // --- 内部协议映射 ---
@@ -242,7 +146,7 @@
 
         const defaultGlobeIcon = `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
 
-        // --- Helper function to normalize URLs ---
+        // --- URL 规范化辅助函数 ---
         const normalizeUrl = (url) => {
             if (!url || url === 'about:blank' || url.startsWith('http') || url.startsWith('file://')) {
                 return url;
@@ -250,7 +154,7 @@
             return 'http://' + url;
         };
 
-        // --- Helper function to extract hostname ---
+        // --- 提取主机名辅助函数 ---
         const getHostname = (url) => {
             try {
                 return new URL(url).hostname;
@@ -270,19 +174,17 @@
         const minimizeBtn = document.getElementById('minimize-btn');
         const maximizeBtn = document.getElementById('maximize-btn');
         const closeBtn = document.getElementById('close-btn');
-        const bookmarksBar = document.getElementById('bookmarks-bar');
         const errorPage = document.getElementById('error-page');
         const errorDesc = document.getElementById('error-desc');
         const reloadFailedButton = document.getElementById('reload-failed-url');
-        const logViewer = document.getElementById('log-viewer');
-        const logContent = document.getElementById('log-content');
-        const closeLogBtn = document.getElementById('close-log-btn');
 
         // --- 组件管理器实例 ---
         let tabsManager;
         let addressBarManager;
+        let bookmarksBarManager;
+        let logViewerManager;
 
-        // --- Event Listeners for Webviews ---
+        // --- Webview 事件监听器 ---
         const addWebviewListeners = (tab) => {
             const { webview, el, id } = tab;
             const titleEl = el.querySelector('.tab-title');
@@ -302,7 +204,7 @@
             
             webview.addEventListener('did-start-loading', () => { 
                 tabsManager.showLoadingIndicator(el, true);
-                if (titleEl.textContent === 'New Tab') {
+                if (titleEl.textContent === '新标签页') {
                     const url = webview.getURL() || webview.src;
                     titleEl.textContent = getHostname(url);
                 }
@@ -333,7 +235,7 @@
                             tabsManager.setTabIcon(el, defaultGlobeIcon);
                         }
                     } catch (error) {
-                        console.error('Error fetching favicon via JS:', error);
+                        console.error('通过 JS 获取网站图标时出错:', error);
                         tabsManager.setTabIcon(el, defaultGlobeIcon);
                     }
                 }
@@ -370,47 +272,6 @@
         // 设置全局函数可访问
         window.addWebviewListeners = addWebviewListeners;
 
-        // --- 收藏夹相关逻辑 ---
-        let currentBookmarks = [];
-
-        const renderBookmarks = (bookmarks) => {
-            currentBookmarks = bookmarks;
-            bookmarksBar.innerHTML = '';
-            bookmarks.forEach(bookmark => {
-                if (bookmark.type !== 'bookmark') return;
-
-                const item = document.createElement('a');
-                item.className = 'bookmark-item';
-                item.href = bookmark.url;
-                item.title = `${bookmark.title}\\n${bookmark.url}`;
-                
-                const titleSpan = document.createElement('span');
-                titleSpan.className = 'bookmark-title';
-                titleSpan.textContent = bookmark.title;
-                item.appendChild(titleSpan);
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'bookmark-delete';
-                deleteBtn.innerHTML = '&#x2715;';
-                deleteBtn.title = '删除收藏';
-                deleteBtn.addEventListener('click', async (e) => {
-                    e.preventDefault(); e.stopPropagation();
-                    await window.api.deleteBookmarks([bookmark.id]);
-                    refreshBookmarks();
-                });
-                item.appendChild(deleteBtn);
-                item.addEventListener('click', (e) => { e.preventDefault(); tabsManager.createNewTab(item.href); });
-                bookmarksBar.appendChild(item);
-            });
-        };
-
-        async function refreshBookmarks() {
-            const bookmarkTree = await window.api.getBookmarksTree();
-            const toolbarFolder = bookmarkTree.find(node => node.id === 'toolbar');
-            const toolbarBookmarks = toolbarFolder ? toolbarFolder.children : [];
-            renderBookmarks(toolbarBookmarks);
-        }
-
         // --- 错误页面重新加载按钮 ---
         reloadFailedButton.addEventListener('click', () => {
             const tab = tabsManager.getActiveTab();
@@ -419,32 +280,12 @@
             }
         });
 
-        // --- 日志查看器逻辑 ---
-        closeLogBtn.addEventListener('click', () => {
-            logViewer.style.display = 'none';
-        });
-
-        window.api.onMihomoLog((log) => {
-            const lines = log.trim().split(/\\r?\\n/);
-            lines.forEach(line => {
-                if (line.trim() === '') return;
-                const logEntry = document.createElement('div');
-                logEntry.className = 'log-entry';
-                logEntry.textContent = line;
-                if (line.includes('error') || line.includes('failed')) {
-                    logEntry.style.color = 'var(--log-error-text)';
-                }
-                logContent.appendChild(logEntry);
-                logContent.scrollTop = logContent.scrollHeight;
-            });
-        });
-
-        // Listen for requests to open a new tab from other windows
+        // 监听来自其他窗口的新标签页请求
         window.api.onNewTabRequest((url) => {
             tabsManager.createNewTab(url);
         });
 
-        // --- Window Controls ---
+        // --- 窗口控制按钮 ---
         minimizeBtn.addEventListener('click', () => window.api.sendWindowControl('minimize'));
         maximizeBtn.addEventListener('click', () => window.api.sendWindowControl('maximize'));
         closeBtn.addEventListener('click', () => window.api.sendWindowControl('close'));
@@ -457,7 +298,7 @@
                 // 加载标签栏组件
                 const tabsResponse = await fetch('tabs/tabs.html');
                 if (!tabsResponse.ok) {
-                    throw new Error(`Failed to load tabs.html: ${tabsResponse.status}`);
+                    throw new Error(`加载 tabs.html 失败: ${tabsResponse.status}`);
                 }
                 const tabsHTML = await tabsResponse.text();
                 document.getElementById('tabs-bar-container').innerHTML = tabsHTML;
@@ -466,11 +307,29 @@
                 // 加载地址栏组件
                 const addressbarResponse = await fetch('addressbar/addressbar.html');
                 if (!addressbarResponse.ok) {
-                    throw new Error(`Failed to load addressbar.html: ${addressbarResponse.status}`);
+                    throw new Error(`加载 addressbar.html 失败: ${addressbarResponse.status}`);
                 }
                 const addressbarHTML = await addressbarResponse.text();
                 document.getElementById('addressbar-container').innerHTML = addressbarHTML;
                 console.log('✅ 地址栏组件加载完成');
+
+                // 加载收藏夹栏组件
+                const bookmarksResponse = await fetch('bookmarks-bar/bookmarks-bar.html');
+                if (!bookmarksResponse.ok) {
+                    throw new Error(`加载 bookmarks-bar.html 失败: ${bookmarksResponse.status}`);
+                }
+                const bookmarksHTML = await bookmarksResponse.text();
+                document.getElementById('bookmarks-bar-container').innerHTML = bookmarksHTML;
+                console.log('✅ 收藏夹栏组件加载完成');
+
+                // 加载日志查看器组件
+                const logViewerResponse = await fetch('log-viewer/log-viewer.html');
+                if (!logViewerResponse.ok) {
+                    throw new Error(`加载 log-viewer.html 失败: ${logViewerResponse.status}`);
+                }
+                const logViewerHTML = await logViewerResponse.text();
+                document.getElementById('log-viewer-container').innerHTML = logViewerHTML;
+                console.log('✅ 日志查看器组件加载完成');
                 
                 console.log('✅ 所有组件加载完成');
                 return true;
@@ -498,13 +357,14 @@
                 console.log('🔧 初始化组件管理器...');
                 tabsManager = new TabsManager();
                 addressBarManager = new AddressBarManager();
+                bookmarksBarManager = new BookmarksBarManager();
+                logViewerManager = new LogViewerManager();
                 
                 // 设置全局引用
                 window.tabsManager = tabsManager;
                 window.addressBarManager = addressBarManager;
-                
-                // 初始化收藏夹
-                await refreshBookmarks();
+                window.bookmarksBarManager = bookmarksBarManager;
+                window.logViewerManager = logViewerManager;
                 
                 // 根据启动时设置决定打开什么页面
                 const startupOption = await window.api.getSetting('settings.startupOption') || 'homepage';
@@ -539,9 +399,11 @@
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', init);
 
-        // Listen for requests to refresh bookmarks from other windows
+        // 监听来自其他窗口的收藏夹更新请求
         window.api.onBookmarkUpdated(() => {
-            refreshBookmarks();
+            if (window.bookmarksBarManager) {
+                window.bookmarksBarManager.refreshBookmarks();
+            }
         });
     </script>
 </body>

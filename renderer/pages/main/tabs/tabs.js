@@ -25,8 +25,8 @@ class TabsManager {
     init() {
         // 标签容器滚轮事件
         this.tabsContainer.addEventListener('wheel', (e) => {
-            // e.deltaY is the vertical scroll amount.
-            // We prevent the default vertical scroll and apply it horizontally.
+            // e.deltaY 是垂直滚动量
+            // 我们阻止默认的垂直滚动并将其应用于水平滚动
             if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
                 e.preventDefault();
                 this.tabsContainer.scrollLeft += e.deltaY;
@@ -55,10 +55,10 @@ class TabsManager {
         return false;
     }
 
-    // --- Tab Management ---
+    // --- 标签页管理 ---
     async createNewTab(urlToLoad, isHidden = false) {
-        // If no URL is provided, it means it's a "new tab" action.
-        // We need to determine what to show based on new tab settings.
+        // 如果没有提供 URL，表示这是一个"新标签页"操作
+        // 我们需要根据新标签页设置来确定显示什么
         if (urlToLoad === null || typeof urlToLoad === 'undefined') {
             const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
             if (newtabOption === 'blank') {
@@ -110,7 +110,7 @@ class TabsManager {
         
         // 根据是否是系统页面设置不同的初始图标和标题
         const initialIcon = systemPageInfo ? window.SYSTEM_ICONS[systemPageInfo.icon] : window.defaultGlobeIcon;
-        const initialTitle = systemPageInfo ? systemPageInfo.title : 'New Tab';
+        const initialTitle = systemPageInfo ? systemPageInfo.title : '新标签页';
         
         tabEl.innerHTML = `
             <div class="tab-icon-container">
@@ -124,8 +124,8 @@ class TabsManager {
 
         const webviewEl = document.createElement('webview');
         webviewEl.dataset.tabId = tabId;
-        // For local pages like history, we need to inject the preload script
-        // to give it access to the `window.api` functions.
+        // 对于历史记录等本地页面，我们需要注入预加载脚本
+        // 以便它可以访问 `window.api` 函数
         webviewEl.setAttribute('preload', '../../preload.js');
         
         // 确定最终要加载的URL
@@ -141,7 +141,7 @@ class TabsManager {
         }
         webviewEl.src = finalUrl;
         
-        // It's important to append to DOM before adding listeners in some cases.
+        // 在某些情况下，在添加监听器之前先添加到 DOM 是很重要的
         document.getElementById('webview-container').appendChild(webviewEl);
         
         const newTab = { 
@@ -153,7 +153,7 @@ class TabsManager {
         };
         this.tabs.push(newTab);
 
-        // Attach listeners before any potential navigation from user input.
+        // 在用户输入可能导致的任何导航之前附加监听器
         window.addWebviewListeners(newTab);
 
         tabEl.addEventListener('click', () => this.switchToTab(tabId));
@@ -165,7 +165,7 @@ class TabsManager {
         if (!isHidden) {
             this.switchToTab(tabId);
         }
-        // No need to call loadURL again if src is set.
+        // 如果已设置 src，无需再次调用 loadURL
     }
 
     switchToTab(tabId) {
@@ -179,7 +179,7 @@ class TabsManager {
             tab.webview.classList.toggle('active', tab.id === tabId);
         });
         
-        // Scroll the active tab into view if it's not fully visible
+        // 如果活动标签页不完全可见，则将其滚动到视野中
         const tabEl = tabToActivate.el;
         const container = this.tabsContainer;
         const tabRect = tabEl.getBoundingClientRect();
@@ -224,7 +224,7 @@ class TabsManager {
         tabToClose.el.remove();
         const webviewContainer = document.getElementById('webview-container');
         if (webviewContainer && tabToClose.webview.parentNode) {
-            webviewContainer.removeChild(tabToClose.webview); // Proper removal
+                            webviewContainer.removeChild(tabToClose.webview); // 正确移除
         }
         this.tabs.splice(tabIndex, 1);
         
@@ -233,7 +233,7 @@ class TabsManager {
                 const newActiveIndex = Math.max(0, tabIndex - 1);
                 this.switchToTab(this.tabs[newActiveIndex].id);
             } else {
-                this.createNewTab(); // Always have at least one tab
+                this.createNewTab(); // 始终保持至少一个标签页
             }
         }
     }
@@ -242,18 +242,18 @@ class TabsManager {
         return this.tabs.find(t => t.id === this.activeTabId);
     }
 
-    // --- Helper Functions ---
+    // --- 辅助函数 ---
     setTabIcon(tabEl, iconHTML) {
         const iconContainer = tabEl.querySelector('.tab-icon-container');
         const newIcon = new DOMParser().parseFromString(iconHTML, "text/html").body.firstChild;
         
-        // Clear current content (removes old icon or spinner)
+        // 清除当前内容（移除旧图标或加载动画）
         iconContainer.innerHTML = ''; 
         
-        // Append the new one
+        // 添加新图标
         iconContainer.appendChild(newIcon);
 
-        // If the new icon is an img, store its src
+        // 如果新图标是 img 元素，存储其 src
         if (newIcon.tagName === 'IMG') {
             const activeTab = this.getActiveTab();
             if(activeTab) activeTab.favicon = newIcon.src;

@@ -125,22 +125,19 @@ class AddressBarManager {
             
             // 获取收藏按钮的位置信息
             const buttonRect = this.addBookmarkButton.getBoundingClientRect();
-            console.log('Button rect:', buttonRect);
             
             // 请求主进程获取窗口位置，然后打开弹窗
             const windowBounds = await window.api.getWindowBounds();
-            console.log('Window bounds:', windowBounds);
             
             const buttonPosition = {
                 x: windowBounds.x + buttonRect.left,
                 y: windowBounds.y + buttonRect.bottom + 8 // 在按钮下方8px处显示（考虑边框等）
             };
-            console.log('Final button position:', buttonPosition);
             
             window.api.openAddBookmarkPopup({
                 url,
                 title,
-                bookmark: existingBookmark, // Will be null if not bookmarked
+                bookmark: existingBookmark, // 如果未收藏则为 null
                 bookmarksTree: this.bookmarkTreeCache,
                 buttonPosition: buttonPosition
             });
@@ -164,10 +161,9 @@ class AddressBarManager {
         });
 
         this.toggleLogsBtn.addEventListener('click', () => {
-            const logViewer = document.getElementById('log-viewer');
-            if (logViewer) {
-                const isCurrentlyHidden = logViewer.style.display !== 'flex';
-                logViewer.style.display = isCurrentlyHidden ? 'flex' : 'none';
+            // 调用日志查看器组件的切换方法
+            if (window.logViewerManager) {
+                window.logViewerManager.toggle();
             }
         });
     }
@@ -217,7 +213,7 @@ class AddressBarManager {
             return;
         }
         
-        // Search the entire tree to see if the URL is bookmarked anywhere
+        // 搜索整个树以查看 URL 是否在任何地方被收藏
         const isBookmarked = this.findBookmarkByUrl(this.bookmarkTreeCache, url) !== null;
         this.addBookmarkButton.innerHTML = isBookmarked
             ? `<svg class="star-fill" viewBox="0 0 24 24" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`
