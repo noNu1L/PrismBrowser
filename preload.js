@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   // --- Window ---
   sendWindowControl: (action) => ipcRenderer.send('window-control', action),
+  getWindowBounds: () => ipcRenderer.invoke('get-window-bounds'),
   // openLogWindow: () => ipcRenderer.send('open-log-window'), // No longer needed
   // --- Popups ---
   openAddBookmarkPopup: (data) => ipcRenderer.send('open-add-bookmark-popup', data),

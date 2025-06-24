@@ -542,6 +542,22 @@
         let newTabURL = 'about:blank';
         let currentFavicon = null;
 
+        // --- 内部协议映射 ---
+        const INTERNAL_PROTOCOLS = {
+            'prism://settings': { file: './settings.html', title: '设置', icon: 'settings' },
+            'prism://history': { file: './history.html', title: '历史记录', icon: 'history' },
+            'prism://bookmarks': { file: './bookmarks.html', title: '收藏夹', icon: 'bookmarks' },
+            'prism://dashboard': { file: '../dashboard/index.html', title: '代理面板', icon: 'dashboard' }
+        };
+
+        // 系统页面图标
+        const SYSTEM_ICONS = {
+            settings: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.25C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.25c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.25c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.25c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>`,
+            history: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>`,
+            bookmarks: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`,
+            dashboard: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 2a10 10 0 0 0-3.38 19.33M12 2a10 10 0 0 1 3.38 19.33"/><path d="M2 12h20M2.67 7h18.66M2.67 17h18.66"/></svg>`
+        };
+
         // --- Helper function to normalize URLs ---
         const normalizeUrl = (url) => {
             if (!url || url === 'about:blank' || url.startsWith('http') || url.startsWith('file://')) {
@@ -567,6 +583,24 @@
         const loadingSpinner = `<div class="loading-spinner"></div>`;
 
         const getActiveTab = () => tabs.find(t => t.id === activeTabId);
+
+        // --- 系统页面管理 ---
+        const findExistingSystemTab = (internalUrl) => {
+            return tabs.find(tab => {
+                const tabUrl = tab.internalUrl || tab.webview.getURL();
+                return tabUrl === internalUrl;
+            });
+        };
+
+        const openOrSwitchToSystemPage = (internalUrl) => {
+            const existingTab = findExistingSystemTab(internalUrl);
+            if (existingTab) {
+                // 切换到已存在的标签页
+                switchToTab(existingTab.id);
+                return true;
+            }
+            return false;
+        };
 
         // --- Helper function to extract hostname ---
         const getHostname = (url) => {
@@ -622,17 +656,56 @@
                 }
             }
 
+            // 检查是否是内部协议URL
+            let internalUrl = null;
+            let systemPageInfo = null;
+            
+            if (INTERNAL_PROTOCOLS[urlToLoad]) {
+                internalUrl = urlToLoad;
+                systemPageInfo = INTERNAL_PROTOCOLS[urlToLoad];
+                
+                // 检查是否已经存在相同的系统页面
+                if (openOrSwitchToSystemPage(internalUrl)) {
+                    return; // 已存在，直接切换，不创建新标签页
+                }
+            }
+            // 兼容旧式调用（直接传入文件名）
+            else if (['history.html', 'bookmarks.html', 'settings.html'].includes(urlToLoad)) {
+                const protocolMap = {
+                    'settings.html': 'prism://settings',
+                    'history.html': 'prism://history', 
+                    'bookmarks.html': 'prism://bookmarks'
+                };
+                internalUrl = protocolMap[urlToLoad];
+                if (internalUrl && openOrSwitchToSystemPage(internalUrl)) {
+                    return; // 已存在，直接切换，不创建新标签页
+                }
+                systemPageInfo = INTERNAL_PROTOCOLS[internalUrl];
+            }
+            else if (urlToLoad.includes('dashboard')) {
+                internalUrl = 'prism://dashboard';
+                if (openOrSwitchToSystemPage(internalUrl)) {
+                    return; // 已存在，直接切换，不创建新标签页
+                }
+                systemPageInfo = INTERNAL_PROTOCOLS[internalUrl];
+            }
+
             const tabId = `tab-${Date.now()}`;
             
             const tabEl = document.createElement('div');
             tabEl.className = 'tab-item';
             tabEl.dataset.tabId = tabId;
+            
+            // 根据是否是系统页面设置不同的初始图标和标题
+            const initialIcon = systemPageInfo ? SYSTEM_ICONS[systemPageInfo.icon] : defaultGlobeIcon;
+            const initialTitle = systemPageInfo ? systemPageInfo.title : 'New Tab';
+            
             tabEl.innerHTML = `
                 <div class="tab-icon-container">
-                    ${defaultGlobeIcon}
+                    ${initialIcon}
                     <div class="loading-spinner"></div>
                 </div>
-                <span class="tab-title">New Tab</span>
+                <span class="tab-title">${initialTitle}</span>
                 <button class="close-tab" title="关闭标签页">&times;</button>
             `;
             tabsContainer.appendChild(tabEl);
@@ -643,15 +716,15 @@
             // to give it access to the `window.api` functions.
             webviewEl.setAttribute('preload', '../../preload.js');
             
-            // Prepend local page paths correctly
-            let finalUrl = urlToLoad;
-            if (['history.html', 'bookmarks.html', 'settings.html'].includes(urlToLoad)) {
+            // 确定最终要加载的URL
+            let finalUrl;
+            if (systemPageInfo) {
+                finalUrl = systemPageInfo.file;
+            } else if (['history.html', 'bookmarks.html', 'settings.html'].includes(urlToLoad)) {
                 finalUrl = './' + urlToLoad;
             } else if (urlToLoad.includes('dashboard')) {
-                // The path is already correct, no need to prepend `./`
-                // as it is relative to the `pages` folder.
+                finalUrl = '../dashboard/index.html';
             } else {
-                // Use the normalizeUrl function for consistent URL handling
                 finalUrl = normalizeUrl(urlToLoad);
             }
             webviewEl.src = finalUrl;
@@ -659,7 +732,13 @@
             // It's important to append to DOM before adding listeners in some cases.
             webviewContainer.appendChild(webviewEl);
             
-            const newTab = { id: tabId, el: tabEl, webview: webviewEl, favicon: null };
+            const newTab = { 
+                id: tabId, 
+                el: tabEl, 
+                webview: webviewEl, 
+                favicon: null,
+                internalUrl: internalUrl // 存储内部URL用于去重检查
+            };
             tabs.push(newTab);
 
             // Attach listeners before any potential navigation from user input.
@@ -700,7 +779,9 @@
                 container.scrollLeft += tabRect.right - containerRect.right;
             }
 
-            urlInput.value = tabToActivate.webview.getURL() || tabToActivate.webview.src;
+            // 显示内部协议URL或实际URL
+            const displayUrl = tabToActivate.internalUrl || tabToActivate.webview.getURL() || tabToActivate.webview.src;
+            urlInput.value = displayUrl;
             updateNavButtonsState();
             updateBookmarkStar(tabToActivate.webview.getURL());
             errorPage.style.display = 'none';
@@ -811,7 +892,9 @@
 
             webview.addEventListener('did-navigate', (e) => {
                 if (id === activeTabId) {
-                    urlInput.value = e.url;
+                    // 显示内部协议URL或实际URL
+                    const displayUrl = tab.internalUrl || e.url;
+                    urlInput.value = displayUrl;
                     updateBookmarkStar(e.url);
                 }
                 updateNavButtonsState();
@@ -869,8 +952,25 @@
             if (e.key === 'Enter') {
                 const tab = getActiveTab();
                 if (!tab) return;
-                const url = normalizeUrl(urlInput.value);
-                tab.webview.loadURL(url);
+                
+                const inputUrl = urlInput.value.trim();
+                
+                // 检查是否是内部协议URL
+                if (INTERNAL_PROTOCOLS[inputUrl]) {
+                    // 如果是内部协议，关闭当前标签页并打开新的系统页面
+                    const currentTabId = tab.id;
+                    createNewTab(inputUrl);
+                    // 如果不是最后一个标签页，关闭当前标签页
+                    if (tabs.length > 1) {
+                        closeTab(currentTabId);
+                    }
+                } else {
+                    // 普通URL导航
+                    const url = normalizeUrl(inputUrl);
+                    tab.webview.loadURL(url);
+                    // 清除内部URL标记（因为现在加载的是外部网页）
+                    tab.internalUrl = null;
+                }
             }
         });
 
@@ -940,11 +1040,26 @@
 
             const existingBookmark = findBookmarkByUrl(bookmarkTreeCache, url);
             
+            // 获取收藏按钮的位置信息
+            const buttonRect = addBookmarkButton.getBoundingClientRect();
+            console.log('Button rect:', buttonRect);
+            
+            // 请求主进程获取窗口位置，然后打开弹窗
+            const windowBounds = await window.api.getWindowBounds();
+            console.log('Window bounds:', windowBounds);
+            
+            const buttonPosition = {
+                x: windowBounds.x + buttonRect.left,
+                y: windowBounds.y + buttonRect.bottom + 8 // 在按钮下方8px处显示（考虑边框等）
+            };
+            console.log('Final button position:', buttonPosition);
+            
             window.api.openAddBookmarkPopup({
                 url,
                 title,
                 bookmark: existingBookmark, // Will be null if not bookmarked
-                bookmarksTree: bookmarkTreeCache
+                bookmarksTree: bookmarkTreeCache,
+                buttonPosition: buttonPosition
             });
         });
 
@@ -972,20 +1087,19 @@
         });
 
         historyBtn.addEventListener('click', () => {
-            // Open history.html in a new tab instead of a new window
-            createNewTab('history.html');
+            createNewTab('prism://history');
         });
 
         document.getElementById('clash-dashboard-btn').addEventListener('click', () => {
-            createNewTab('../dashboard/index.html');
+            createNewTab('prism://dashboard');
         });
 
         document.getElementById('favorites-btn').addEventListener('click', () => {
-            createNewTab('bookmarks.html');
+            createNewTab('prism://bookmarks');
         });
 
         document.getElementById('settings-btn').addEventListener('click', () => {
-            createNewTab('settings.html');
+            createNewTab('prism://settings');
         });
 
         window.api.onMihomoLog((log) => {

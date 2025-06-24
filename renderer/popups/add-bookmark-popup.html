@@ -9,11 +9,16 @@
             margin: 0; padding: 0; 
             overflow: hidden;
             font-family: var(--app-font-family);
-            background-color: var(--card-bg);
+            background-color: transparent; /* 透明背景 */
             color: var(--text-color-primary);
         }
         .container {
             padding: 16px 20px;
+            background-color: var(--card-bg);
+            //border-radius: 8px;
+            border: 1px solid var(--border-color-secondary) ;
+            //box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            //margin: 4px; /* 为阴影留出空间 */
         }
         header {
             display: flex;
