@@ -62,7 +62,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile('renderer/pages/index.html');
+  mainWindow.loadFile('renderer/pages/main/index.html');
   
   // 添加开发者工具快捷键支持
   mainWindow.webContents.on('before-input-event', (event, input) => {

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PrismBrowser</title>
+    <link rel="stylesheet" href="../../styles/theme.css">
+    <link rel="stylesheet" href="tabs/tabs.css">
+    <link rel="stylesheet" href="addressbar/addressbar.css">
+    <style>
+        body, html { 
+            margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; 
+            font-family: sans-serif; display: flex; flex-direction: column; 
+            background-color: var(--app-bg-color); 
+            -webkit-app-region: drag; /* Make the whole background draggable */ 
+        }
+
+        #window-controls {
+            display: flex;
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 35px;
+            -webkit-app-region: no-drag;
+            z-index: 9999;
+        }
+        #window-controls button {
+            width: 46px;
+            height: 100%;
+            border: none;
+            background-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #window-controls button svg {
+            width: 10px;
+            height: 10px;
+            fill: var(--text-color-primary);
+        }
+        #window-controls button:hover {
+            background-color: var(--window-control-hover-bg);
+        }
+        #window-controls #close-btn:hover {
+            background-color: var(--window-close-hover-bg);
+            color: var(--window-close-hover-text);
+        }
+
+        /* --- Bookmarks Bar --- */
+        #bookmarks-bar {
+            background-color: var(--content-bg-color);
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--border-color-secondary);
+            flex-shrink: 0;
+            white-space: nowrap;
+            overflow-x: auto;
+            -webkit-app-region: no-drag;
+        }
+        .bookmark-item {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 8px;
+            border-radius: 4px;
+            margin-right: 5px;
+            font-size: 13px;
+            text-decoration: none;
+            color: var(--text-color-secondary);
+        }
+        .bookmark-item:hover {
+            background-color: var(--button-hover-bg);
+        }
+        .bookmark-title {
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bookmark-delete {
+            margin-left: 8px;
+            width: 16px;
+            height: 16px;
+            border: none;
+            background: transparent;
+            opacity: 0.5;
+            padding: 0;
+        }
+        .bookmark-delete:hover {
+            opacity: 1;
+        }
+        
+        /* --- Main Content --- */
+        #main-content { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column;
+            position: relative;
+            -webkit-app-region: no-drag;
+        }
+        #webview-container { position: relative; flex-grow: 1; background-color: var(--content-bg-color); }
+        webview { 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: inline-flex !important; 
+            visibility: hidden;
+        }
+        webview.active {
+            visibility: visible;
+        }
+        #error-page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--error-page-bg);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-family: sans-serif;
+        }
+        #error-page h1 { font-size: 24px; color: var(--error-page-title-color); margin-bottom: 10px; }
+        #error-page p { font-size: 16px; color: var(--error-page-text-color); }
+        #error-page button { margin-top: 20px; padding: 10px 20px; font-size: 16px; border: 1px solid var(--border-color-secondary); border-radius: 4px; }
+        #log-viewer { 
+            height: 200px; 
+            background-color: var(--log-viewer-bg); 
+            flex-shrink: 0; 
+            display: none;
+            flex-direction: column;
+        }
+        #log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            background-color: var(--log-header-bg);
+            color: var(--text-color-light);
+            flex-shrink: 0;
+        }
+        #log-header-title {
+            font-family: sans-serif;
+            font-size: 13px;
+        }
+        #close-log-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-color-light);
+            font-size: 18px;
+            padding: 0 4px;
+        }
+        #log-content {
+            font-family: monospace; 
+            overflow-y: scroll; 
+            padding: 5px; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            flex-grow: 1;
+            color: var(--text-color-light);
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border-radius: 4px;
+        }
+        .log-entry { 
+            margin: 0; 
+            padding: 2px 0; 
+            border-bottom: 1px solid var(--log-viewer-border);
+        }
+        .log-entry[style*="color"] {
+            color: var(--log-error-text) !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="window-controls">
+        <button id="minimize-btn" title="最小化">
+            <svg x="0px" y="0px" viewBox="0 0 10.2 1"><rect x="0" y="0" width="10.2" height="1"></rect></svg>
+        </button>
+        <button id="maximize-btn" title="最大化">
+            <svg x="0px" y="0px" viewBox="0 0 10.2 10.2"><path d="M0,0v10.2h10.2V0H0z M9.2,9.2H1V1h8.2V9.2z"></path></svg>
+        </button>
+        <button id="close-btn" title="关闭">
+            <svg x="0px" y="0px" viewBox="0 0 10.2 10.2"><polygon points="10.2,0.7 9.5,0 5.1,4.4 0.7,0 0,0.7 4.4,5.1 0,9.5 0.7,10.2 5.1,5.8 9.5,10.2 10.2,9.5 5.8,5.1"></polygon></svg>
+        </button>
+    </div>
+    
+    <!-- 组件容器，将通过动态加载填充 -->
+    <div id="tabs-bar-container"></div>
+    <div id="addressbar-container"></div>
+    
+    <div id="bookmarks-bar"></div>
+    <div id="main-content">
+        <div id="webview-container">
+            <!-- Webviews will be dynamically inserted here -->
+        </div>
+        <div id="error-page">
+            <h1>无法访问此网站</h1>
+            <p id="error-desc"></p>
+            <button id="reload-failed-url">重新加载</button>
+        </div>
+        <div id="log-viewer">
+            <div id="log-header">
+                <span id="log-header-title">日志</span>
+                <button id="close-log-btn" title="关闭日志面板">&times;</button>
+            </div>
+            <div id="log-content"></div>
+        </div>
+    </div>
+
+    <!-- 组件脚本 -->
+    <script src="tabs/tabs.js"></script>
+    <script src="addressbar/addressbar.js"></script>
+    
+    <script>
+        // --- 全局变量和常量 ---
+        let homeURL = 'https://www.google.com';
+        let newTabURL = 'about:blank';
+        let lastFailedURL = '';
+
+        // --- 内部协议映射 ---
+        const INTERNAL_PROTOCOLS = {
+            'prism://settings': { file: './settings.html', title: '设置', icon: 'settings' },
+            'prism://history': { file: './history.html', title: '历史记录', icon: 'history' },
+            'prism://bookmarks': { file: './bookmarks.html', title: '收藏夹', icon: 'bookmarks' },
+            'prism://dashboard': { file: '../dashboard/index.html', title: '代理面板', icon: 'dashboard' }
+        };
+
+        // 系统页面图标
+        const SYSTEM_ICONS = {
+            settings: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.25C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.25c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.25c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.25c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>`,
+            history: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>`,
+            bookmarks: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`,
+            dashboard: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 2a10 10 0 0 0-3.38 19.33M12 2a10 10 0 0 1 3.38 19.33"/><path d="M2 12h20M2.67 7h18.66M2.67 17h18.66"/></svg>`
+        };
+
+        const defaultGlobeIcon = `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
+
+        // --- Helper function to normalize URLs ---
+        const normalizeUrl = (url) => {
+            if (!url || url === 'about:blank' || url.startsWith('http') || url.startsWith('file://')) {
+                return url;
+            }
+            return 'http://' + url;
+        };
+
+        // --- Helper function to extract hostname ---
+        const getHostname = (url) => {
+            try {
+                return new URL(url).hostname;
+            } catch (e) {
+                return url;
+            }
+        };
+
+        // --- 全局变量设置到 window 对象 ---
+        window.INTERNAL_PROTOCOLS = INTERNAL_PROTOCOLS;
+        window.SYSTEM_ICONS = SYSTEM_ICONS;
+        window.defaultGlobeIcon = defaultGlobeIcon;
+        window.normalizeUrl = normalizeUrl;
+        window.getHostname = getHostname;
+
+        // --- DOM 元素引用 ---
+        const minimizeBtn = document.getElementById('minimize-btn');
+        const maximizeBtn = document.getElementById('maximize-btn');
+        const closeBtn = document.getElementById('close-btn');
+        const bookmarksBar = document.getElementById('bookmarks-bar');
+        const errorPage = document.getElementById('error-page');
+        const errorDesc = document.getElementById('error-desc');
+        const reloadFailedButton = document.getElementById('reload-failed-url');
+        const logViewer = document.getElementById('log-viewer');
+        const logContent = document.getElementById('log-content');
+        const closeLogBtn = document.getElementById('close-log-btn');
+
+        // --- 组件管理器实例 ---
+        let tabsManager;
+        let addressBarManager;
+
+        // --- Event Listeners for Webviews ---
+        const addWebviewListeners = (tab) => {
+            const { webview, el, id } = tab;
+            const titleEl = el.querySelector('.tab-title');
+
+            webview.addEventListener('page-favicon-updated', (e) => {
+                if (e.favicons && e.favicons.length > 0) {
+                    const bestFavicon = e.favicons[0];
+                    tab.favicon = bestFavicon;
+                    tabsManager.setTabIcon(el, `<img class="tab-icon" src="${bestFavicon}">`);
+                }
+            });
+
+            webview.addEventListener('page-title-updated', (e) => { 
+                titleEl.textContent = e.title; 
+                titleEl.title = e.title; 
+            });
+            
+            webview.addEventListener('did-start-loading', () => { 
+                tabsManager.showLoadingIndicator(el, true);
+                if (titleEl.textContent === 'New Tab') {
+                    const url = webview.getURL() || webview.src;
+                    titleEl.textContent = getHostname(url);
+                }
+                addressBarManager.updateNavButtonsState(); 
+            });
+
+            webview.addEventListener('did-finish-load', async () => {
+                tabsManager.showLoadingIndicator(el, false);
+                const url = webview.getURL();
+                const title = webview.getTitle();
+                if (url && title && url !== 'about:blank' && !url.startsWith('file://')) {
+                    window.api.addHistory({ url, title, favicon: tab.favicon, timestamp: new Date().toISOString() });
+                }
+
+                const currentIcon = el.querySelector('.tab-icon');
+                if (currentIcon && currentIcon.classList.contains('loading-spinner')) {
+                    try {
+                        const faviconURL = await webview.executeJavaScript(`
+                            (() => {
+                                const icon = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
+                                return icon ? icon.href : null;
+                            })();
+                        `);
+                        if (faviconURL) {
+                            tab.favicon = faviconURL;
+                            tabsManager.setTabIcon(el, `<img class="tab-icon" src="${faviconURL}">`);
+                        } else {
+                            tabsManager.setTabIcon(el, defaultGlobeIcon);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching favicon via JS:', error);
+                        tabsManager.setTabIcon(el, defaultGlobeIcon);
+                    }
+                }
+            });
+
+            webview.addEventListener('did-stop-loading', () => {
+                tabsManager.showLoadingIndicator(el, false);
+                addressBarManager.updateNavButtonsState();
+            });
+
+            webview.addEventListener('did-navigate', (e) => {
+                if (id === tabsManager.activeTabId) {
+                    const displayUrl = tab.internalUrl || e.url;
+                    addressBarManager.urlInput.value = displayUrl;
+                    addressBarManager.updateBookmarkStar(e.url);
+                }
+                addressBarManager.updateNavButtonsState();
+            });
+
+            webview.addEventListener('did-fail-load', (e) => {
+                if (e.errorCode === -3) return;
+                tabsManager.showLoadingIndicator(el, false);
+                
+                titleEl.textContent = getHostname(e.validatedURL);
+
+                if (id === tabsManager.activeTabId) {
+                    lastFailedURL = e.validatedURL;
+                    errorDesc.textContent = `网址为 ${e.validatedURL} 的网页可能暂时无法连接...`;
+                    errorPage.style.display = 'flex';
+                }
+            });
+        };
+
+        // 设置全局函数可访问
+        window.addWebviewListeners = addWebviewListeners;
+
+        // --- 收藏夹相关逻辑 ---
+        let currentBookmarks = [];
+
+        const renderBookmarks = (bookmarks) => {
+            currentBookmarks = bookmarks;
+            bookmarksBar.innerHTML = '';
+            bookmarks.forEach(bookmark => {
+                if (bookmark.type !== 'bookmark') return;
+
+                const item = document.createElement('a');
+                item.className = 'bookmark-item';
+                item.href = bookmark.url;
+                item.title = `${bookmark.title}\\n${bookmark.url}`;
+                
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'bookmark-title';
+                titleSpan.textContent = bookmark.title;
+                item.appendChild(titleSpan);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'bookmark-delete';
+                deleteBtn.innerHTML = '&#x2715;';
+                deleteBtn.title = '删除收藏';
+                deleteBtn.addEventListener('click', async (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    await window.api.deleteBookmarks([bookmark.id]);
+                    refreshBookmarks();
+                });
+                item.appendChild(deleteBtn);
+                item.addEventListener('click', (e) => { e.preventDefault(); tabsManager.createNewTab(item.href); });
+                bookmarksBar.appendChild(item);
+            });
+        };
+
+        async function refreshBookmarks() {
+            const bookmarkTree = await window.api.getBookmarksTree();
+            const toolbarFolder = bookmarkTree.find(node => node.id === 'toolbar');
+            const toolbarBookmarks = toolbarFolder ? toolbarFolder.children : [];
+            renderBookmarks(toolbarBookmarks);
+        }
+
+        // --- 错误页面重新加载按钮 ---
+        reloadFailedButton.addEventListener('click', () => {
+            const tab = tabsManager.getActiveTab();
+            if (tab && lastFailedURL) {
+                tab.webview.loadURL(lastFailedURL);
+            }
+        });
+
+        // --- 日志查看器逻辑 ---
+        closeLogBtn.addEventListener('click', () => {
+            logViewer.style.display = 'none';
+        });
+
+        window.api.onMihomoLog((log) => {
+            const lines = log.trim().split(/\\r?\\n/);
+            lines.forEach(line => {
+                if (line.trim() === '') return;
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = line;
+                if (line.includes('error') || line.includes('failed')) {
+                    logEntry.style.color = 'var(--log-error-text)';
+                }
+                logContent.appendChild(logEntry);
+                logContent.scrollTop = logContent.scrollHeight;
+            });
+        });
+
+        // Listen for requests to open a new tab from other windows
+        window.api.onNewTabRequest((url) => {
+            tabsManager.createNewTab(url);
+        });
+
+        // --- Window Controls ---
+        minimizeBtn.addEventListener('click', () => window.api.sendWindowControl('minimize'));
+        maximizeBtn.addEventListener('click', () => window.api.sendWindowControl('maximize'));
+        closeBtn.addEventListener('click', () => window.api.sendWindowControl('close'));
+
+        // --- 组件加载函数 ---
+        async function loadComponents() {
+            try {
+                console.log('🔄 开始加载组件...');
+                
+                // 加载标签栏组件
+                const tabsResponse = await fetch('tabs/tabs.html');
+                if (!tabsResponse.ok) {
+                    throw new Error(`Failed to load tabs.html: ${tabsResponse.status}`);
+                }
+                const tabsHTML = await tabsResponse.text();
+                document.getElementById('tabs-bar-container').innerHTML = tabsHTML;
+                console.log('✅ 标签栏组件加载完成');
+
+                // 加载地址栏组件
+                const addressbarResponse = await fetch('addressbar/addressbar.html');
+                if (!addressbarResponse.ok) {
+                    throw new Error(`Failed to load addressbar.html: ${addressbarResponse.status}`);
+                }
+                const addressbarHTML = await addressbarResponse.text();
+                document.getElementById('addressbar-container').innerHTML = addressbarHTML;
+                console.log('✅ 地址栏组件加载完成');
+                
+                console.log('✅ 所有组件加载完成');
+                return true;
+            } catch (error) {
+                console.error('❌ 组件加载失败:', error);
+                // 不抛出错误，而是返回 false，让应用程序继续运行
+                return false;
+            }
+        }
+
+        // --- 主初始化函数 ---
+        const init = async () => {
+            try {
+                console.log('🚀 开始初始化应用程序...');
+                
+                // 1. 首先加载组件 HTML
+                const componentsLoaded = await loadComponents();
+                if (!componentsLoaded) {
+                    console.warn('⚠️ 组件加载失败，使用备用模式');
+                    // 如果组件加载失败，可以在这里添加备用HTML
+                    return;
+                }
+                
+                // 2. 初始化组件管理器
+                console.log('🔧 初始化组件管理器...');
+                tabsManager = new TabsManager();
+                addressBarManager = new AddressBarManager();
+                
+                // 设置全局引用
+                window.tabsManager = tabsManager;
+                window.addressBarManager = addressBarManager;
+                
+                // 初始化收藏夹
+                await refreshBookmarks();
+                
+                // 根据启动时设置决定打开什么页面
+                const startupOption = await window.api.getSetting('settings.startupOption') || 'homepage';
+                let startupUrl;
+                
+                if (startupOption === 'homepage') {
+                    const homepageOption = await window.api.getSetting('settings.homepageOption') || 'custom';
+                    if (homepageOption === 'newtab') {
+                        const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
+                        startupUrl = newtabOption === 'blank' ? 'about:blank' : 
+                                    (await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com');
+                    } else {
+                        startupUrl = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
+                    }
+                } else if (startupOption === 'newtab') {
+                    const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
+                    startupUrl = newtabOption === 'blank' ? 'about:blank' : 
+                                (await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com');
+                } else if (startupOption === 'custom') {
+                    startupUrl = await window.api.getSetting('settings.startupCustomUrl') || 'https://www.google.com';
+                } else {
+                    startupUrl = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
+                }
+                
+                tabsManager.createNewTab(startupUrl);
+                console.log('✅ 应用程序初始化完成');
+            } catch (error) {
+                console.error('❌ 应用程序初始化失败:', error);
+            }
+        };
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+
+        // Listen for requests to refresh bookmarks from other windows
+        window.api.onBookmarkUpdated(() => {
+            refreshBookmarks();
+        });
+    </script>
+</body>
+</html> 
