@@ -123,6 +123,185 @@
             margin: 8px -8px;
         }
 
+
+
+        /* --- 下载弹窗 --- */
+        .downloads-popup {
+            position: fixed;
+            z-index: 10000;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color-secondary);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            width: 360px;
+            max-width: calc(100vw - 40px);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .downloads-popup-header {
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid var(--border-color-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .downloads-popup-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color-primary);
+        }
+
+        .downloads-popup-btn {
+            background-color: var(--button-primary-bg);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .downloads-popup-btn:hover {
+            background-color: var(--button-primary-hover-bg);
+        }
+
+        .downloads-section {
+            padding: 0 20px;
+        }
+
+        .downloads-section h4 {
+            margin: 16px 0 8px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color-secondary);
+        }
+
+        .download-popup-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color-light);
+            gap: 12px;
+        }
+
+        .download-popup-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .file-icon.pdf { background-color: #ffebee; }
+        .file-icon.doc { background-color: #e3f2fd; }
+        .file-icon.xls { background-color: #e8f5e8; }
+        .file-icon.zip { background-color: #fff3e0; }
+        .file-icon.exe { background-color: #f3e5f5; }
+        .file-icon.default { background-color: #f5f5f5; }
+
+        .download-popup-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .download-popup-filename {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-color-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
+
+        .download-popup-source {
+            font-size: 12px;
+            color: var(--text-color-secondary);
+            margin-bottom: 4px;
+        }
+
+        .download-popup-status {
+            font-size: 12px;
+            color: var(--text-color-secondary);
+        }
+
+        .download-popup-progress {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .progress-bar {
+            flex-grow: 1;
+            height: 4px;
+            background-color: var(--input-border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--button-primary-bg);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 11px;
+            color: var(--text-color-secondary);
+            min-width: 30px;
+            text-align: right;
+        }
+
+        .download-popup-actions {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .download-action-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .download-action-btn:hover {
+            opacity: 1;
+        }
+
+        .downloads-empty {
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .downloads-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .downloads-empty p {
+            margin: 0;
+            color: var(--text-color-secondary);
+            font-size: 14px;
+        }
+
     </style>
 </head>
 <body>
@@ -157,6 +336,13 @@
         <!-- 菜单项将在这里动态生成 -->
     </div>
 
+    <!-- 下载弹窗 -->
+    <div id="downloads-popup" class="downloads-popup" style="display: none;">
+        <!-- 内容将动态生成 -->
+    </div>
+
+
+
     <!-- 组件脚本 -->
     <script src="tabs/tabs.js"></script>
     <script src="addressbar/addressbar.js"></script>
@@ -172,6 +358,7 @@
             'prism://settings': { file: '../settings.html', title: '设置', icon: 'settings' },
             'prism://history': { file: '../history.html', title: '历史记录', icon: 'history' },
             'prism://bookmarks': { file: '../bookmarks.html', title: '收藏夹', icon: 'bookmarks' },
+            'prism://downloads': { file: '../downloads.html', title: '下载管理', icon: 'downloads' },
             'prism://dashboard': { file: '../../dashboard/index.html', title: '代理面板', icon: 'dashboard' }
         };
 
@@ -180,6 +367,7 @@
             settings: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.25C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.25c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.25c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.25c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>`,
             history: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>`,
             bookmarks: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`,
+            downloads: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
             dashboard: `<svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 2a10 10 0 0 0-3.38 19.33M12 2a10 10 0 0 1 3.38 19.33"/><path d="M2 12h20M2.67 7h18.66M2.67 17h18.66"/></svg>`
         };
 
@@ -306,10 +494,67 @@
                     errorPage.style.display = 'flex';
                 }
             });
+
+            // 处理新窗口/新标签页请求
+            webview.addEventListener('new-window', (e) => {
+                e.preventDefault(); // 阻止默认行为
+                // 在新标签页中打开链接
+                tabsManager.createNewTab(e.url);
+            });
+
+            // 处理下载事件
+            webview.addEventListener('will-download', (e) => {
+                console.log('下载事件触发:', e);
+                
+                const downloadItem = {
+                    id: `download-${Date.now()}`,
+                    filename: e.filename || 'download_file',
+                    url: e.url || webview.getURL(),
+                    status: 'downloading',
+                    startTime: new Date().toISOString(),
+                    totalBytes: e.totalBytes || 0,
+                    receivedBytes: 0,
+                    speed: 0,
+                    filePath: null
+                };
+
+                // 添加到下载记录
+                window.api.addDownload(downloadItem);
+                
+
+                
+                console.log('下载已记录:', downloadItem);
+            });
+
+            // 尝试通过其他方式监听下载
+            webview.addEventListener('new-window', (e) => {
+                // 检查是否是下载链接
+                if (e.disposition === 'save-as' || e.disposition === 'attachment') {
+                    e.preventDefault();
+                    
+                    const downloadItem = {
+                        id: `download-${Date.now()}`,
+                        filename: e.url.split('/').pop() || 'download_file',
+                        url: e.url,
+                        status: 'downloading',
+                        startTime: new Date().toISOString(),
+                        totalBytes: 0,
+                        receivedBytes: 0,
+                        speed: 0,
+                        filePath: null
+                    };
+
+                    // 添加到下载记录
+                    window.api.addDownload(downloadItem);
+                    console.log('通过new-window事件检测到下载:', downloadItem);
+                }
+            });
         };
 
         // 设置全局函数可访问
         window.addWebviewListeners = addWebviewListeners;
+
+
 
         // --- 错误页面重新加载按钮 ---
         reloadFailedButton.addEventListener('click', () => {
@@ -322,6 +567,29 @@
         // 监听来自其他窗口的新标签页请求
         window.api.onNewTabRequest((url) => {
             tabsManager.createNewTab(url);
+        });
+
+        // 监听下载事件
+        window.api.onDownloadStarted((downloadItem) => {
+            console.log('下载开始:', downloadItem);
+        });
+
+        window.api.onDownloadProgress((downloadItem) => {
+            console.log('下载进度更新:', downloadItem);
+            // 如果下载弹窗打开，刷新内容
+            const popup = document.getElementById('downloads-popup');
+            if (popup && popup.style.display === 'block' && window.addressBarManager) {
+                window.addressBarManager.showDownloadsPopup();
+            }
+        });
+
+        window.api.onDownloadCompleted((downloadItem) => {
+            console.log('下载完成:', downloadItem);
+            // 如果下载弹窗打开，刷新内容
+            const popup = document.getElementById('downloads-popup');
+            if (popup && popup.style.display === 'block' && window.addressBarManager) {
+                window.addressBarManager.showDownloadsPopup();
+            }
         });
 
         // --- 窗口控制按钮 ---

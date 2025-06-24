@@ -16,6 +16,7 @@ class AddressBarManager {
         // 操作按钮
         this.historyBtn = document.getElementById('history-btn');
         this.favoritesBtn = document.getElementById('favorites-btn');
+        this.downloadsBtn = document.getElementById('downloads-btn');
         this.settingsBtn = document.getElementById('settings-btn');
         this.toggleLogsBtn = document.getElementById('toggle-logs-btn');
         this.mainMenuBtn = document.getElementById('main-menu-btn');
@@ -184,6 +185,11 @@ class AddressBarManager {
             window.tabsManager.createNewTab('prism://bookmarks');
         });
 
+        this.downloadsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleDownloadsPopup();
+        });
+
         this.settingsBtn.addEventListener('click', () => {
             window.tabsManager.createNewTab('prism://settings');
         });
@@ -244,7 +250,9 @@ class AddressBarManager {
 
     createMenuItems() {
         const menuItems = [
+            { id: 'menu-downloads', icon: window.SYSTEM_ICONS.downloads, text: '下载管理', action: 'prism://downloads' },
             { id: 'menu-dashboard', icon: window.SYSTEM_ICONS.dashboard, text: '代理面板', action: 'prism://dashboard' },
+            { separator: true },
             { id: 'menu-devtools', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>', text: '开发者工具', action: 'devtools' },
         ];
 
@@ -340,6 +348,210 @@ class AddressBarManager {
         if (activeTab) {
             this.updateBookmarkStar(activeTab.webview.getURL());
         }
+    }
+
+    // --- 下载弹窗管理 ---
+    toggleDownloadsPopup() {
+        const popup = document.getElementById('downloads-popup');
+        if (!popup || popup.style.display !== 'block') {
+            this.showDownloadsPopup();
+        } else {
+            this.hideDownloadsPopup();
+        }
+    }
+
+    async showDownloadsPopup() {
+        const popup = document.getElementById('downloads-popup');
+        if (!popup) return;
+
+        // 创建弹窗内容
+        popup.innerHTML = await this.createDownloadsPopupContent();
+
+        // 定位弹窗
+        const buttonRect = this.downloadsBtn.getBoundingClientRect();
+        popup.style.display = 'block';
+        popup.style.top = `${buttonRect.bottom + 5}px`;
+        popup.style.right = `${window.innerWidth - buttonRect.right}px`;
+
+        // 添加事件监听
+        this.addDownloadsPopupListeners(popup);
+
+        // 添加点击外部关闭弹窗的监听
+        setTimeout(() => {
+            document.addEventListener('click', () => this.hideDownloadsPopup(), { once: true });
+        }, 0);
+    }
+
+    hideDownloadsPopup() {
+        const popup = document.getElementById('downloads-popup');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+    }
+
+    async createDownloadsPopupContent() {
+        const downloads = await window.api.getDownloads() || [];
+        const downloadingItems = downloads.filter(item => item.status === 'downloading' || item.status === 'paused');
+        const recentItems = downloads.slice(0, 5); // 显示最近5个下载
+
+        const formatFileSize = (bytes) => {
+            if (!bytes) return '0 B';
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+        };
+
+        const getHostname = (url) => {
+            try { return new URL(url).hostname; } catch (e) { return url; }
+        };
+
+        const getFileIcon = (filename) => {
+            const ext = filename.split('.').pop().toLowerCase();
+            switch (ext) {
+                case 'pdf':
+                    return `<div class="file-icon pdf">📄</div>`;
+                case 'doc':
+                case 'docx':
+                    return `<div class="file-icon doc">📝</div>`;
+                case 'xls':
+                case 'xlsx':
+                    return `<div class="file-icon xls">📊</div>`;
+                case 'zip':
+                case 'rar':
+                case '7z':
+                    return `<div class="file-icon zip">🗜️</div>`;
+                case 'exe':
+                    return `<div class="file-icon exe">⚙️</div>`;
+                default:
+                    return `<div class="file-icon default">📁</div>`;
+            }
+        };
+
+        let content = `
+            <div class="downloads-popup-header">
+                <h3>下载</h3>
+                <div class="downloads-popup-actions">
+                    <button class="downloads-popup-btn" id="downloads-manage-btn">
+                        下载管理
+                    </button>
+                </div>
+            </div>
+        `;
+
+        if (downloadingItems.length > 0) {
+            content += '<div class="downloads-section"><h4>正在下载</h4>';
+            downloadingItems.forEach(item => {
+                const progress = item.totalBytes > 0 ? (item.receivedBytes / item.totalBytes * 100) : 0;
+                content += `
+                    <div class="download-popup-item downloading">
+                        ${getFileIcon(item.filename)}
+                        <div class="download-popup-info">
+                            <div class="download-popup-filename">${item.filename}</div>
+                            <div class="download-popup-source">${getHostname(item.url)}</div>
+                            <div class="download-popup-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${progress}%"></div>
+                                </div>
+                                <span class="progress-text">${Math.round(progress)}%</span>
+                            </div>
+                        </div>
+                        <div class="download-popup-actions">
+                            ${item.status === 'downloading' ? 
+                              `<button class="download-action-btn pause-btn" data-id="${item.id}" title="暂停">⏸</button>` :
+                              `<button class="download-action-btn resume-btn" data-id="${item.id}" title="继续">▶</button>`
+                            }
+                        </div>
+                    </div>
+                `;
+            });
+            content += '</div>';
+        }
+
+        if (recentItems.length > 0) {
+            content += '<div class="downloads-section"><h4>最近下载</h4>';
+            recentItems.forEach(item => {
+                if (item.status === 'downloading' || item.status === 'paused') return; // 跳过正在下载的
+                
+                const statusText = item.status === 'completed' ? '已完成' :
+                                 item.status === 'error' ? '下载失败' :
+                                 item.status === 'cancelled' ? '已取消' : '未知';
+                
+                content += `
+                    <div class="download-popup-item ${item.status}">
+                        ${getFileIcon(item.filename)}
+                        <div class="download-popup-info">
+                            <div class="download-popup-filename">${item.filename}</div>
+                            <div class="download-popup-source">${getHostname(item.url)}</div>
+                            <div class="download-popup-status">${statusText}${item.status === 'completed' ? ` • ${formatFileSize(item.totalBytes)}` : ''}</div>
+                        </div>
+                        <div class="download-popup-actions">
+                            ${item.status === 'completed' ? 
+                              `<button class="download-action-btn open-btn" data-id="${item.id}" title="打开">📁</button>` :
+                              `<button class="download-action-btn delete-btn" data-id="${item.id}" title="删除">🗑</button>`
+                            }
+                        </div>
+                    </div>
+                `;
+            });
+            content += '</div>';
+        }
+
+        if (downloads.length === 0) {
+            content += `
+                <div class="downloads-empty">
+                    <div class="downloads-empty-icon">📥</div>
+                    <p>暂无下载</p>
+                </div>
+            `;
+        }
+
+        return content;
+    }
+
+    addDownloadsPopupListeners(popup) {
+        // 下载管理按钮
+        const manageBtn = popup.querySelector('#downloads-manage-btn');
+        if (manageBtn) {
+            manageBtn.addEventListener('click', () => {
+                window.tabsManager.createNewTab('prism://downloads');
+                this.hideDownloadsPopup();
+            });
+        }
+
+        // 暂停/继续按钮
+        popup.querySelectorAll('.pause-btn, .resume-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const downloadId = btn.dataset.id;
+                if (btn.classList.contains('pause-btn')) {
+                    await window.api.pauseDownload(downloadId);
+                } else {
+                    await window.api.resumeDownload(downloadId);
+                }
+                // 刷新弹窗内容
+                setTimeout(() => this.showDownloadsPopup(), 100);
+            });
+        });
+
+        // 打开文件按钮
+        popup.querySelectorAll('.open-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const downloadId = btn.dataset.id;
+                await window.api.openDownloadFile(downloadId);
+            });
+        });
+
+        // 删除按钮
+        popup.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const downloadId = btn.dataset.id;
+                await window.api.deleteDownload(downloadId);
+                // 刷新弹窗内容
+                setTimeout(() => this.showDownloadsPopup(), 100);
+            });
+        });
     }
 }
 

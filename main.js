@@ -1,4 +1,4 @@
-const { app, BrowserWindow, session, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, session, ipcMain, screen, shell } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const Store = require('electron-store');
@@ -69,6 +69,77 @@ function createWindow() {
     if (input.control && input.shift && input.key.toLowerCase() === 'i') {
       mainWindow.webContents.toggleDevTools();
     }
+  });
+
+  // 监听所有webContents的下载事件
+  mainWindow.webContents.session.on('will-download', (event, item, webContents) => {
+    console.log('主进程检测到下载:', item.getFilename());
+    
+    const downloadItem = {
+      id: `download-${Date.now()}`,
+      filename: item.getFilename(),
+      url: item.getURL(),
+      status: 'downloading',
+      startTime: new Date().toISOString(),
+      totalBytes: item.getTotalBytes(),
+      receivedBytes: item.getReceivedBytes(),
+      speed: 0,
+      filePath: null
+    };
+
+    // 保存到下载记录
+    const downloads = store.get('downloads', []);
+    downloads.unshift(downloadItem);
+    store.set('downloads', downloads);
+
+    // 通知渲染进程
+    mainWindow.webContents.send('download-started', downloadItem);
+
+    // 监听下载进度
+    item.on('updated', (event, state) => {
+      downloadItem.receivedBytes = item.getReceivedBytes();
+      downloadItem.speed = item.getCurrentBytesPerSecond ? item.getCurrentBytesPerSecond() : 0;
+      
+      if (state === 'interrupted') {
+        downloadItem.status = 'error';
+      } else if (state === 'progressing') {
+        downloadItem.status = 'downloading';
+      }
+
+      // 更新存储的下载记录
+      const currentDownloads = store.get('downloads', []);
+      const index = currentDownloads.findIndex(d => d.id === downloadItem.id);
+      if (index !== -1) {
+        currentDownloads[index] = downloadItem;
+        store.set('downloads', currentDownloads);
+      }
+
+      // 通知渲染进程更新
+      mainWindow.webContents.send('download-updated', downloadItem);
+    });
+
+    // 监听下载完成
+    item.once('done', (event, state) => {
+      if (state === 'completed') {
+        downloadItem.status = 'completed';
+        downloadItem.filePath = item.getSavePath();
+        downloadItem.receivedBytes = item.getTotalBytes();
+      } else {
+        downloadItem.status = state === 'cancelled' ? 'cancelled' : 'error';
+      }
+
+      // 更新存储的下载记录
+      const currentDownloads = store.get('downloads', []);
+      const index = currentDownloads.findIndex(d => d.id === downloadItem.id);
+      if (index !== -1) {
+        currentDownloads[index] = downloadItem;
+        store.set('downloads', currentDownloads);
+      }
+
+      // 通知渲染进程下载完成
+      mainWindow.webContents.send('download-completed', downloadItem);
+      console.log('下载完成:', downloadItem.filename, '状态:', downloadItem.status);
+    });
   });
 }
 
@@ -403,6 +474,100 @@ ipcMain.handle('add-recently-closed', async (event, item) => {
         win.webContents.send('history-updated');
     });
     return newRecentlyClosed;
+});
+
+// --- IPC Handlers for Downloads ---
+ipcMain.handle('get-downloads', async () => {
+    return store.get('downloads', []);
+});
+
+ipcMain.handle('add-download', async (event, item) => {
+    const downloads = store.get('downloads', []);
+    const newDownloads = [item, ...downloads.filter(d => d.id !== item.id)];
+    store.set('downloads', newDownloads);
+    // 通知所有窗口下载已更新
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('download-updated');
+    });
+    return newDownloads;
+});
+
+ipcMain.handle('update-download', async (event, { id, data }) => {
+    const downloads = store.get('downloads', []);
+    const downloadIndex = downloads.findIndex(d => d.id === id);
+    if (downloadIndex !== -1) {
+        downloads[downloadIndex] = { ...downloads[downloadIndex], ...data };
+        store.set('downloads', downloads);
+        // 通知所有窗口下载已更新
+        BrowserWindow.getAllWindows().forEach(win => {
+            win.webContents.send('download-updated');
+        });
+    }
+    return downloads;
+});
+
+ipcMain.handle('delete-download', async (event, downloadId) => {
+    const downloads = store.get('downloads', []);
+    const newDownloads = downloads.filter(d => d.id !== downloadId);
+    store.set('downloads', newDownloads);
+    return newDownloads;
+});
+
+ipcMain.handle('pause-download', async (event, downloadId) => {
+    // 实际应用中这里会调用下载管理器暂停下载
+    console.log('暂停下载:', downloadId);
+    return { success: true };
+});
+
+ipcMain.handle('resume-download', async (event, downloadId) => {
+    // 实际应用中这里会调用下载管理器恢复下载
+    console.log('恢复下载:', downloadId);
+    return { success: true };
+});
+
+ipcMain.handle('pause-all-downloads', async () => {
+    // 实际应用中这里会暂停所有进行中的下载
+    console.log('暂停所有下载');
+    return { success: true };
+});
+
+ipcMain.handle('clear-completed-downloads', async () => {
+    const downloads = store.get('downloads', []);
+    const newDownloads = downloads.filter(d => d.status !== 'completed');
+    store.set('downloads', newDownloads);
+    return newDownloads;
+});
+
+ipcMain.handle('open-download-file', async (event, downloadId) => {
+    const downloads = store.get('downloads', []);
+    const download = downloads.find(d => d.id === downloadId);
+    if (download && download.filePath) {
+        try {
+            await shell.openPath(download.filePath);
+            console.log('打开文件:', download.filePath);
+            return { success: true };
+        } catch (error) {
+            console.error('打开文件失败:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    return { success: false, error: '文件不存在' };
+});
+
+ipcMain.handle('show-download-in-folder', async (event, downloadId) => {
+    const downloads = store.get('downloads', []);
+    const download = downloads.find(d => d.id === downloadId);
+    if (download && download.filePath) {
+        try {
+            shell.showItemInFolder(download.filePath);
+            console.log('在文件夹中显示:', download.filePath);
+            return { success: true };
+        } catch (error) {
+            console.error('显示文件夹失败:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    return { success: false, error: '文件不存在' };
 });
 
 ipcMain.on('open-in-new-tab', (event, url) => {

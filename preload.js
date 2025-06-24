@@ -36,6 +36,29 @@ contextBridge.exposeInMainWorld('api', {
   onNewTabRequest: (callback) => {
     ipcRenderer.on('new-tab-request', (_event, url) => callback(url));
   },
+  // --- Downloads ---
+  getDownloads: () => ipcRenderer.invoke('get-downloads'),
+  addDownload: (item) => ipcRenderer.invoke('add-download', item),
+  updateDownload: (id, data) => ipcRenderer.invoke('update-download', { id, data }),
+  deleteDownload: (downloadId) => ipcRenderer.invoke('delete-download', downloadId),
+  pauseDownload: (downloadId) => ipcRenderer.invoke('pause-download', downloadId),
+  resumeDownload: (downloadId) => ipcRenderer.invoke('resume-download', downloadId),
+  pauseAllDownloads: () => ipcRenderer.invoke('pause-all-downloads'),
+  clearCompletedDownloads: () => ipcRenderer.invoke('clear-completed-downloads'),
+  openDownloadFile: (downloadId) => ipcRenderer.invoke('open-download-file', downloadId),
+  showDownloadInFolder: (downloadId) => ipcRenderer.invoke('show-download-in-folder', downloadId),
+  onDownloadUpdated: (callback) => {
+    ipcRenderer.on('download-updated', () => callback());
+  },
+  onDownloadStarted: (callback) => {
+    ipcRenderer.on('download-started', (_event, downloadItem) => callback(downloadItem));
+  },
+  onDownloadProgress: (callback) => {
+    ipcRenderer.on('download-updated', (_event, downloadItem) => callback(downloadItem));
+  },
+  onDownloadCompleted: (callback) => {
+    ipcRenderer.on('download-completed', (_event, downloadItem) => callback(downloadItem));
+  },
   // --- Settings ---
   getSetting: (key) => ipcRenderer.invoke('get-setting', key),
   setSetting: (key, value) => ipcRenderer.invoke('set-setting', { key, value }),
