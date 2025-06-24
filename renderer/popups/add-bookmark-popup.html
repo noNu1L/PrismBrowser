@@ -13,18 +13,19 @@
             color: var(--text-color-primary);
         }
         .container {
-            padding: 16px 20px;
+            width: 320px; /* 固定宽度，更紧凑 */
+            padding: 12px 16px; /* 减小内边距 */
             background-color: var(--card-bg);
-            //border-radius: 8px;
-            border: 1px solid var(--border-color-secondary) ;
-            //box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            //margin: 4px; /* 为阴影留出空间 */
+            border-radius: 6px;
+            border: 1px solid var(--border-color-secondary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-sizing: border-box;
         }
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 16px; /* 减小底部间距 */
         }
         header h1 {
             font-size: 16px;
@@ -39,36 +40,36 @@
              opacity: 0.6;
         }
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 12px; /* 减小表单组间距 */
             display: flex;
             align-items: center;
         }
         .form-group label {
-            width: 50px;
-            font-size: 14px;
+            width: 45px; /* 减小标签宽度 */
+            font-size: 13px; /* 稍微减小字体 */
             font-weight: 500;
             flex-shrink: 0;
         }
         .form-group input, .form-group select {
             flex-grow: 1;
-            height: 36px;
-            padding: 0 10px;
-            border-radius: 6px;
+            height: 32px; /* 减小输入框高度 */
+            padding: 0 8px; /* 减小内边距 */
+            border-radius: 4px;
             border: 1px solid var(--input-border);
             background-color: var(--input-bg);
-            font-size: 14px;
+            font-size: 13px;
         }
         footer {
-            margin-top: 24px;
+            margin-top: 16px; /* 减小顶部间距 */
             display: flex;
             justify-content: flex-end;
             gap: 8px;
         }
         button {
-            padding: 8px 16px;
-            font-size: 14px;
+            padding: 6px 12px; /* 减小按钮内边距 */
+            font-size: 13px;
             font-weight: 500;
-            border-radius: 6px;
+            border-radius: 4px;
             border: 1px solid var(--input-border);
             cursor: pointer;
         }
