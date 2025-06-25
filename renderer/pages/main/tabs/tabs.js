@@ -228,10 +228,13 @@ class TabsManager {
             });
         }
 
+        // 当 webview DOM 元素被移除时，大部分事件监听器会自动清理
+        // 主进程已经设置了足够高的最大监听器数量来避免警告
+
         tabToClose.el.remove();
         const webviewContainer = document.getElementById('webview-container');
         if (webviewContainer && tabToClose.webview.parentNode) {
-                            webviewContainer.removeChild(tabToClose.webview); // 正确移除
+            webviewContainer.removeChild(tabToClose.webview); // 正确移除
         }
         this.tabs.splice(tabIndex, 1);
         

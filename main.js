@@ -62,6 +62,15 @@ function createWindow() {
     }
   });
 
+  // 增加主窗口 webContents 的最大监听器数量
+  mainWindow.webContents.setMaxListeners(100);
+
+  // 监听新的 webContents 创建（包括 webview）
+  app.on('web-contents-created', (event, contents) => {
+    // 为每个新的 webContents 设置更高的最大监听器数量
+    contents.setMaxListeners(100);
+  });
+
   mainWindow.loadFile('renderer/pages/main/index.html');
   
   // 添加开发者工具快捷键支持
@@ -626,7 +635,7 @@ ipcMain.handle('set-setting', (event, { key, value }) => {
 ipcMain.handle('get-clash-config', async () => {
     try {
         const configPath = path.join(__dirname, 'clash-meta', 'config.yaml');
-        const configData = await fs.readFile(configPath, 'utf-8');
+        const configData = await fs.promises.readFile(configPath, 'utf-8');
         return configData;
     } catch (error) {
         console.error('Error reading Clash config:', error);
