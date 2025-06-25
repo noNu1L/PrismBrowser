@@ -16,8 +16,8 @@
   "author": "noNu1L",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^29.1.5",
-    "electron-builder": "^24.13.3"
+    "electron": "^34.5.8",
+    "electron-builder": "^25.1.8"
   },
   "build": {
     "appId": "com.prismbrowser.app",
@@ -44,6 +44,6 @@
     }
   },
   "dependencies": {
-    "electron-store": "^7.0.3"
+    "electron-store": "^10.0.0"
   }
 }

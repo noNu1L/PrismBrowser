@@ -497,9 +497,152 @@
 
             // 处理新窗口/新标签页请求
             webview.addEventListener('new-window', (e) => {
+                console.log('new-window 事件触发:', e.url, 'disposition:', e.disposition);
                 e.preventDefault(); // 阻止默认行为
                 // 在新标签页中打开链接
                 tabsManager.createNewTab(e.url);
+            });
+
+            // 添加额外的DOM就绪事件监听器来注入链接拦截脚本
+            webview.addEventListener('dom-ready', () => {
+                // 注入JavaScript来拦截目标为_blank的链接和中键点击
+                webview.executeJavaScript(`
+                    (function() {
+                        console.log('链接拦截脚本已注入');
+                        
+                        // 拦截所有链接点击
+                        document.addEventListener('click', function(e) {
+                            const link = e.target.closest('a');
+                            if (link) {
+                                const href = link.href || link.getAttribute('href');
+                                // 检查是否应该在新标签页打开
+                                const shouldOpenNewTab = link.target === '_blank' || 
+                                                        e.ctrlKey || 
+                                                        e.metaKey || 
+                                                        e.button === 1; // 中键点击
+                                                        
+                                if (shouldOpenNewTab && href && (href.startsWith('http') || href.startsWith('https'))) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('拦截到新标签页链接:', href);
+                                    
+                                    // 创建一个临时的标记元素来触发事件
+                                    const marker = document.createElement('div');
+                                    marker.style.display = 'none';
+                                    marker.setAttribute('data-new-tab-url', href);
+                                    marker.setAttribute('data-event-type', 'link-click');
+                                    document.body.appendChild(marker);
+                                    
+                                    // 立即移除标记元素
+                                    setTimeout(() => {
+                                        if (marker.parentNode) {
+                                            marker.parentNode.removeChild(marker);
+                                        }
+                                    }, 100);
+                                }
+                            }
+                        }, true);
+
+                        // 拦截鼠标中键点击
+                        document.addEventListener('auxclick', function(e) {
+                            if (e.button === 1) { // 中键
+                                const link = e.target.closest('a');
+                                if (link) {
+                                    const href = link.href || link.getAttribute('href');
+                                    if (href && (href.startsWith('http') || href.startsWith('https'))) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        console.log('拦截到中键点击链接:', href);
+                                        
+                                        const marker = document.createElement('div');
+                                        marker.style.display = 'none';
+                                        marker.setAttribute('data-new-tab-url', href);
+                                        marker.setAttribute('data-event-type', 'middle-click');
+                                        document.body.appendChild(marker);
+                                        
+                                        setTimeout(() => {
+                                            if (marker.parentNode) {
+                                                marker.parentNode.removeChild(marker);
+                                            }
+                                        }, 100);
+                                    }
+                                }
+                            }
+                        }, true);
+
+                        // 拦截window.open调用
+                        const originalOpen = window.open;
+                        window.open = function(url, target, features) {
+                            if (url && (url.startsWith('http') || url.startsWith('https'))) {
+                                console.log('拦截到window.open调用:', url);
+                                
+                                const marker = document.createElement('div');
+                                marker.style.display = 'none';
+                                marker.setAttribute('data-new-tab-url', url);
+                                marker.setAttribute('data-event-type', 'window-open');
+                                document.body.appendChild(marker);
+                                
+                                setTimeout(() => {
+                                    if (marker.parentNode) {
+                                        marker.parentNode.removeChild(marker);
+                                    }
+                                }, 100);
+                                
+                                return null; // 阻止原始的window.open
+                            }
+                            return originalOpen.call(this, url, target, features);
+                        };
+                    })();
+                `).catch(error => {
+                    console.error('注入链接拦截脚本失败:', error);
+                });
+            });
+
+            // 定期检查webview中的新标签页请求标记
+            const checkForNewTabRequests = () => {
+                webview.executeJavaScript(`
+                    (() => {
+                        const markers = document.querySelectorAll('[data-new-tab-url]');
+                        const urls = [];
+                        markers.forEach(marker => {
+                            urls.push(marker.getAttribute('data-new-tab-url'));
+                            marker.remove();
+                        });
+                        return urls;
+                    })();
+                `).then(urls => {
+                    urls.forEach(url => {
+                        if (url) {
+                            console.log('检测到新标签页请求:', url);
+                            tabsManager.createNewTab(url);
+                        }
+                    });
+                }).catch(error => {
+                    // 忽略执行错误，可能是页面还没准备好
+                });
+            };
+
+            // 每100ms检查一次新标签页请求
+            const newTabCheckInterval = setInterval(checkForNewTabRequests, 100);
+            
+            // 当webview销毁时清理定时器
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    mutation.removedNodes.forEach((node) => {
+                        if (node === webview) {
+                            clearInterval(newTabCheckInterval);
+                            observer.disconnect();
+                        }
+                    });
+                });
+            });
+            observer.observe(document.getElementById('webview-container'), { childList: true });
+
+            // 监听console消息来调试
+            webview.addEventListener('console-message', (e) => {
+                if (e.message.includes('拦截到') || e.message.includes('链接拦截脚本')) {
+                    console.log('Webview console:', e.message);
+                }
             });
 
 

@@ -1,7 +1,7 @@
 const { app, BrowserWindow, session, ipcMain, screen, shell } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
-const Store = require('electron-store');
+const { default: Store } = require('electron-store');
 const fs = require('fs');
 
 const store = new Store();

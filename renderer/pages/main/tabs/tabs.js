@@ -130,6 +130,10 @@ class TabsManager {
         webviewEl.setAttribute('preload', preloadPath);
         // 设置partition让webview使用主窗口的session，这样下载事件可以被正确监听
         webviewEl.setAttribute('partition', 'persist:main');
+        // 启用新窗口打开功能
+        webviewEl.setAttribute('allowpopups', 'true');
+        // 启用新窗口事件
+        webviewEl.setAttribute('webpreferences', 'nativeWindowOpen=no');
         
         // 确定最终要加载的URL
         let finalUrl;
