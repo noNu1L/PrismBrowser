@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>页面标题</title>
+    <link rel="stylesheet" href="../vendor/element-plus.css">
+    <script src="../vendor/vue.global.js"></script>
+    <script src="../vendor/element-plus.full.js"></script>
+    <script src="../vendor/element-plus-icons.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #app {
+            height: 100vh;
+            display: flex;
+            background: #f5f7fa;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid #e4e7ed;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .sidebar-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+
+        .sidebar-subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        .search-container {
+            padding: 20px;
+            border-bottom: 1px solid #e4e7ed;
+        }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            background: #f5f7fa;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-header {
+            padding: 24px 32px 16px;
+            background: white;
+            border-bottom: 1px solid #e4e7ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #303133;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .content-container {
+            flex: 1;
+            padding: 16px 32px 32px;
+            overflow-y: auto;
+        }
+
+        .card-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f0f2f5;
+            background: #fafbfc;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #303133;
+            margin: 0 0 4px 0;
+        }
+
+        .section-description {
+            font-size: 14px;
+            color: #909399;
+            margin: 0;
+        }
+
+        .section-content {
+            padding: 24px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #909399;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .el-menu {
+            border-right: none;
+        }
+
+        .el-menu-item {
+            height: 48px;
+            line-height: 48px;
+            margin: 4px 12px;
+            border-radius: 8px;
+        }
+
+        .el-menu-item.is-active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .el-menu-item:hover {
+            background: #f5f7fa;
+        }
+
+        .el-menu-item.is-active:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .custom-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+        }
+
+        .custom-button:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">页面标题</h1>
+                <p class="sidebar-subtitle">页面描述</p>
+            </div>
+            
+            <div class="search-container" v-if="showSearch">
+                <el-input
+                    v-model="searchQuery"
+                    placeholder="搜索..."
+                    :prefix-icon="Search"
+                    clearable
+                    @input="handleSearch"
+                />
+            </div>
+
+            <el-menu 
+                v-if="showMenu"
+                :default-active="activeSection"
+                @select="handleSectionChange"
+                mode="vertical"
+            >
+                <el-menu-item index="section1">
+                    <el-icon><Document /></el-icon>
+                    <span>菜单项1</span>
+                </el-menu-item>
+                <el-menu-item index="section2">
+                    <el-icon><Setting /></el-icon>
+                    <span>菜单项2</span>
+                </el-menu-item>
+            </el-menu>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="main-content">
+            <div class="content-header">
+                <h1 class="page-title">{{ currentSectionTitle }}</h1>
+                <div class="header-actions">
+                    <el-button 
+                        type="primary" 
+                        class="custom-button"
+                        @click="handleAction"
+                    >
+                        主要操作
+                    </el-button>
+                </div>
+            </div>
+
+            <div class="content-container">
+                <!-- 空状态 -->
+                <div v-if="!loading && data.length === 0" class="empty-state">
+                    <div class="empty-icon">📄</div>
+                    <p class="empty-text">暂无数据</p>
+                </div>
+
+                <!-- 加载状态 -->
+                <div v-if="loading" style="text-align: center; padding: 80px;">
+                    <el-icon class="is-loading" size="32">
+                        <Loading />
+                    </el-icon>
+                    <p style="margin-top: 16px; color: #909399;">加载中...</p>
+                </div>
+
+                <!-- 内容区域 -->
+                <div v-if="!loading && data.length > 0">
+                    <div class="card-container">
+                        <div class="section-header">
+                            <h2 class="section-title">内容标题</h2>
+                            <p class="section-description">内容描述</p>
+                        </div>
+                        <div class="section-content">
+                            <!-- 具体内容 -->
+                            <p>页面内容在这里展示</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+        const { Search, Document, Setting, Loading } = ElementPlusIconsVue;
+
+        createApp({
+            data() {
+                return {
+                    loading: true,
+                    searchQuery: '',
+                    activeSection: 'section1',
+                    data: [],
+                    showSearch: true,    // 是否显示搜索框
+                    showMenu: true,      // 是否显示菜单
+                };
+            },
+            computed: {
+                currentSectionTitle() {
+                    const titles = {
+                        section1: '菜单项1',
+                        section2: '菜单项2'
+                    };
+                    return titles[this.activeSection] || '页面标题';
+                }
+            },
+            async mounted() {
+                await this.loadData();
+            },
+            methods: {
+                async loadData() {
+                    this.loading = true;
+                    try {
+                        // 通过 window.api 加载数据
+                        this.data = await window.api.getData() || [];
+                    } catch (error) {
+                        console.error('加载数据失败:', error);
+                        ElMessage.error('加载数据失败');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                handleSectionChange(section) {
+                    this.activeSection = section;
+                },
+                handleSearch() {
+                    // 处理搜索逻辑
+                },
+                handleAction() {
+                    // 处理主要操作
+                    ElMessage.success('操作成功');
+                }
+            }
+        }).use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html> 
