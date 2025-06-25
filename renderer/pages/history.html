@@ -3,455 +3,592 @@
 <head>
     <meta charset="UTF-8">
     <title>历史记录</title>
-    <link rel="stylesheet" href="../styles/theme.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
     <style>
-        :root {
-            --sidebar-width: 240px;
-            --header-height: 60px;
-        }
-
         body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
-            display: flex;
-            background-color: var(--app-bg-color-light);
-            color: var(--text-color-primary);
-        }
-
-        /* --- 主布局 --- */
-        #sidebar {
-            width: var(--sidebar-width);
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            padding: 20px 12px;
-            box-sizing: border-box;
-            background-color: var(--app-bg-color);
-            border-right: 1px solid var(--card-border);
-        }
-        #main-content {
-            flex-grow: 1;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* --- 侧边栏 --- */
-        #sidebar h1 {
-            font-size: 22px;
-            font-weight: 600;
-            margin: 0 0 30px 12px;
-        }
-        #search-box {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        #search-input {
-            width: 100%;
-            height: 38px;
-            padding-left: 38px;
-            box-sizing: border-box;
-            border-radius: 6px;
-            border: 1px solid var(--input-border);
-            background-color: var(--input-bg);
-            font-size: 14px;
-        }
-        #search-icon {
-            position: absolute;
-            left: 12px;
-            top: 11px;
-            width: 16px;
-            height: 16px;
-            stroke: var(--text-color-secondary);
-        }
-        #nav-list .nav-item {
-            display: flex; align-items: center; padding: 10px 12px; border-radius: 6px;
-            cursor: pointer; font-size: 15px; font-weight: 500;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-        #nav-list .nav-item:hover { background-color: var(--button-hover-bg); }
-        #nav-list .nav-item.active { 
-            background-color: var(--button-primary-bg); 
-            color: white; 
-        }
-        #nav-list .nav-item svg { 
-            width: 20px; height: 20px; margin-right: 14px; 
-            stroke: var(--text-color-secondary);
-            transition: stroke 0.2s ease;
-        }
-        #nav-list .nav-item.active svg { stroke: white; }
-
-        /* --- 主内容区 --- */
-        #content-header {
-            height: var(--header-height);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 32px;
-            flex-shrink: 0;
-            border-bottom: 1px solid var(--card-border);
-            background-color: var(--app-bg-color-light);
-        }
-        #content-header h2 {
             margin: 0;
-            font-size: 20px;
-            font-weight: 600;
-        }
-        #header-actions {
-            display: flex;
-            align-items: center;
-        }
-        #header-actions button {
-            display: flex; align-items: center; gap: 6px;
-            margin-left: 12px; padding: 8px 16px; font-size: 14px;
-            border-radius: 6px; border: 1px solid var(--input-border);
-            cursor: pointer; font-weight: 500;
-        }
-        #header-actions button svg {
-            width: 16px; height: 16px;
-            stroke: var(--text-color-secondary);
-        }
-        #header-actions button:disabled {
-            opacity: 0.5; cursor: not-allowed;
-        }
-        
-        #history-container {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 16px 32px;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        /* --- 历史记录列表 --- */
-        .date-group {
-            margin-bottom: 24px;
+        #app {
+            height: 100vh;
+            display: flex;
+            background: #f5f7fa;
         }
-        .date-group-header {
-            display: flex; align-items: center; justify-content: space-between;
-            font-size: 14px; font-weight: 600;
-            margin-bottom: 12px; padding: 0 8px;
+
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
         }
-        .history-item {
-            display: flex; align-items: center;
-            padding: 12px 16px;
-            border-radius: 8px;
-            background-color: var(--card-bg);
-            border: 1px solid transparent;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            margin-bottom: 8px;
-            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid #e4e7ed;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
-        .history-item:hover {
-            border-color: #ccc;
-            background-color: var(--item-hover-bg);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+
+        .sidebar-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
         }
-        .history-item.selected {
-            background-color: var(--item-selected-bg);
-            border-color: var(--item-selected-border);
+
+        .sidebar-subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+            margin: 0;
         }
-        /* 提高选择器优先级以覆盖 theme.css 中的全局设置 */
-        .history-item .history-item-checkbox, 
-        .date-group-header .group-checkbox {
-            margin-right: 20px;
+
+        .search-container {
+            padding: 20px;
+            border-bottom: 1px solid #e4e7ed;
         }
-        .history-item-favicon {
-            width: 16px; height: 16px;
-            margin-right: 16px;
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            background: #f5f7fa;
+            display: flex;
+            flex-direction: column;
         }
-        .history-item-main {
-            display: flex; align-items: baseline;
-            flex-grow: 1;
+
+        .content-header {
+            padding: 24px 32px 16px;
+            background: white;
+            border-bottom: 1px solid #e4e7ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #303133;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
             gap: 12px;
         }
-        .history-item-title {
-            font-size: 14px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            cursor: pointer; flex-shrink: 1;
+
+        .content-container {
+            flex: 1;
+            padding: 16px 32px 32px;
+            overflow-y: auto;
         }
-        .history-item-title:hover { text-decoration: underline; }
-        .history-item-url {
-            color: var(--text-color-secondary);
-            font-size: 13px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            flex-shrink: 10; /* Give less priority to shrink */
+
+        .date-group {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            margin-bottom: 16px;
+            overflow: hidden;
         }
-        .history-item-time {
-            width: 60px; text-align: right;
-            font-size: 13px; color: var(--text-color-secondary);
+
+        .date-header {
+            padding: 16px 20px;
+            background: #fafbfc;
+            border-bottom: 1px solid #f0f2f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .date-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #303133;
+            margin: 0;
+        }
+
+        .history-list {
+            padding: 8px 0;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0f2f5;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-item:hover {
+            background: #f5f7fa;
+        }
+
+        .history-item.selected {
+            background: #ecf5ff;
+            border-color: #b3d8ff;
+        }
+
+        .history-favicon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            border-radius: 4px;
             flex-shrink: 0;
-            margin-left: auto;
-            padding-left: 16px;
         }
-        .history-item-delete {
-            width: 24px; height: 24px;
-            border: none; background: transparent; opacity: 0;
-            padding: 0; font-size: 18px;
-            cursor: pointer; margin-left: 12px;
-            transition: opacity 0.2s ease;
+
+        .history-content {
+            flex: 1;
+            min-width: 0;
+            margin-right: 12px;
         }
-        .history-item:hover .history-item-delete {
+
+        .history-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #303133;
+            margin: 0 0 4px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-url {
+            font-size: 12px;
+            color: #909399;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: #909399;
+            flex-shrink: 0;
+            margin-right: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #909399;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
             opacity: 0.5;
         }
-        .history-item-delete:hover { opacity: 1; }
-        .no-results {
-            text-align: center; margin-top: 50px;
-            color: var(--text-color-secondary);
+
+        .empty-text {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .el-menu {
+            border-right: none;
+        }
+
+        .el-menu-item {
+            height: 48px;
+            line-height: 48px;
+            margin: 4px 12px;
+            border-radius: 8px;
+        }
+
+        .el-menu-item.is-active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .el-menu-item:hover {
+            background: #f5f7fa;
+        }
+
+        .el-menu-item.is-active:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .custom-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+        }
+
+        .custom-button:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+
+        .el-checkbox {
+            margin-right: 8px;
         }
     </style>
 </head>
 <body>
-    <aside id="sidebar">
-        <h1>历史记录</h1>
-        <div id="search-box">
-            <svg id="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="search-input" placeholder="搜索历史记录">
-        </div>
-        <nav id="nav-list">
-            <div class="nav-item active" data-view="all">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                <span>全部</span>
+    <div id="app">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">历史记录</h1>
+                <p class="sidebar-subtitle">浏览历史和最近关闭的标签页</p>
             </div>
-            <div class="nav-item" data-view="recent">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9h-8a1 1 0 0 0-1 1z"></path><path d="M14 9L9 4H4a2 2 0 0 0-2 2v4a1 1 0 0 0 1 1h9z"></path></svg>
-                <span>最近关闭</span>
+            
+            <div class="search-container">
+                <el-input
+                    v-model="searchQuery"
+                    placeholder="搜索历史记录..."
+                    :prefix-icon="Search"
+                    clearable
+                    @input="handleSearch"
+                />
             </div>
-        </nav>
-    </aside>
 
-    <main id="main-content">
-        <header id="content-header">
-            <h2 id="content-title">全部</h2>
-            <div id="header-actions">
-                 <button id="delete-selected-btn" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    <span>删除</span>
-                 </button>
-                 <button id="clear-all-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                    <span>清除浏览数据</span>
-                </button>
-            </div>
-        </header>
-        <div id="history-container">
-            <!-- Items will be injected here -->
+            <el-menu 
+                :default-active="activeView"
+                @select="handleViewChange"
+                mode="vertical"
+            >
+                <el-menu-item index="all">
+                    <el-icon><Grid /></el-icon>
+                    <span>全部</span>
+                </el-menu-item>
+                <el-menu-item index="recent">
+                    <el-icon><Clock /></el-icon>
+                    <span>最近关闭</span>
+                </el-menu-item>
+            </el-menu>
         </div>
-    </main>
+
+        <!-- 主内容 -->
+        <div class="main-content">
+            <div class="content-header">
+                <h1 class="page-title">{{ currentViewTitle }}</h1>
+                <div class="header-actions">
+                    <el-button 
+                        v-if="selectedItems.length > 0"
+                        type="danger"
+                        :icon="Delete"
+                        @click="deleteSelected"
+                    >
+                        删除选中 ({{ selectedItems.length }})
+                    </el-button>
+                    <el-popconfirm
+                        title="确定要清除所有历史记录吗？"
+                        @confirm="clearAllHistory"
+                    >
+                        <template #reference>
+                            <el-button 
+                                type="danger" 
+                                :icon="DeleteFilled"
+                                plain
+                            >
+                                清除浏览数据
+                            </el-button>
+                        </template>
+                    </el-popconfirm>
+                </div>
+            </div>
+
+            <div class="content-container">
+                <!-- 空状态 -->
+                <div v-if="!loading && filteredGroups.length === 0" class="empty-state">
+                    <div class="empty-icon">📱</div>
+                    <p class="empty-text">{{ emptyStateText }}</p>
+                </div>
+
+                <!-- 加载状态 -->
+                <div v-if="loading" style="text-align: center; padding: 80px;">
+                    <el-icon class="is-loading" size="32">
+                        <Loading />
+                    </el-icon>
+                    <p style="margin-top: 16px; color: #909399;">加载中...</p>
+                </div>
+
+                <!-- 历史记录列表 -->
+                <div v-for="group in filteredGroups" :key="group.date" class="date-group">
+                    <div class="date-header">
+                        <h3 class="date-title">{{ group.dateLabel }}</h3>
+                        <el-checkbox
+                            :model-value="isGroupSelected(group)"
+                            :indeterminate="isGroupIndeterminate(group)"
+                            @change="toggleGroupSelection(group, $event)"
+                        >
+                            全选
+                        </el-checkbox>
+                    </div>
+                    <div class="history-list">
+                        <div 
+                            v-for="item in group.items" 
+                            :key="item.url"
+                            class="history-item"
+                            :class="{ selected: selectedItems.includes(item.url) }"
+                            @click="openHistoryItem(item)"
+                        >
+                            <el-checkbox
+                                :model-value="selectedItems.includes(item.url)"
+                                @change="toggleItemSelection(item.url, $event)"
+                                @click.stop
+                            />
+                            <img 
+                                v-if="item.favicon"
+                                :src="item.favicon"
+                                class="history-favicon"
+                                @error="$event.target.style.display='none'"
+                            />
+                            <el-icon v-else class="history-favicon" color="#909399">
+                                <Globe />
+                            </el-icon>
+                            <div class="history-content">
+                                <h4 class="history-title">{{ item.title || item.url }}</h4>
+                                <p class="history-url">{{ getHostname(item.url) }}</p>
+                            </div>
+                            <span class="history-time">{{ formatTime(item.timestamp) }}</span>
+                            <el-button
+                                type="danger"
+                                :icon="Delete"
+                                size="small"
+                                text
+                                @click.stop="deleteItem(item.url)"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        const globeIcon = `<svg class="history-item-favicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
-        
-        // --- DOM Elements ---
-        const searchInput = document.getElementById('search-input');
-        const navItems = document.querySelectorAll('.nav-item');
-        const contentTitle = document.getElementById('content-title');
-        const historyContainer = document.getElementById('history-container');
-        const deleteSelectedBtn = document.getElementById('delete-selected-btn');
-        const clearAllBtn = document.getElementById('clear-all-btn');
+        const { createApp } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+        const { Search, Grid, Clock, Delete, DeleteFilled, Loading, Globe } = ElementPlusIconsVue;
 
-        // --- App State ---
-        let state = {
-            currentView: 'all', // 'all' or 'recent'
-            searchQuery: '',
-            historyData: [],
-            recentlyClosedData: [],
-            selectedUrls: new Set()
-        };
-
-        // --- Helper Functions ---
-        const getHostname = (url) => {
-            try { return new URL(url).hostname; } catch (e) { return url; }
-        };
-
-        const formatDateGroup = (dateStr) => {
-            const date = new Date(dateStr);
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-
-            if (date.toDateString() === today.toDateString()) return '今天';
-            if (date.toDateString() === yesterday.toDateString()) return '昨天';
-            
-            return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
-        };
-
-        // --- Rendering ---
-        function render() {
-            const data = state.currentView === 'all' ? state.historyData : state.recentlyClosedData;
-
-            // Filter data
-            const filteredData = data.filter(item =>
-                (item.title && item.title.toLowerCase().includes(state.searchQuery)) ||
-                (item.url && item.url.toLowerCase().includes(state.searchQuery))
-            );
-
-            historyContainer.innerHTML = '';
-            
-            if (filteredData.length === 0) {
-                 historyContainer.innerHTML = `<div class="no-results">找不到匹配的历史记录。</div>`;
-                 return;
-            }
-
-            // Group by date
-            const groupedData = filteredData.reduce((acc, item) => {
-                const dateKey = item.timestamp.split('T')[0];
-                if (!acc[dateKey]) acc[dateKey] = [];
-                acc[dateKey].push(item);
-                return acc;
-            }, {});
-
-            const sortedGroups = Object.keys(groupedData).sort().reverse();
-            
-            for (const dateKey of sortedGroups) {
-                const groupEl = document.createElement('div');
-                groupEl.className = 'date-group';
-                
-                const isAllSelected = groupedData[dateKey].every(item => state.selectedUrls.has(item.url));
-
-                groupEl.innerHTML = `
-                    <div class="date-group-header">
-                        <span>${formatDateGroup(dateKey)}</span>
-                        <input type="checkbox" class="group-checkbox" data-date-key="${dateKey}" ${isAllSelected ? 'checked' : ''}>
-                    </div>
-                `;
-                
-                groupedData[dateKey].forEach(item => {
-                    const itemEl = document.createElement('div');
-                    itemEl.className = 'history-item';
-                    const isChecked = state.selectedUrls.has(item.url);
-                    if (isChecked) {
-                        itemEl.classList.add('selected');
+        createApp({
+            data() {
+                return {
+                    activeView: 'all',
+                    searchQuery: '',
+                    loading: true,
+                    historyData: [],
+                    recentlyClosedData: [],
+                    selectedItems: []
+                };
+            },
+            computed: {
+                currentViewTitle() {
+                    return this.activeView === 'all' ? '全部' : '最近关闭';
+                },
+                emptyStateText() {
+                    if (this.searchQuery) {
+                        return '未找到匹配的历史记录';
                     }
-
-                    itemEl.innerHTML = `
-                        <input type="checkbox" class="history-item-checkbox" data-url="${item.url}" ${isChecked ? 'checked' : ''}>
-                        ${item.favicon ? `<img src="${item.favicon}" class="history-item-favicon">` : globeIcon}
-                        <div class="history-item-main">
-                           <span class="history-item-title" title="${item.title}">${item.title}</span>
-                           <span class="history-item-url" title="${item.url}">${getHostname(item.url)}</span>
-                        </div>
-                        <span class="history-item-time">${new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
-                        <button class="history-item-delete" data-url="${item.url}">&times;</button>
-                    `;
-                    groupEl.appendChild(itemEl);
-                });
-                historyContainer.appendChild(groupEl);
-            }
-            
-            updateHeaderActions();
-            attachEventListeners();
-        }
-
-        function updateHeaderActions() {
-            deleteSelectedBtn.disabled = state.selectedUrls.size === 0;
-            const data = state.currentView === 'all' ? state.historyData : state.recentlyClosedData;
-            clearAllBtn.disabled = data.length === 0;
-        }
-
-        // --- Event Listeners ---
-        function attachEventListeners() {
-            document.querySelectorAll('.history-item-checkbox').forEach(el => {
-                el.addEventListener('change', (e) => {
-                    const url = e.target.dataset.url;
-                    const itemEl = e.target.closest('.history-item');
-                    if (e.target.checked) {
-                        state.selectedUrls.add(url);
-                        itemEl.classList.add('selected');
-                    } else {
-                        state.selectedUrls.delete(url);
-                        itemEl.classList.remove('selected');
+                    return this.activeView === 'all' ? '暂无浏览历史' : '暂无最近关闭的标签页';
+                },
+                currentData() {
+                    return this.activeView === 'all' ? this.historyData : this.recentlyClosedData;
+                },
+                filteredData() {
+                    if (!this.searchQuery) {
+                        return this.currentData;
                     }
-                    render(); // Re-render to update group checkbox state
-                });
-            });
-            document.querySelectorAll('.group-checkbox').forEach(el => {
-                el.addEventListener('change', (e) => {
-                    const dateKey = e.target.dataset.dateKey;
-                    const data = state.currentView === 'all' ? state.historyData : state.recentlyClosedData;
-                    const urlsInGroup = data
-                        .filter(item => item.timestamp.startsWith(dateKey))
-                        .map(item => item.url);
+                    const query = this.searchQuery.toLowerCase();
+                    return this.currentData.filter(item =>
+                        (item.title && item.title.toLowerCase().includes(query)) ||
+                        (item.url && item.url.toLowerCase().includes(query))
+                    );
+                },
+                filteredGroups() {
+                    // 按日期分组
+                    const groups = {};
+                    this.filteredData.forEach(item => {
+                        const date = item.timestamp.split('T')[0];
+                        if (!groups[date]) {
+                            groups[date] = [];
+                        }
+                        groups[date].push(item);
+                    });
+
+                    // 转换为数组并排序
+                    return Object.keys(groups)
+                        .sort((a, b) => new Date(b) - new Date(a))
+                        .map(date => ({
+                            date,
+                            dateLabel: this.formatDateGroup(date),
+                            items: groups[date].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                        }));
+                }
+            },
+            async mounted() {
+                await this.loadData();
+                
+                // 监听历史记录更新
+                if (window.api?.onHistoryUpdated) {
+                    window.api.onHistoryUpdated(() => {
+                        this.loadData();
+                    });
+                }
+            },
+            methods: {
+                async loadData() {
+                    this.loading = true;
+                    try {
+                        this.historyData = await window.api.getHistory() || [];
+                        this.recentlyClosedData = await window.api.getRecentlyClosed() || [];
+                        this.selectedItems = [];
+                    } catch (error) {
+                        console.error('加载数据失败:', error);
+                        ElMessage.error('加载数据失败');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                handleViewChange(view) {
+                    this.activeView = view;
+                    this.selectedItems = [];
+                    this.searchQuery = '';
+                },
+                handleSearch() {
+                    this.selectedItems = [];
+                },
+                openHistoryItem(item) {
+                    window.api.openInNewTab(item.url);
+                },
+                getHostname(url) {
+                    try {
+                        return new URL(url).hostname;
+                    } catch {
+                        return url;
+                    }
+                },
+                formatTime(timestamp) {
+                    return new Date(timestamp).toLocaleTimeString('zh-CN', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                },
+                formatDateGroup(dateStr) {
+                    const date = new Date(dateStr);
+                    const today = new Date();
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+
+                    if (date.toDateString() === today.toDateString()) return '今天';
+                    if (date.toDateString() === yesterday.toDateString()) return '昨天';
                     
-                    if (e.target.checked) {
-                        urlsInGroup.forEach(url => state.selectedUrls.add(url));
+                    return date.toLocaleDateString('zh-CN', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                },
+                toggleItemSelection(url, checked) {
+                    if (checked) {
+                        if (!this.selectedItems.includes(url)) {
+                            this.selectedItems.push(url);
+                        }
                     } else {
-                        urlsInGroup.forEach(url => state.selectedUrls.delete(url));
+                        const index = this.selectedItems.indexOf(url);
+                        if (index > -1) {
+                            this.selectedItems.splice(index, 1);
+                        }
                     }
-                    render();
-                });
-            });
-
-            document.querySelectorAll('.history-item-title').forEach(el => {
-                el.addEventListener('click', (e) => {
-                    const itemEl = e.target.closest('.history-item');
-                    const checkbox = itemEl.querySelector('.history-item-checkbox');
-                    window.api.openInNewTab(checkbox.dataset.url);
-                });
-            });
-
-            document.querySelectorAll('.history-item-delete').forEach(el => {
-                el.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const urlToDelete = e.target.dataset.url;
-                    await window.api.deleteHistoryItems([urlToDelete]);
-                    fetchData();
-                });
-            });
-        }
-
-        searchInput.addEventListener('input', (e) => {
-            state.searchQuery = e.target.value.toLowerCase();
-            render();
-        });
-
-        navItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                const view = e.currentTarget.dataset.view;
-                if (state.currentView === view) return;
-
-                state.currentView = view;
-                state.selectedUrls.clear(); // Clear selection when switching views
-
-                navItems.forEach(i => i.classList.remove('active'));
-                e.currentTarget.classList.add('active');
-                contentTitle.textContent = e.currentTarget.querySelector('span').textContent;
-
-                fetchData();
-            });
-        });
-
-        deleteSelectedBtn.addEventListener('click', async () => {
-            if (state.selectedUrls.size === 0) return;
-            await window.api.deleteHistoryItems([...state.selectedUrls]);
-            state.selectedUrls.clear();
-            fetchData();
-        });
-
-        clearAllBtn.addEventListener('click', async () => {
-            if (confirm(`确定要清除所有"${contentTitle.textContent}"记录吗？此操作无法撤销。`)) {
-                if(state.currentView === 'all') {
-                    await window.api.clearHistory();
-                } 
-                // Note: No "clear all" for recently closed in this design
-                fetchData();
+                },
+                isGroupSelected(group) {
+                    const groupUrls = group.items.map(item => item.url);
+                    return groupUrls.length > 0 && groupUrls.every(url => this.selectedItems.includes(url));
+                },
+                isGroupIndeterminate(group) {
+                    const groupUrls = group.items.map(item => item.url);
+                    const selectedInGroup = groupUrls.filter(url => this.selectedItems.includes(url));
+                    return selectedInGroup.length > 0 && selectedInGroup.length < groupUrls.length;
+                },
+                toggleGroupSelection(group, checked) {
+                    const groupUrls = group.items.map(item => item.url);
+                    if (checked) {
+                        groupUrls.forEach(url => {
+                            if (!this.selectedItems.includes(url)) {
+                                this.selectedItems.push(url);
+                            }
+                        });
+                    } else {
+                        groupUrls.forEach(url => {
+                            const index = this.selectedItems.indexOf(url);
+                            if (index > -1) {
+                                this.selectedItems.splice(index, 1);
+                            }
+                        });
+                    }
+                },
+                async deleteItem(url) {
+                    try {
+                        await window.api.deleteHistoryItems([url]);
+                        ElMessage.success('删除成功');
+                        await this.loadData();
+                    } catch (error) {
+                        console.error('删除失败:', error);
+                        ElMessage.error('删除失败');
+                    }
+                },
+                async deleteSelected() {
+                    if (this.selectedItems.length === 0) return;
+                    
+                    try {
+                        await ElMessageBox.confirm(
+                            `确定要删除选中的 ${this.selectedItems.length} 项记录吗？`,
+                            '确认删除',
+                            {
+                                confirmButtonText: '确定',
+                                cancelButtonText: '取消',
+                                type: 'warning'
+                            }
+                        );
+                        
+                        await window.api.deleteHistoryItems(this.selectedItems);
+                        ElMessage.success('删除成功');
+                        await this.loadData();
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('删除失败:', error);
+                            ElMessage.error('删除失败');
+                        }
+                    }
+                },
+                async clearAllHistory() {
+                    try {
+                        if (this.activeView === 'all') {
+                            await window.api.clearHistory();
+                        }
+                        ElMessage.success('清除成功');
+                        await this.loadData();
+                    } catch (error) {
+                        console.error('清除失败:', error);
+                        ElMessage.error('清除失败');
+                    }
+                }
+            },
+            components: {
+                Search,
+                Grid, 
+                Clock,
+                Delete,
+                DeleteFilled,
+                Loading,
+                Globe
             }
-        });
-
-        // --- Data Fetching ---
-        async function fetchData() {
-            state.historyData = await window.api.getHistory();
-            state.recentlyClosedData = await window.api.getRecentlyClosed();
-            state.historyData.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-            state.recentlyClosedData.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-            render();
-        }
-
-        // --- Initialization ---
-        window.addEventListener('DOMContentLoaded', () => {
-            fetchData();
-            if (window.api?.onHistoryUpdated) {
-                window.api.onHistoryUpdated(fetchData);
-            }
-        });
-
+        }).use(ElementPlus).mount('#app');
     </script>
 </body>
 </html> 

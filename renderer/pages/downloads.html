@@ -3,269 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <title>下载管理</title>
-    <link rel="stylesheet" href="../styles/theme.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
     <style>
         body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
-            display: flex;
-            background-color: var(--app-bg-color-light);
-            color: var(--text-color-primary);
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        #sidebar {
-            width: 240px;
-            height: 100%;
+        #app {
+            height: 100vh;
             display: flex;
-            flex-direction: column;
-            padding: 20px 12px;
-            box-sizing: border-box;
-            background-color: var(--app-bg-color);
-            border-right: 1px solid var(--card-border);
-        }
-        #main-content {
-            flex-grow: 1;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
+            background: #f5f7fa;
         }
 
-        #sidebar h1 {
-            font-size: 22px;
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid #e4e7ed;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .sidebar-title {
+            font-size: 24px;
             font-weight: 600;
-            margin: 0 0 30px 12px;
+            margin: 0 0 8px 0;
         }
 
-        .nav-item {
-            display: flex; align-items: center; padding: 10px 12px; border-radius: 6px;
-            cursor: pointer; font-size: 15px; font-weight: 500;
-            transition: background-color 0.2s ease, color 0.2s ease;
+        .sidebar-subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+            margin: 0;
         }
-        .nav-item:hover { background-color: var(--button-hover-bg); }
-        .nav-item.active { 
-            background-color: var(--button-primary-bg); 
-            color: white; 
-        }
-        .nav-item svg { 
-            width: 20px; height: 20px; margin-right: 14px; 
-            stroke: var(--text-color-secondary);
-        }
-        .nav-item.active svg { stroke: white; }
 
-        #content-header {
-            height: 60px;
+        .search-container {
+            padding: 20px;
+            border-bottom: 1px solid #e4e7ed;
+        }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            background: #f5f7fa;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-header {
+            padding: 24px 32px 16px;
+            background: white;
+            border-bottom: 1px solid #e4e7ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #303133;
+            margin: 0;
+        }
+
+        .content-container {
+            flex: 1;
+            padding: 16px 32px 32px;
+            overflow-y: auto;
+        }
+
+        .download-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            margin-bottom: 16px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .download-header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 0 32px;
-            border-bottom: 1px solid var(--card-border);
-        }
-        #content-header h2 {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 600;
+            margin-bottom: 12px;
         }
 
-        #downloads-container {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 16px 32px;
-        }
-
-        .download-item {
-            display: flex; align-items: center;
-            padding: 16px;
+        .file-icon {
+            width: 32px;
+            height: 32px;
             border-radius: 8px;
-            background-color: var(--card-bg);
-            margin-bottom: 8px;
-        }
-        .download-item {
-            display: flex; align-items: center;
-            padding: 16px;
-            border-radius: 8px;
-            background-color: var(--card-bg);
-            border: 1px solid transparent;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            margin-bottom: 8px;
-            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .download-item:hover {
-            border-color: #ccc;
-            background-color: var(--item-hover-bg);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-        }
-        .download-item-icon {
-            width: 32px; height: 32px;
-            margin-right: 16px;
-            background-color: var(--button-primary-bg);
-            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-right: 16px;
+            font-size: 16px;
+            flex-shrink: 0;
         }
-        .download-item-icon svg {
-            width: 16px; height: 16px;
-            stroke: white;
+
+        .file-icon.pdf { background: #ffebee; }
+        .file-icon.default { background: #f5f5f5; }
+
+        .download-info {
+            flex: 1;
+            min-width: 0;
         }
-        .download-item-main {
-            display: flex; 
-            flex-direction: column;
-            flex-grow: 1;
-            gap: 4px;
+
+        .download-filename {
+            font-size: 16px;
+            font-weight: 600;
+            color: #303133;
+            margin: 0 0 4px 0;
         }
-        .download-item-filename {
+
+        .download-source {
             font-size: 14px;
-            font-weight: 500;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            color: #909399;
+            margin: 0;
         }
-        .download-item-url {
-            color: var(--text-color-secondary);
-            font-size: 12px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+
+        .el-menu {
+            border-right: none;
         }
-        .download-item-status {
-            font-size: 12px;
-            color: var(--text-color-secondary);
-            margin-top: 2px;
+
+        .el-menu-item {
+            height: 48px;
+            line-height: 48px;
+            margin: 4px 12px;
+            border-radius: 8px;
         }
-        .download-item-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-left: 16px;
+
+        .el-menu-item.is-active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
-        .download-item-actions button {
-            width: 24px; height: 24px;
-            border: none; background: transparent;
-            padding: 0; 
-            cursor: pointer; 
-            opacity: 0.6;
-            transition: opacity 0.2s ease;
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #909399;
         }
-        .download-item-actions button:hover {
-            opacity: 1;
-        }
-        .download-item-actions button svg {
-            width: 16px; height: 16px;
-            stroke: var(--text-color-secondary);
-        }
-        .no-results {
-            text-align: center; margin-top: 50px;
-            color: var(--text-color-secondary);
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
         }
     </style>
 </head>
 <body>
-    <aside id="sidebar">
-        <h1>下载管理</h1>
-        <nav>
-            <div class="nav-item active" data-view="all">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                <span>全部下载</span>
+    <div id="app">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">下载管理</h1>
+                <p class="sidebar-subtitle">管理您的下载文件</p>
             </div>
-        </nav>
-    </aside>
+            
+            <div class="search-container">
+                <el-input
+                    v-model="searchQuery"
+                    placeholder="搜索下载文件..."
+                    clearable
+                />
+            </div>
 
-    <main id="main-content">
-        <header id="content-header">
-            <h2>全部下载</h2>
-        </header>
-        <div id="downloads-container">
-            <div class="no-results">暂无下载文件。</div>
+            <el-menu 
+                :default-active="activeView"
+                @select="handleViewChange"
+                mode="vertical"
+            >
+                <el-menu-item index="all">
+                    <span>全部下载</span>
+                </el-menu-item>
+            </el-menu>
         </div>
-    </main>
 
-    <script>
-        console.log('下载管理页面已加载');
-        
-        const downloadIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
-        
-        const downloadsContainer = document.getElementById('downloads-container');
-        
-        // 辅助函数
-        const formatFileSize = (bytes) => {
-            if (!bytes) return '0 B';
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(1024));
-            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-        };
+        <!-- 主内容 -->
+        <div class="main-content">
+            <div class="content-header">
+                <h1 class="page-title">全部下载</h1>
+            </div>
 
-        const getHostname = (url) => {
-            try { return new URL(url).hostname; } catch (e) { return url; }
-        };
+            <div class="content-container">
+                <!-- 空状态 -->
+                <div v-if="!loading && downloads.length === 0" class="empty-state">
+                    <div class="empty-icon">📥</div>
+                    <p>暂无下载文件</p>
+                </div>
 
-        // 渲染下载列表
-        function renderDownloads(downloads) {
-            if (downloads.length === 0) {
-                downloadsContainer.innerHTML = '<div class="no-results">暂无下载文件。</div>';
-                return;
-            }
-
-            const html = downloads.map(item => `
-                <div class="download-item">
-                    <div class="download-item-icon">
-                        ${downloadIcon}
-                    </div>
-                    <div class="download-item-main">
-                        <div class="download-item-filename">${item.filename}</div>
-                        <div class="download-item-url">${getHostname(item.url)}</div>
-                        <div class="download-item-status">
-                            ${item.status === 'completed' ? 
-                              `${formatFileSize(item.totalBytes)} - 已完成` : 
-                              item.status === 'downloading' ? '正在下载...' :
-                              item.status === 'error' ? '下载失败' : '未知状态'}
+                <!-- 下载列表 -->
+                <div v-for="download in downloads" :key="download.id" class="download-card">
+                    <div class="download-header">
+                        <div class="file-icon default">📁</div>
+                        <div class="download-info">
+                            <h4 class="download-filename">{{ download.filename }}</h4>
+                            <p class="download-source">{{ getHostname(download.url) }}</p>
                         </div>
                     </div>
-                    <div class="download-item-actions">
-                        ${item.status === 'completed' ? `
-                            <button title="打开文件" onclick="openDownloadFile('${item.id}')">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                            </button>
-                        ` : ''}
-                        <button title="删除" onclick="deleteDownload('${item.id}')">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                    </div>
                 </div>
-            `).join('');
-            
-            downloadsContainer.innerHTML = html;
-        }
+            </div>
+        </div>
+    </div>
 
-        // 操作函数
-        async function openDownloadFile(downloadId) {
-            try {
-                await window.api.openDownloadFile(downloadId);
-            } catch (error) {
-                console.error('打开文件失败:', error);
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    activeView: 'all',
+                    searchQuery: '',
+                    loading: true,
+                    downloads: []
+                };
+            },
+            async mounted() {
+                await this.loadDownloads();
+            },
+            methods: {
+                async loadDownloads() {
+                    this.loading = true;
+                    try {
+                        this.downloads = await window.api.getDownloads() || [];
+                    } catch (error) {
+                        console.error('加载下载数据失败:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                handleViewChange(view) {
+                    this.activeView = view;
+                },
+                getHostname(url) {
+                    try {
+                        return new URL(url).hostname;
+                    } catch {
+                        return url;
+                    }
+                }
             }
-        }
-
-        async function deleteDownload(downloadId) {
-            try {
-                await window.api.deleteDownload(downloadId);
-                fetchData(); // 重新获取数据
-            } catch (error) {
-                console.error('删除下载失败:', error);
-            }
-        }
-
-        // 获取下载数据
-        async function fetchData() {
-            try {
-                const downloads = await window.api.getDownloads() || [];
-                console.log('下载数据:', downloads);
-                renderDownloads(downloads);
-            } catch (error) {
-                console.error('获取下载数据失败:', error);
-                downloadsContainer.innerHTML = '<div class="no-results">获取下载数据失败。</div>';
-            }
-        }
-
-        // 暴露函数到全局作用域供onclick使用
-        window.openDownloadFile = openDownloadFile;
-        window.deleteDownload = deleteDownload;
-
-        window.addEventListener('DOMContentLoaded', fetchData);
+        }).use(ElementPlus).mount('#app');
     </script>
 </body>
 </html> 

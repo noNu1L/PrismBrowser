@@ -3,412 +3,818 @@
 <head>
     <meta charset="UTF-8">
     <title>收藏夹</title>
-    <link rel="stylesheet" href="../styles/theme.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
     <style>
-        :root {
-            --sidebar-width: 280px;
-            --header-height: 60px;
-        }
-
         body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
-            display: flex;
-            background-color: var(--app-bg-color-light);
-        }
-
-        /* --- 主布局 --- */
-        #sidebar {
-            width: var(--sidebar-width);
+            margin: 0;
+            padding: 0;
             height: 100%;
-            display: flex;
-            flex-direction: column;
-            background-color: var(--app-bg-color);
-            border-right: 1px solid var(--card-border);
-        }
-        #main-content {
-            flex-grow: 1;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* --- 侧边栏 --- */
-        #sidebar-header {
-            padding: 20px 16px;
-            border-bottom: 1px solid var(--card-border);
-        }
-        #sidebar-header h1 {
-            font-size: 22px; font-weight: 600; margin: 0;
-        }
-        #folder-tree {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 12px;
-        }
-        .folder-item {
-            display: flex; align-items: center;
-            padding: 8px; border-radius: 6px;
-            cursor: pointer;
-            padding-left: calc(var(--indent-level, 0) * 20px + 8px);
-        }
-        .folder-item.active {
-             background-color: var(--button-primary-bg); 
-             color: white; 
-        }
-        .folder-icon {
-            width: 20px; height: 20px; margin-right: 8px;
-            stroke: var(--text-color-secondary);
-        }
-        .folder-item.active .folder-icon {
-            stroke: white;
-        }
-        .folder-name {
-            flex-grow: 1;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        /* TODO: Add styles for nested folders */
-
-        /* --- 主内容区 --- */
-        #content-header {
-            height: var(--header-height);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 32px; flex-shrink: 0;
-            border-bottom: 1px solid var(--card-border);
-        }
-        #content-header h2 {
-            margin: 0; font-size: 20px; font-weight: 600;
-        }
-        #header-actions {
-             display: flex; align-items: center; gap: 12px;
-        }
-        #header-actions button {
-            display: flex; align-items: center; gap: 6px;
-            padding: 8px 16px; font-size: 14px;
-            border-radius: 6px; border: 1px solid var(--input-border);
-            cursor: pointer; font-weight: 500;
-        }
-        #bookmarks-container {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 16px 32px;
-        }
-        .bookmark-item {
-            display: flex; align-items: center;
-            padding: 12px 16px; border-radius: 8px;
-            background-color: var(--card-bg);
-            border: 1px solid transparent;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            margin-bottom: 8px;
-            transition: background-color 0.2s ease, border-color 0.2s ease;
-        }
-        .bookmark-item:hover {
-            border-color: #ccc;
-            background-color: var(--item-hover-bg);
-        }
-        .bookmark-item.selected {
-            background-color: var(--item-selected-bg);
-            border-color: var(--item-selected-border);
-        }
-        .bookmark-checkbox {
-            margin-right: 20px;
-        }
-        .bookmark-icon {
-            width: 16px; height: 16px;
-            margin-right: 16px;
-        }
-        .bookmark-info {
-            flex-grow: 1;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .bookmark-title {
-            font-size: 14px;
-            font-weight: 500;
-        }
-        .bookmark-url {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-        .no-results {
-            text-align: center; margin-top: 50px;
-            color: var(--text-muted);
-        }
-        /* --- Context Menu --- */
-        #context-menu {
-            position: fixed;
-            display: none;
-            background: var(--card-bg);
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            padding: 8px;
-            z-index: 1000;
-        }
-        #context-menu button {
-            display: block;
             width: 100%;
-            text-align: left;
-            padding: 8px 12px;
-            border: none;
-            background: none;
-            cursor: pointer;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        #context-menu button:hover {
-            background-color: var(--item-hover-bg);
+
+        #app {
+            height: 100vh;
+            display: flex;
+            background: #f5f7fa;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid #e4e7ed;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .sidebar-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+
+        .sidebar-subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        .search-container {
+            padding: 20px;
+            border-bottom: 1px solid #e4e7ed;
+        }
+
+        .folder-tree {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            background: #f5f7fa;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-header {
+            padding: 24px 32px 16px;
+            background: white;
+            border-bottom: 1px solid #e4e7ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #303133;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .content-container {
+            flex: 1;
+            padding: 16px 32px 32px;
+            overflow-y: auto;
+        }
+
+        .bookmark-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .bookmark-item {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .bookmark-item:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-color: #e4e7ed;
+            transform: translateY(-2px);
+        }
+
+        .bookmark-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .bookmark-favicon {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .bookmark-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #303133;
+            margin: 0;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bookmark-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .bookmark-item:hover .bookmark-actions {
+            opacity: 1;
+        }
+
+        .bookmark-url {
+            font-size: 14px;
+            color: #909399;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .folder-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .folder-item .bookmark-title {
+            color: white;
+        }
+
+        .folder-item .bookmark-url {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #909399;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .el-tree {
+            background: transparent;
+        }
+
+        .el-tree-node {
+            margin-bottom: 4px;
+        }
+
+        .el-tree-node__content {
+            border-radius: 8px;
+            padding: 8px 12px;
+            transition: all 0.2s;
+        }
+
+        .el-tree-node__content:hover {
+            background: #f5f7fa;
+        }
+
+        .el-tree-node.is-current > .el-tree-node__content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .custom-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+        }
+
+        .custom-button:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+
+        .breadcrumb-container {
+            margin-bottom: 16px;
+        }
+
+        .el-breadcrumb__item:last-child .el-breadcrumb__inner {
+            color: #667eea;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
-    <aside id="sidebar">
-        <div id="sidebar-header">
-            <h1>收藏夹</h1>
-        </div>
-        <div id="folder-tree">
-            <!-- Folder tree will be injected here -->
-        </div>
-    </aside>
-
-    <main id="main-content">
-        <header id="content-header">
-            <h2 id="content-title">所有收藏</h2>
-            <div id="header-actions">
-                 <button id="add-folder-btn">
-                    <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
-                    <span>新建文件夹</span>
-                 </button>
-                 <button id="delete-selected-btn" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    <span>删除</span>
-                 </button>
+    <div id="app">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">收藏夹</h1>
+                <p class="sidebar-subtitle">管理您的书签和文件夹</p>
             </div>
-        </header>
-        <div id="bookmarks-container">
-            <!-- Bookmark items will be injected here -->
+            
+            <div class="search-container">
+                <el-input
+                    v-model="searchQuery"
+                    placeholder="搜索收藏夹..."
+                    :prefix-icon="Search"
+                    clearable
+                    @input="handleSearch"
+                />
+            </div>
+
+            <div class="folder-tree">
+                <el-tree
+                    :data="treeData"
+                    :props="treeProps"
+                    node-key="id"
+                    :current-node-key="currentFolderId"
+                    @node-click="handleFolderClick"
+                    :icon="FolderIcon"
+                >
+                    <template #default="{ node, data }">
+                        <span style="display: flex; align-items: center; width: 100%;">
+                            <el-icon style="margin-right: 8px;">
+                                <Folder />
+                            </el-icon>
+                            <span style="flex: 1;">{{ node.label }}</span>
+                            <span style="color: #909399; font-size: 12px;">
+                                {{ getItemCount(data) }}
+                            </span>
+                        </span>
+                    </template>
+                </el-tree>
+            </div>
         </div>
-    </main>
-    
-    <div id="context-menu">
-        <button id="rename-folder-btn">重命名</button>
-        <button id="delete-folder-btn">删除</button>
+
+        <!-- 主内容 -->
+        <div class="main-content">
+            <div class="content-header">
+                <h1 class="page-title">{{ currentFolderName }}</h1>
+                <div class="header-actions">
+                    <el-button 
+                        v-if="selectedItems.length > 0"
+                        type="danger"
+                        :icon="Delete"
+                        @click="deleteSelected"
+                    >
+                        删除选中 ({{ selectedItems.length }})
+                    </el-button>
+                    <el-dropdown @command="handleAddCommand">
+                        <el-button type="primary" class="custom-button">
+                            <el-icon><Plus /></el-icon>
+                            <span>添加</span>
+                            <el-icon style="margin-left: 4px;"><ArrowDown /></el-icon>
+                        </el-button>
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item command="bookmark">
+                                    <el-icon><Link /></el-icon>
+                                    添加书签
+                                </el-dropdown-item>
+                                <el-dropdown-item command="folder">
+                                    <el-icon><Folder /></el-icon>
+                                    新建文件夹
+                                </el-dropdown-item>
+                            </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
+                </div>
+            </div>
+
+            <div class="content-container">
+                <div class="breadcrumb-container">
+                    <el-breadcrumb separator="/">
+                        <el-breadcrumb-item 
+                            v-for="item in breadcrumbItems" 
+                            :key="item.id"
+                            :to="{ path: item.id }"
+                            @click="navigateToFolder(item.id)"
+                        >
+                            {{ item.title }}
+                        </el-breadcrumb-item>
+                    </el-breadcrumb>
+                </div>
+
+                <!-- 空状态 -->
+                <div v-if="!loading && filteredItems.length === 0" class="empty-state">
+                    <div class="empty-icon">📚</div>
+                    <p class="empty-text">{{ emptyStateText }}</p>
+                </div>
+
+                <!-- 加载状态 -->
+                <div v-if="loading" style="text-align: center; padding: 80px;">
+                    <el-icon class="is-loading" size="32">
+                        <Loading />
+                    </el-icon>
+                    <p style="margin-top: 16px; color: #909399;">加载中...</p>
+                </div>
+
+                <!-- 收藏夹网格 -->
+                <div v-if="!loading && filteredItems.length > 0" class="bookmark-grid">
+                    <div 
+                        v-for="item in filteredItems" 
+                        :key="item.id"
+                        class="bookmark-item"
+                        :class="{ 'folder-item': item.type === 'folder' }"
+                        @click="handleItemClick(item)"
+                    >
+                        <div class="bookmark-header">
+                            <el-icon v-if="item.type === 'folder'" class="bookmark-favicon" size="24">
+                                <Folder />
+                            </el-icon>
+                            <img 
+                                v-else-if="item.favicon"
+                                :src="item.favicon"
+                                class="bookmark-favicon"
+                                @error="$event.target.style.display='none'"
+                            />
+                            <el-icon v-else class="bookmark-favicon" size="24" color="#909399">
+                                <Globe />
+                            </el-icon>
+                            <h4 class="bookmark-title">{{ item.title }}</h4>
+                            <div class="bookmark-actions">
+                                <el-checkbox
+                                    :model-value="selectedItems.includes(item.id)"
+                                    @change="toggleItemSelection(item.id, $event)"
+                                    @click.stop
+                                />
+                                <el-button
+                                    v-if="item.type === 'bookmark'"
+                                    :icon="Edit"
+                                    size="small"
+                                    text
+                                    @click.stop="editBookmark(item)"
+                                />
+                                <el-button
+                                    :icon="Delete"
+                                    size="small"
+                                    type="danger"
+                                    text
+                                    @click.stop="deleteItem(item.id)"
+                                />
+                            </div>
+                        </div>
+                        <p class="bookmark-url">
+                            {{ item.type === 'folder' ? `${getItemCount(item)} 项` : getHostname(item.url) }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加/编辑书签对话框 -->
+        <el-dialog
+            v-model="bookmarkDialogVisible"
+            :title="bookmarkDialogTitle"
+            width="500px"
+            @close="resetBookmarkForm"
+        >
+            <el-form :model="bookmarkForm" label-width="80px">
+                <el-form-item label="标题">
+                    <el-input v-model="bookmarkForm.title" placeholder="请输入书签标题" />
+                </el-form-item>
+                <el-form-item label="网址">
+                    <el-input v-model="bookmarkForm.url" placeholder="请输入网址" />
+                </el-form-item>
+                <el-form-item label="文件夹">
+                    <el-select v-model="bookmarkForm.parentId" placeholder="选择文件夹">
+                        <el-option
+                            v-for="folder in allFolders"
+                            :key="folder.id"
+                            :label="folder.title"
+                            :value="folder.id"
+                        />
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="bookmarkDialogVisible = false">取消</el-button>
+                    <el-button type="primary" class="custom-button" @click="saveBookmark">
+                        保存
+                    </el-button>
+                </span>
+            </template>
+        </el-dialog>
+
+        <!-- 新建文件夹对话框 -->
+        <el-dialog
+            v-model="folderDialogVisible"
+            title="新建文件夹"
+            width="400px"
+            @close="resetFolderForm"
+        >
+            <el-form :model="folderForm" label-width="80px">
+                <el-form-item label="名称">
+                    <el-input v-model="folderForm.title" placeholder="请输入文件夹名称" />
+                </el-form-item>
+                <el-form-item label="位置">
+                    <el-select v-model="folderForm.parentId" placeholder="选择位置">
+                        <el-option
+                            v-for="folder in allFolders"
+                            :key="folder.id"
+                            :label="folder.title"
+                            :value="folder.id"
+                        />
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="folderDialogVisible = false">取消</el-button>
+                    <el-button type="primary" class="custom-button" @click="saveFolder">
+                        创建
+                    </el-button>
+                </span>
+            </template>
+        </el-dialog>
     </div>
 
     <script>
-        // --- DOM Elements ---
-        const folderTreeContainer = document.getElementById('folder-tree');
-        const bookmarksContainer = document.getElementById('bookmarks-container');
-        const contentTitle = document.getElementById('content-title');
-        const addFolderBtn = document.getElementById('add-folder-btn');
-        const deleteSelectedBtn = document.getElementById('delete-selected-btn');
-        const contextMenu = document.getElementById('context-menu');
-        const renameFolderBtn = document.getElementById('rename-folder-btn');
-        const deleteFolderBtn = document.getElementById('delete-folder-btn');
+        const { createApp } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+        const { Search, Folder, Delete, Plus, ArrowDown, Link, Edit, Globe, Loading } = ElementPlusIconsVue;
 
-        // --- App State ---
-        let state = {
-            bookmarksTree: [],
-            selectedFolderId: 'toolbar',
-            selectedItemIds: new Set(),
-            contextMenuTargetId: null
-        };
-        
-        // --- Rendering ---
-        function render() {
-            renderFolderTree();
-            renderBookmarksList();
-            updateHeaderActions();
-        }
-
-        function renderFolderTree() {
-            folderTreeContainer.innerHTML = '';
-            // Recursive function to build folder tree UI
-            const buildTree = (nodes, container, level = 0) => {
-                nodes.forEach(node => {
-                    if (node.type !== 'folder') return;
-                    
-                    const itemEl = document.createElement('div');
-                    itemEl.className = 'folder-item';
-                    itemEl.dataset.folderId = node.id;
-                    itemEl.style.setProperty('--indent-level', level);
-
-                    if (node.id === state.selectedFolderId) {
-                        itemEl.classList.add('active');
+        createApp({
+            data() {
+                return {
+                    searchQuery: '',
+                    loading: true,
+                    bookmarksData: [],
+                    currentFolderId: 'toolbar',
+                    selectedItems: [],
+                    bookmarkDialogVisible: false,
+                    folderDialogVisible: false,
+                    isEditing: false,
+                    editingBookmarkId: null,
+                    bookmarkForm: {
+                        title: '',
+                        url: '',
+                        parentId: 'toolbar'
+                    },
+                    folderForm: {
+                        title: '',
+                        parentId: 'toolbar'
+                    },
+                    treeProps: {
+                        children: 'children',
+                        label: 'title'
                     }
-                    
-                    itemEl.innerHTML = `
-                        <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                        <span class="folder-name">${node.title}</span>
-                    `;
-                    
-                    itemEl.addEventListener('click', () => {
-                        state.selectedFolderId = node.id;
-                        state.selectedItemIds.clear();
-                        render();
+                };
+            },
+            computed: {
+                currentFolder() {
+                    return this.findItemById(this.bookmarksData, this.currentFolderId);
+                },
+                currentFolderName() {
+                    return this.currentFolder?.title || '收藏夹';
+                },
+                currentItems() {
+                    return this.currentFolder?.children || [];
+                },
+                filteredItems() {
+                    if (!this.searchQuery) {
+                        return this.currentItems;
+                    }
+                    const query = this.searchQuery.toLowerCase();
+                    return this.searchAllItems(this.bookmarksData).filter(item =>
+                        item.title.toLowerCase().includes(query) ||
+                        (item.url && item.url.toLowerCase().includes(query))
+                    );
+                },
+                emptyStateText() {
+                    if (this.searchQuery) {
+                        return '未找到匹配的收藏夹';
+                    }
+                    return '此文件夹为空';
+                },
+                treeData() {
+                    return this.bookmarksData.filter(item => item.type === 'folder');
+                },
+                allFolders() {
+                    const folders = [];
+                    const addFolders = (items) => {
+                        items.forEach(item => {
+                            if (item.type === 'folder') {
+                                folders.push(item);
+                                if (item.children) {
+                                    addFolders(item.children);
+                                }
+                            }
+                        });
+                    };
+                    addFolders(this.bookmarksData);
+                    return folders;
+                },
+                breadcrumbItems() {
+                    const items = [];
+                    let current = this.currentFolder;
+                    while (current) {
+                        items.unshift(current);
+                        current = this.findParentFolder(current.id);
+                    }
+                    return items;
+                },
+                bookmarkDialogTitle() {
+                    return this.isEditing ? '编辑书签' : '添加书签';
+                }
+            },
+            async mounted() {
+                await this.loadBookmarks();
+                
+                // 监听书签更新
+                if (window.api?.onBookmarkUpdated) {
+                    window.api.onBookmarkUpdated(() => {
+                        this.loadBookmarks();
                     });
-
-                    itemEl.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        if (['toolbar', 'other'].includes(node.id)) {
-                            return;
+                }
+            },
+            methods: {
+                async loadBookmarks() {
+                    this.loading = true;
+                    try {
+                        this.bookmarksData = await window.api.getBookmarksTree() || [];
+                        this.selectedItems = [];
+                    } catch (error) {
+                        console.error('加载收藏夹失败:', error);
+                        ElMessage.error('加载收藏夹失败');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                findItemById(items, id) {
+                    for (const item of items) {
+                        if (item.id === id) return item;
+                        if (item.children) {
+                            const found = this.findItemById(item.children, id);
+                            if (found) return found;
                         }
-                        state.contextMenuTargetId = node.id;
-                        contextMenu.style.display = 'block';
-                        contextMenu.style.left = `${e.pageX}px`;
-                        contextMenu.style.top = `${e.pageY}px`;
-                    });
-
-                    container.appendChild(itemEl);
-                    
-                    if (node.children && node.children.length > 0) {
-                        buildTree(node.children, container, level + 1);
                     }
-                });
-            };
-            buildTree(state.bookmarksTree, folderTreeContainer);
-        }
-
-        function renderBookmarksList() {
-            bookmarksContainer.innerHTML = '';
-            const findFolder = (nodes, id) => {
-                if (!id) return nodes.find(n => n.id ==='toolbar'); 
-                for (const node of nodes) {
-                    if (node.id === id) return node;
-                    if (node.type === 'folder' && node.children) {
-                        const found = findFolder(node.children, id);
-                        if (found) return found;
+                    return null;
+                },
+                findParentFolder(childId) {
+                    const findParent = (items, targetId, parent = null) => {
+                        for (const item of items) {
+                            if (item.id === targetId) return parent;
+                            if (item.children) {
+                                const found = findParent(item.children, targetId, item);
+                                if (found) return found;
+                            }
+                        }
+                        return null;
+                    };
+                    return findParent(this.bookmarksData, childId);
+                },
+                searchAllItems(items) {
+                    const result = [];
+                    const search = (items) => {
+                        items.forEach(item => {
+                            if (item.type === 'bookmark') {
+                                result.push(item);
+                            }
+                            if (item.children) {
+                                search(item.children);
+                            }
+                        });
+                    };
+                    search(items);
+                    return result;
+                },
+                getItemCount(folder) {
+                    if (!folder.children) return 0;
+                    return folder.children.length;
+                },
+                getHostname(url) {
+                    try {
+                        return new URL(url).hostname;
+                    } catch {
+                        return url;
                     }
-                }
-                return null;
-            };
-
-            const currentFolder = findFolder(state.bookmarksTree, state.selectedFolderId);
-            contentTitle.textContent = currentFolder ? currentFolder.title : '收藏夹';
-
-            const itemsToShow = currentFolder ? currentFolder.children : [];
-
-            if (itemsToShow.length === 0) {
-                bookmarksContainer.innerHTML = '<div class="no-results">这个文件夹是空的。</div>';
-                updateHeaderActions();
-                return;
-            }
-
-            itemsToShow.forEach(item => {
-                if(item.type !== 'bookmark') return;
-
-                const isChecked = state.selectedItemIds.has(item.id);
-                const itemEl = document.createElement('div');
-                itemEl.className = 'bookmark-item';
-                if (isChecked) itemEl.classList.add('selected');
-
-                itemEl.innerHTML = `
-                    <input type="checkbox" class="bookmark-checkbox" data-id="${item.id}" ${isChecked ? 'checked' : ''}>
-                    <img src="https://www.google.com/s2/favicons?domain=${item.url}" class="bookmark-icon">
-                    <div class="bookmark-info">
-                        <div class="bookmark-title">${item.title}</div>
-                        <div class="bookmark-url">${item.url}</div>
-                    </div>
-                `;
-                bookmarksContainer.appendChild(itemEl);
-            });
-            
-            attachBookmarkListeners();
-            updateHeaderActions();
-        }
-        
-        function updateHeaderActions() {
-            deleteSelectedBtn.disabled = state.selectedItemIds.size === 0;
-        }
-
-        function attachBookmarkListeners() {
-            document.querySelectorAll('.bookmark-checkbox').forEach(el => {
-                el.addEventListener('change', e => {
-                    const id = e.target.dataset.id;
-                    if (e.target.checked) {
-                        state.selectedItemIds.add(id);
+                },
+                handleFolderClick(folder) {
+                    this.currentFolderId = folder.id;
+                    this.selectedItems = [];
+                },
+                navigateToFolder(folderId) {
+                    this.currentFolderId = folderId;
+                    this.selectedItems = [];
+                },
+                handleItemClick(item) {
+                    if (item.type === 'folder') {
+                        this.currentFolderId = item.id;
+                    } else if (item.type === 'bookmark') {
+                        window.api.openInNewTab(item.url);
+                    }
+                },
+                handleSearch() {
+                    this.selectedItems = [];
+                },
+                toggleItemSelection(id, checked) {
+                    if (checked) {
+                        if (!this.selectedItems.includes(id)) {
+                            this.selectedItems.push(id);
+                        }
                     } else {
-                        state.selectedItemIds.delete(id);
+                        const index = this.selectedItems.indexOf(id);
+                        if (index > -1) {
+                            this.selectedItems.splice(index, 1);
+                        }
                     }
-                    renderBookmarksList();
-                });
-            });
-        }
+                },
+                handleAddCommand(command) {
+                    if (command === 'bookmark') {
+                        this.showAddBookmarkDialog();
+                    } else if (command === 'folder') {
+                        this.showAddFolderDialog();
+                    }
+                },
+                showAddBookmarkDialog() {
+                    this.isEditing = false;
+                    this.editingBookmarkId = null;
+                    this.bookmarkForm = {
+                        title: '',
+                        url: '',
+                        parentId: this.currentFolderId
+                    };
+                    this.bookmarkDialogVisible = true;
+                },
+                editBookmark(bookmark) {
+                    this.isEditing = true;
+                    this.editingBookmarkId = bookmark.id;
+                    this.bookmarkForm = {
+                        title: bookmark.title,
+                        url: bookmark.url,
+                        parentId: this.findParentFolder(bookmark.id)?.id || this.currentFolderId
+                    };
+                    this.bookmarkDialogVisible = true;
+                },
+                showAddFolderDialog() {
+                    this.folderForm = {
+                        title: '',
+                        parentId: this.currentFolderId
+                    };
+                    this.folderDialogVisible = true;
+                },
+                resetBookmarkForm() {
+                    this.bookmarkForm = {
+                        title: '',
+                        url: '',
+                        parentId: 'toolbar'
+                    };
+                    this.isEditing = false;
+                    this.editingBookmarkId = null;
+                },
+                resetFolderForm() {
+                    this.folderForm = {
+                        title: '',
+                        parentId: 'toolbar'
+                    };
+                },
+                async saveBookmark() {
+                    if (!this.bookmarkForm.title || !this.bookmarkForm.url) {
+                        ElMessage.error('请填写完整信息');
+                        return;
+                    }
 
-        // --- Event Listeners ---
-        addFolderBtn.addEventListener('click', async () => {
-            window.api.openAddFolderPopup({ parentId: state.selectedFolderId });
-        });
+                    try {
+                        if (this.isEditing) {
+                            await window.api.updateBookmark({
+                                id: this.editingBookmarkId,
+                                title: this.bookmarkForm.title,
+                                url: this.bookmarkForm.url
+                            });
+                            ElMessage.success('书签已更新');
+                        } else {
+                            await window.api.addBookmark({
+                                parentId: this.bookmarkForm.parentId,
+                                title: this.bookmarkForm.title,
+                                url: this.bookmarkForm.url
+                            });
+                            ElMessage.success('书签已添加');
+                        }
+                        
+                        this.bookmarkDialogVisible = false;
+                        await this.loadBookmarks();
+                    } catch (error) {
+                        console.error('保存书签失败:', error);
+                        ElMessage.error('保存书签失败');
+                    }
+                },
+                async saveFolder() {
+                    if (!this.folderForm.title) {
+                        ElMessage.error('请输入文件夹名称');
+                        return;
+                    }
 
-        deleteSelectedBtn.addEventListener('click', async () => {
-            if (state.selectedItemIds.size === 0) return;
-            if (confirm(`确定要删除选中的 ${state.selectedItemIds.size} 个项目吗？`)) {
-                await window.api.deleteBookmarks([...state.selectedItemIds]);
-                state.selectedItemIds.clear();
-                fetchData();
-            }
-        });
-
-        // --- Context Menu Logic ---
-        window.addEventListener('click', () => {
-            contextMenu.style.display = 'none';
-            state.contextMenuTargetId = null;
-        });
-
-        renameFolderBtn.addEventListener('click', async () => {
-            if (!state.contextMenuTargetId) return;
-            const newName = prompt('请输入新的文件夹名称：');
-            if (newName) {
-                const result = await window.api.updateBookmarkFolder({ id: state.contextMenuTargetId, title: newName });
-                if (result.success) {
-                    fetchData();
-                }
-            }
-        });
-        
-        function getIdsToDelete(nodes, startId) {
-            let ids = new Set([startId]);
-            const findNode = (nodes, id) => {
-                 for (const node of nodes) {
-                    if (node.id === id) return node;
-                    if (node.type === 'folder' && node.children) {
-                        const found = findNode(node.children, id);
-                        if (found) return found;
+                    try {
+                        await window.api.addBookmarkFolder({
+                            parentId: this.folderForm.parentId,
+                            title: this.folderForm.title
+                        });
+                        
+                        ElMessage.success('文件夹已创建');
+                        this.folderDialogVisible = false;
+                        await this.loadBookmarks();
+                    } catch (error) {
+                        console.error('创建文件夹失败:', error);
+                        ElMessage.error('创建文件夹失败');
+                    }
+                },
+                async deleteItem(id) {
+                    try {
+                        await ElMessageBox.confirm(
+                            '确定要删除这个项目吗？',
+                            '确认删除',
+                            {
+                                confirmButtonText: '确定',
+                                cancelButtonText: '取消',
+                                type: 'warning'
+                            }
+                        );
+                        
+                        await window.api.deleteBookmarks([id]);
+                        ElMessage.success('删除成功');
+                        await this.loadBookmarks();
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('删除失败:', error);
+                            ElMessage.error('删除失败');
+                        }
+                    }
+                },
+                async deleteSelected() {
+                    if (this.selectedItems.length === 0) return;
+                    
+                    try {
+                        await ElMessageBox.confirm(
+                            `确定要删除选中的 ${this.selectedItems.length} 项吗？`,
+                            '确认删除',
+                            {
+                                confirmButtonText: '确定',
+                                cancelButtonText: '取消',
+                                type: 'warning'
+                            }
+                        );
+                        
+                        await window.api.deleteBookmarks(this.selectedItems);
+                        ElMessage.success('删除成功');
+                        await this.loadBookmarks();
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('删除失败:', error);
+                            ElMessage.error('删除失败');
+                        }
                     }
                 }
-                return null;
+            },
+            components: {
+                Search,
+                Folder,
+                Delete,
+                Plus,
+                ArrowDown,
+                Link,
+                Edit,
+                Globe,
+                Loading
             }
-            const startNode = findNode(nodes, startId);
-
-            function recurse(node) {
-                if (node.type === 'folder' && node.children) {
-                    node.children.forEach(child => {
-                        ids.add(child.id);
-                        recurse(child);
-                    })
-                }
-            }
-            if(startNode) recurse(startNode);
-            return [...ids];
-        }
-
-        deleteFolderBtn.addEventListener('click', async () => {
-            if (!state.contextMenuTargetId) return;
-            if (confirm('确定要删除这个文件夹及其所有内容吗？此操作无法撤销。')) {
-                const idsToDelete = getIdsToDelete(state.bookmarksTree, state.contextMenuTargetId);
-                await window.api.deleteBookmarks(idsToDelete);
-                if (state.selectedFolderId === state.contextMenuTargetId) {
-                    state.selectedFolderId = 'root'; // Go back to root if current folder is deleted
-                }
-                fetchData();
-            }
-        });
-        
-        // --- Data Fetching ---
-        async function fetchData() {
-            state.bookmarksTree = await window.api.getBookmarksTree();
-            render();
-        }
-
-        // --- Initialization ---
-        window.addEventListener('DOMContentLoaded', () => {
-            fetchData();
-        });
+        }).use(ElementPlus).mount('#app');
     </script>
 </body>
 </html> 

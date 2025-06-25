@@ -3,419 +3,529 @@
 <head>
     <meta charset="UTF-8">
     <title>设置</title>
-    <link rel="stylesheet" href="../styles/theme.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
     <style>
-        :root {
-            --sidebar-width: 240px;
-        }
-
         body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
-            display: flex;
-            background-color: var(--app-bg-color-light);
-            color: var(--text-color-primary);
-        }
-
-        /* --- 主布局 --- */
-        #sidebar {
-            width: var(--sidebar-width);
+            margin: 0;
+            padding: 0;
             height: 100%;
-            display: flex;
-            flex-direction: column;
-            padding: 20px 12px;
-            box-sizing: border-box;
-            background-color: var(--app-bg-color);
-            border-right: 1px solid var(--card-border);
-        }
-        #main-content {
-            flex-grow: 1;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            padding: 32px 64px;
-        }
-        
-        /* --- 侧边栏 --- */
-        #sidebar h1 {
-            font-size: 22px;
-            font-weight: 600;
-            margin: 0 0 30px 12px;
-        }
-        #nav-list .nav-item {
-            display: flex; align-items: center; padding: 10px 12px; border-radius: 6px;
-            cursor: pointer; font-size: 15px; font-weight: 500;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-        #nav-list .nav-item:hover { background-color: var(--button-hover-bg); }
-        #nav-list .nav-item.active { 
-            background-color: var(--button-primary-bg); 
-            color: white; 
-        }
-        #nav-list .nav-item svg { 
-            width: 20px; height: 20px; margin-right: 14px; 
-            stroke: var(--text-color-secondary);
-            transition: stroke 0.2s ease;
-        }
-        #nav-list .nav-item.active svg { stroke: white; }
-
-        /* --- 内容卡片样式 --- */
-        .setting-card {
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            padding: 24px 32px;
-            margin-bottom: 32px;
-            border: 1px solid var(--card-border);
-        }
-        .setting-card h2 {
-            font-size: 20px;
-            font-weight: 600;
-            margin-top: 0;
-            margin-bottom: 8px;
-        }
-        .setting-card p {
-            font-size: 14px;
-            color: var(--text-muted);
-            margin-top: 0;
-            margin-bottom: 24px;
-            line-height: 1.5;
-        }
-        .form-group {
-            margin-bottom: 16px;
-        }
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        .form-group input[type="text"] {
             width: 100%;
-            max-width: 550px;
-            height: 38px;
-            padding: 0 12px;
-            box-sizing: border-box;
-            border-radius: 6px;
-            border: 1px solid var(--input-border);
-            background-color: var(--input-bg);
-            font-size: 14px;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        .form-group input[type="text"]:focus {
-            outline: none;
-            border-color: var(--button-primary-bg);
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-        }
-        .checkbox-group label {
+
+        #app {
+            height: 100vh;
             display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-            font-size: 14px;
+            background: #f5f7fa;
         }
-        .checkbox-group input[type="checkbox"] {
-            margin-right: 10px;
-        }
-        .radio-group {
-            margin-bottom: 16px;
-        }
-        .radio-group label {
+
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
             display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-            font-size: 14px;
-            cursor: pointer;
-            padding: 8px 0;
+            flex-direction: column;
+            z-index: 1;
         }
-        .radio-group input[type="radio"] {
-            margin-right: 12px;
-            accent-color: var(--button-primary-bg);
-        }
-        .actions {
-            margin-top: 24px;
-            text-align: right;
-        }
-        button {
-            padding: 10px 20px; font-size: 14px; border-radius: 6px;
-            border: 1px solid var(--input-border);
-            cursor: pointer; font-weight: 500;
-            transition: background-color 0.2s ease, border-color 0.2s ease;
-        }
-        button.primary {
-            background-color: var(--button-primary-bg);
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid #e4e7ed;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-color: var(--button-primary-bg);
         }
-        button.primary:hover {
-            background-color: var(--button-primary-hover-bg);
-            border-color: var(--button-primary-hover-bg);
+
+        .sidebar-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
         }
-        #clash-config {
-            width: 100%;
-            height: 400px;
-            font-family: monospace;
-            white-space: pre;
-            overflow: auto;
-            border: 1px solid var(--input-border);
-            background-color: var(--input-bg);
-            padding: 12px;
-            box-sizing: border-box;
-            border-radius: 6px;
-            line-height: 1.6;
+
+        .sidebar-subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+            margin: 4px 0 0 0;
+        }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            background: #f5f7fa;
+        }
+
+        .content-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #303133;
+            margin: 0 0 8px 0;
+        }
+
+        .page-subtitle {
+            font-size: 16px;
+            color: #606266;
+            margin: 0;
+        }
+
+        .settings-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f0f2f5;
+            background: #fafbfc;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #303133;
+            margin: 0 0 4px 0;
+        }
+
+        .section-description {
+            font-size: 14px;
+            color: #909399;
+            margin: 0;
+        }
+
+        .section-content {
+            padding: 24px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            flex: 1;
+            margin-right: 16px;
+        }
+
+        .setting-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #303133;
+            margin: 0 0 4px 0;
+        }
+
+        .setting-desc {
+            font-size: 14px;
+            color: #909399;
+            margin: 0;
+        }
+
+        .setting-control {
+            min-width: 200px;
+        }
+
+        .el-menu {
+            border-right: none;
+        }
+
+        .el-menu-item {
+            height: 48px;
+            line-height: 48px;
+            margin: 4px 12px;
+            border-radius: 8px;
+        }
+
+        .el-menu-item.is-active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .el-menu-item:hover {
+            background: #f5f7fa;
+        }
+
+        .el-menu-item.is-active:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .custom-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+        }
+
+        .custom-button:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
         }
     </style>
 </head>
 <body>
-    <aside id="sidebar">
-        <h1>设置</h1>
-        <nav id="nav-list">
-            <div class="nav-item active" data-view="browser-settings">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                <span>浏览器</span>
+    <div id="app">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">设置</h1>
+                <p class="sidebar-subtitle">配置您的浏览器偏好</p>
             </div>
-            <div class="nav-item" data-view="clash-settings">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4A2 2 0 0 1 2 16.77V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"></path><polyline points="2.32 6.16 12 11 21.68 6.16"></polyline><line x1="12" y1="22.76" x2="12" y2="11"></line></svg>
-                <span>Clash</span>
-            </div>
-        </nav>
-    </aside>
+            <el-menu 
+                :default-active="activeSection"
+                @select="handleSectionChange"
+                mode="vertical"
+            >
+                <el-menu-item index="startup">
+                    <el-icon><HomeFilled /></el-icon>
+                    <span>启动设置</span>
+                </el-menu-item>
+                <el-menu-item index="homepage">
+                    <el-icon><House /></el-icon>
+                    <span>主页设置</span>
+                </el-menu-item>
+                <el-menu-item index="newtab">
+                    <el-icon><Plus /></el-icon>
+                    <span>新标签页</span>
+                </el-menu-item>
+                <el-menu-item index="proxy">
+                    <el-icon><Connection /></el-icon>
+                    <span>代理设置</span>
+                </el-menu-item>
+                <el-menu-item index="about">
+                    <el-icon><InfoFilled /></el-icon>
+                    <span>关于</span>
+                </el-menu-item>
+            </el-menu>
+        </div>
 
-    <main id="main-content">
-        <!-- 浏览器设置 -->
-        <div id="browser-settings" class="view-content">
-            <div class="setting-card">
-                <h2>启动时</h2>
-                <p>选择浏览器启动时的行为。</p>
-                <div class="radio-group">
-                    <label><input type="radio" name="startup-option" value="homepage"> 打开主页</label>
-                    <label><input type="radio" name="startup-option" value="newtab"> 打开新标签页</label>
-                    <label><input type="radio" name="startup-option" value="lastsession"> 继续浏览上次打开的页面</label>
-                    <label><input type="radio" name="startup-option" value="custom"> 打开特定页面或一组页面</label>
+        <!-- 主内容 -->
+        <div class="main-content">
+            <div class="content-container">
+                <div class="page-header">
+                    <h1 class="page-title">{{ currentSectionTitle }}</h1>
+                    <p class="page-subtitle">{{ currentSectionDesc }}</p>
                 </div>
-                <div id="startup-custom-url" class="form-group" style="display: none; margin-left: 20px;">
-                    <label for="startup-custom-input">自定义启动页面</label>
-                    <input type="text" id="startup-custom-input" placeholder="输入网址，例如 https://www.google.com">
-                </div>
-            </div>
 
-            <div class="setting-card">
-                <h2>主页按钮</h2>
-                <p>选择点击主页按钮时打开的页面。</p>
-                <div class="radio-group">
-                    <label><input type="radio" name="homepage-option" value="newtab"> 新标签页</label>
-                    <label><input type="radio" name="homepage-option" value="custom"> 自定义页面</label>
+                <!-- 启动设置 -->
+                <div v-show="activeSection === 'startup'" class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">启动选项</h2>
+                        <p class="section-description">配置浏览器启动时的默认行为</p>
+                    </div>
+                    <div class="section-content">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">启动时打开</h3>
+                                <p class="setting-desc">选择浏览器启动时显示的页面</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-select v-model="settings.startupOption" @change="saveSettings">
+                                    <el-option label="主页" value="homepage"></el-option>
+                                    <el-option label="新标签页" value="newtab"></el-option>
+                                    <el-option label="自定义网址" value="custom"></el-option>
+                                </el-select>
+                            </div>
+                        </div>
+                        <div v-show="settings.startupOption === 'custom'" class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">自定义启动网址</h3>
+                                <p class="setting-desc">输入启动时要打开的网址</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-input 
+                                    v-model="settings.startupCustomUrl"
+                                    @change="saveSettings"
+                                    placeholder="https://www.google.com"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div id="homepage-custom-url" class="form-group" style="display: none; margin-left: 20px;">
-                    <label for="homepage-custom-input">自定义主页</label>
-                    <input type="text" id="homepage-custom-input" placeholder="输入网址，例如 https://www.google.com">
-                </div>
-            </div>
 
-            <div class="setting-card">
-                <h2>新标签页</h2>
-                <p>选择打开新标签页时显示的内容。</p>
-                <div class="radio-group">
-                    <label><input type="radio" name="newtab-option" value="blank"> 空白页</label>
-                    <label><input type="radio" name="newtab-option" value="custom"> 自定义页面</label>
+                <!-- 主页设置 -->
+                <div v-show="activeSection === 'homepage'" class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">主页设置</h2>
+                        <p class="section-description">自定义您的浏览器主页</p>
+                    </div>
+                    <div class="section-content">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">主页</h3>
+                                <p class="setting-desc">选择点击主页按钮时显示的页面</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-select v-model="settings.homepageOption" @change="saveSettings">
+                                    <el-option label="新标签页" value="newtab"></el-option>
+                                    <el-option label="自定义网址" value="custom"></el-option>
+                                </el-select>
+                            </div>
+                        </div>
+                        <div v-show="settings.homepageOption === 'custom'" class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">自定义主页网址</h3>
+                                <p class="setting-desc">输入主页网址</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-input 
+                                    v-model="settings.homepageCustomUrl"
+                                    @change="saveSettings"
+                                    placeholder="https://www.google.com"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div id="newtab-custom-url" class="form-group" style="display: none; margin-left: 20px;">
-                    <label for="newtab-custom-input">自定义新标签页</label>
-                    <input type="text" id="newtab-custom-input" placeholder="输入网址，例如 https://www.google.com">
-                </div>
-            </div>
 
-            <div class="setting-card">
-                <h2>清除浏览数据</h2>
-                <p>清除浏览器生成的缓存文件和 Cookie，这有助于解决一些网站加载问题或保护您的隐私。</p>
-                <div class="checkbox-group">
-                     <label><input type="checkbox" id="clear-cache-check" checked> <span>清除缓存</span></label>
-                     <label><input type="checkbox" id="clear-cookies-check" checked> <span>清除 Cookie</span></label>
+                <!-- 新标签页设置 -->
+                <div v-show="activeSection === 'newtab'" class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">新标签页</h2>
+                        <p class="section-description">配置新标签页的显示内容</p>
+                    </div>
+                    <div class="section-content">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">新标签页显示</h3>
+                                <p class="setting-desc">选择新标签页的默认内容</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-select v-model="settings.newtabOption" @change="saveSettings">
+                                    <el-option label="空白页" value="blank"></el-option>
+                                    <el-option label="自定义网址" value="custom"></el-option>
+                                </el-select>
+                            </div>
+                        </div>
+                        <div v-show="settings.newtabOption === 'custom'" class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">自定义新标签页网址</h3>
+                                <p class="setting-desc">输入新标签页要显示的网址</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-input 
+                                    v-model="settings.newtabCustomUrl"
+                                    @change="saveSettings"
+                                    placeholder="https://www.google.com"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="actions">
-                    <button id="clear-data-btn">立即清除</button>
+
+                <!-- 代理设置 -->
+                <div v-show="activeSection === 'proxy'" class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">代理配置</h2>
+                        <p class="section-description">管理 Clash.Meta 代理设置</p>
+                    </div>
+                    <div class="section-content">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">代理状态</h3>
+                                <p class="setting-desc">当前代理服务运行状态</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-tag :type="proxyStatus === '运行中' ? 'success' : 'danger'">
+                                    {{ proxyStatus }}
+                                </el-tag>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">代理面板</h3>
+                                <p class="setting-desc">打开 Clash.Meta 控制面板</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-button 
+                                    type="primary" 
+                                    class="custom-button"
+                                    @click="openProxyDashboard"
+                                >
+                                    打开面板
+                                </el-button>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">配置文件</h3>
+                                <p class="setting-desc">查看当前的代理配置</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-button @click="viewConfig">查看配置</el-button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 关于 -->
+                <div v-show="activeSection === 'about'" class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">关于 PrismBrowser</h2>
+                        <p class="section-description">应用程序信息和版本详情</p>
+                    </div>
+                    <div class="section-content">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">版本</h3>
+                                <p class="setting-desc">当前应用程序版本</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-tag>{{ appVersion }}</el-tag>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">Electron</h3>
+                                <p class="setting-desc">Electron 框架版本</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-tag type="info">{{ electronVersion }}</el-tag>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">开源许可</h3>
+                                <p class="setting-desc">本项目使用 MIT 许可证</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-button @click="openGitHub">查看源码</el-button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- Clash 设置 -->
-        <div id="clash-settings" class="view-content" style="display: none;">
-            <div class="setting-card">
-                <h2>Clash 核心</h2>
-                <p>管理内置的 Clash (Mihomo) 代理核心。如果遇到网络问题，尝试重启核心可能会解决问题。</p>
-                 <div class="actions">
-                    <button id="restart-clash-btn">重启 Clash 核心</button>
-                </div>
-            </div>
-            <div class="setting-card">
-                <h2>配置文件 (config.yaml)</h2>
-                <p>这是当前 Clash 核心正在使用的配置文件。注意：此视图为只读，如需修改请直接编辑文件。</p>
-                <div id="clash-config">正在加载...</div>
-            </div>
-        </div>
-    </main>
+    </div>
 
     <script>
-        // --- DOM Elements ---
-        const navItems = document.querySelectorAll('.nav-item');
-        const views = document.querySelectorAll('.view-content');
-        
-        // 启动时设置
-        const startupOptions = document.querySelectorAll('input[name="startup-option"]');
-        const startupCustomDiv = document.getElementById('startup-custom-url');
-        const startupCustomInput = document.getElementById('startup-custom-input');
-        
-        // 主页按钮设置
-        const homepageOptions = document.querySelectorAll('input[name="homepage-option"]');
-        const homepageCustomDiv = document.getElementById('homepage-custom-url');
-        const homepageCustomInput = document.getElementById('homepage-custom-input');
-        
-        // 新标签页设置
-        const newtabOptions = document.querySelectorAll('input[name="newtab-option"]');
-        const newtabCustomDiv = document.getElementById('newtab-custom-url');
-        const newtabCustomInput = document.getElementById('newtab-custom-input');
-        
-        const clearDataBtn = document.getElementById('clear-data-btn');
-        const clashConfigDiv = document.getElementById('clash-config');
-        const restartClashBtn = document.getElementById('restart-clash-btn');
-        
-        // --- Navigation ---
-        navItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                const viewName = e.currentTarget.dataset.view;
-                
-                navItems.forEach(i => i.classList.remove('active'));
-                e.currentTarget.classList.add('active');
+        const { createApp } = Vue;
+        const { ElMessage } = ElementPlus;
 
-                views.forEach(v => v.style.display = 'none');
-                document.getElementById(viewName).style.display = 'block';
-            });
-        });
-
-        // --- Browser Settings Logic ---
-        
-        // 启动时设置
-        startupOptions.forEach(option => {
-            option.addEventListener('change', async () => {
-                await window.api.setSetting('settings.startupOption', option.value);
-                startupCustomDiv.style.display = option.value === 'custom' ? 'block' : 'none';
-            });
-        });
-        
-        startupCustomInput.addEventListener('blur', async () => {
-            if (startupCustomInput.value) {
-                await window.api.setSetting('settings.startupCustomUrl', startupCustomInput.value);
-            }
-        });
-        
-        // 主页按钮设置
-        homepageOptions.forEach(option => {
-            option.addEventListener('change', async () => {
-                await window.api.setSetting('settings.homepageOption', option.value);
-                homepageCustomDiv.style.display = option.value === 'custom' ? 'block' : 'none';
-            });
-        });
-        
-        homepageCustomInput.addEventListener('blur', async () => {
-            if (homepageCustomInput.value) {
-                await window.api.setSetting('settings.homepageCustomUrl', homepageCustomInput.value);
-            }
-        });
-        
-        // 新标签页设置
-        newtabOptions.forEach(option => {
-            option.addEventListener('change', async () => {
-                await window.api.setSetting('settings.newtabOption', option.value);
-                newtabCustomDiv.style.display = option.value === 'custom' ? 'block' : 'none';
-            });
-        });
-        
-        newtabCustomInput.addEventListener('blur', async () => {
-            if (newtabCustomInput.value) {
-                await window.api.setSetting('settings.newtabCustomUrl', newtabCustomInput.value);
-            }
-        });
-        
-        clearDataBtn.addEventListener('click', async () => {
-            const dataTypes = [];
-            if (document.getElementById('clear-cache-check').checked) dataTypes.push('cache');
-            if (document.getElementById('clear-cookies-check').checked) dataTypes.push('cookies');
-            
-            if (dataTypes.length > 0 && confirm(`确定要清除选定的浏览数据吗？`)) {
-                const result = await window.api.clearBrowsingData(dataTypes);
-                if (result.success) {
-                    alert('浏览数据已清除！');
-                } else {
-                    alert(`清除失败: ${result.error}`);
+        createApp({
+            data() {
+                return {
+                    activeSection: 'startup',
+                    settings: {
+                        startupOption: 'homepage',
+                        startupCustomUrl: 'https://www.google.com',
+                        homepageOption: 'custom',
+                        homepageCustomUrl: 'https://www.google.com',
+                        newtabOption: 'blank',
+                        newtabCustomUrl: 'https://www.google.com'
+                    },
+                    proxyStatus: '检查中...',
+                    appVersion: '1.0.0',
+                    electronVersion: '34.5.8'
+                };
+            },
+            computed: {
+                currentSectionTitle() {
+                    const titles = {
+                        startup: '启动设置',
+                        homepage: '主页设置', 
+                        newtab: '新标签页',
+                        proxy: '代理设置',
+                        about: '关于'
+                    };
+                    return titles[this.activeSection] || '设置';
+                },
+                currentSectionDesc() {
+                    const descriptions = {
+                        startup: '配置浏览器启动时的默认行为',
+                        homepage: '自定义您的浏览器主页',
+                        newtab: '配置新标签页的显示内容',
+                        proxy: '管理 Clash.Meta 代理设置',
+                        about: '应用程序信息和版本详情'
+                    };
+                    return descriptions[this.activeSection] || '';
+                }
+            },
+            async mounted() {
+                await this.loadSettings();
+                this.checkProxyStatus();
+            },
+            methods: {
+                handleSectionChange(section) {
+                    this.activeSection = section;
+                },
+                async loadSettings() {
+                    try {
+                        const keys = [
+                            'settings.startupOption',
+                            'settings.startupCustomUrl', 
+                            'settings.homepageOption',
+                            'settings.homepageCustomUrl',
+                            'settings.newtabOption',
+                            'settings.newtabCustomUrl'
+                        ];
+                        
+                        for (const key of keys) {
+                            const value = await window.api.getSetting(key);
+                            if (value !== undefined) {
+                                const settingKey = key.replace('settings.', '');
+                                this.settings[settingKey] = value;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('加载设置失败:', error);
+                    }
+                },
+                async saveSettings() {
+                    try {
+                        for (const [key, value] of Object.entries(this.settings)) {
+                            await window.api.setSetting(`settings.${key}`, value);
+                        }
+                        ElMessage.success('设置已保存');
+                    } catch (error) {
+                        console.error('保存设置失败:', error);
+                        ElMessage.error('保存设置失败');
+                    }
+                },
+                checkProxyStatus() {
+                    // 简单的代理状态检查
+                    fetch('http://127.0.0.1:9090/version')
+                        .then(() => {
+                            this.proxyStatus = '运行中';
+                        })
+                        .catch(() => {
+                            this.proxyStatus = '未运行';
+                        });
+                },
+                openProxyDashboard() {
+                    window.api.openInNewTab('prism://dashboard');
+                },
+                viewConfig() {
+                    window.api.getClashConfig().then(config => {
+                        this.$alert(config, '代理配置', {
+                            confirmButtonText: '确定',
+                            customClass: 'config-alert'
+                        });
+                    });
+                },
+                openGitHub() {
+                    window.api.openInNewTab('https://github.com');
                 }
             }
-        });
-
-        // --- Clash Settings Logic ---
-        async function loadClashConfig() {
-            const configText = await window.api.getClashConfig();
-            clashConfigDiv.textContent = configText;
-        }
-        
-        restartClashBtn.addEventListener('click', async () => {
-            if (confirm('确定要重启Clash核心吗？')) {
-                await window.api.restartClash();
-                alert('Clash 核心已发送重启指令。');
-            }
-        });
-
-        // --- Initialization ---
-        async function init() {
-            try {
-                // 启动时设置
-                const startupOption = await window.api.getSetting('settings.startupOption') || 'homepage';
-                const startupRadio = document.querySelector(`input[name="startup-option"][value="${startupOption}"]`);
-                if (startupRadio) {
-                    startupRadio.checked = true;
-                } else {
-                    // 如果没有找到对应选项，默认选择第一个
-                    document.querySelector('input[name="startup-option"]').checked = true;
-                }
-                startupCustomDiv.style.display = startupOption === 'custom' ? 'block' : 'none';
-                
-                const startupCustomUrl = await window.api.getSetting('settings.startupCustomUrl') || 'https://www.google.com';
-                startupCustomInput.value = startupCustomUrl;
-                
-                // 主页按钮设置 - 修复默认值问题
-                const homepageOption = await window.api.getSetting('settings.homepageOption') || 'newtab';
-                const homepageRadio = document.querySelector(`input[name="homepage-option"][value="${homepageOption}"]`);
-                if (homepageRadio) {
-                    homepageRadio.checked = true;
-                } else {
-                    // 如果没有找到对应选项，默认选择"新标签页"
-                    const defaultHomepageRadio = document.querySelector('input[name="homepage-option"][value="newtab"]');
-                    if (defaultHomepageRadio) defaultHomepageRadio.checked = true;
-                }
-                homepageCustomDiv.style.display = homepageOption === 'custom' ? 'block' : 'none';
-                
-                const homepageCustomUrl = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
-                homepageCustomInput.value = homepageCustomUrl;
-                
-                // 新标签页设置
-                const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
-                const newtabRadio = document.querySelector(`input[name="newtab-option"][value="${newtabOption}"]`);
-                if (newtabRadio) {
-                    newtabRadio.checked = true;
-                } else {
-                    // 如果没有找到对应选项，默认选择"空白页"
-                    const defaultNewtabRadio = document.querySelector('input[name="newtab-option"][value="blank"]');
-                    if (defaultNewtabRadio) defaultNewtabRadio.checked = true;
-                }
-                newtabCustomDiv.style.display = newtabOption === 'custom' ? 'block' : 'none';
-                
-                const newtabCustomUrl = await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com';
-                newtabCustomInput.value = newtabCustomUrl;
-
-                await loadClashConfig();
-            } catch (error) {
-                console.error('设置页面初始化失败:', error);
-            }
-        }
-
-        init();
+        }).use(ElementPlus).mount('#app');
     </script>
 </body>
 </html> 
