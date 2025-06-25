@@ -254,28 +254,7 @@
             try {
                 const downloads = await window.api.getDownloads() || [];
                 console.log('下载数据:', downloads);
-                
-                // 如果没有下载数据，添加一些测试数据
-                if (downloads.length === 0) {
-                    const testDownload = {
-                        id: 'test-download-1',
-                        filename: 'example-file.pdf',
-                        url: 'https://example.com/files/example-file.pdf',
-                        status: 'completed',
-                        startTime: new Date().toISOString(),
-                        totalBytes: 1024000,
-                        receivedBytes: 1024000,
-                        speed: 0,
-                        filePath: '/path/to/downloads/example-file.pdf'
-                    };
-                    await window.api.addDownload(testDownload);
-                    
-                    // 重新获取数据
-                    const updatedDownloads = await window.api.getDownloads() || [];
-                    renderDownloads(updatedDownloads);
-                } else {
-                    renderDownloads(downloads);
-                }
+                renderDownloads(downloads);
             } catch (error) {
                 console.error('获取下载数据失败:', error);
                 downloadsContainer.innerHTML = '<div class="no-results">获取下载数据失败。</div>';
