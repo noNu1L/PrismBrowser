@@ -3,241 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>收藏夹</title>
+    <link rel="stylesheet" href="../styles/theme.css">
     <link rel="stylesheet" href="../vendor/element-plus.css">
+    <link rel="stylesheet" href="../styles/page-theme.css">
     <script src="../vendor/vue.global.js"></script>
     <script src="../vendor/element-plus.full.js"></script>
     <script src="../vendor/element-plus-icons.js"></script>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        #app {
-            height: 100vh;
-            display: flex;
-            background: #f5f7fa;
-        }
-
-        .sidebar {
-            width: 280px;
-            background: #ffffff;
-            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            z-index: 1;
-        }
-
-        .sidebar-header {
-            padding: 24px;
-            border-bottom: 1px solid #e4e7ed;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .sidebar-title {
-            font-size: 24px;
-            font-weight: 600;
-            margin: 0 0 8px 0;
-        }
-
-        .sidebar-subtitle {
-            font-size: 14px;
-            opacity: 0.8;
-            margin: 0;
-        }
-
-        .search-container {
-            padding: 20px;
-            border-bottom: 1px solid #e4e7ed;
-        }
-
-        .folder-tree {
-            flex: 1;
-            padding: 16px;
-            overflow-y: auto;
-        }
-
-        .main-content {
-            flex: 1;
-            overflow-y: auto;
-            background: #f5f7fa;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .content-header {
-            padding: 24px 32px 16px;
-            background: white;
-            border-bottom: 1px solid #e4e7ed;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .page-title {
-            font-size: 28px;
-            font-weight: 600;
-            color: #303133;
-            margin: 0;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        .content-container {
-            flex: 1;
-            padding: 16px 32px 32px;
-            overflow-y: auto;
-        }
-
-        .bookmark-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-            margin-top: 16px;
-        }
-
-        .bookmark-item {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid transparent;
-        }
-
-        .bookmark-item:hover {
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            border-color: #e4e7ed;
-            transform: translateY(-2px);
-        }
-
-        .bookmark-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .bookmark-favicon {
-            width: 24px;
-            height: 24px;
-            margin-right: 12px;
-            border-radius: 6px;
-            flex-shrink: 0;
-        }
-
-        .bookmark-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #303133;
-            margin: 0;
-            flex: 1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .bookmark-actions {
-            display: flex;
-            gap: 4px;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .bookmark-item:hover .bookmark-actions {
-            opacity: 1;
-        }
-
-        .bookmark-url {
-            font-size: 14px;
-            color: #909399;
-            margin: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .folder-item {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .folder-item .bookmark-title {
-            color: white;
-        }
-
-        .folder-item .bookmark-url {
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 80px 20px;
-            color: #909399;
-        }
-
-        .empty-icon {
-            font-size: 64px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        .empty-text {
-            font-size: 16px;
-            margin: 0;
-        }
-
-        .el-tree {
-            background: transparent;
-        }
-
-        .el-tree-node {
-            margin-bottom: 4px;
-        }
-
-        .el-tree-node__content {
-            border-radius: 8px;
-            padding: 8px 12px;
-            transition: all 0.2s;
-        }
-
-        .el-tree-node__content:hover {
-            background: #f5f7fa;
-        }
-
-        .el-tree-node.is-current > .el-tree-node__content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .custom-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-        }
-
-        .custom-button:hover {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-        }
-
-        .breadcrumb-container {
-            margin-bottom: 16px;
-        }
-
-        .el-breadcrumb__item:last-child .el-breadcrumb__inner {
-            color: #667eea;
-            font-weight: 600;
-        }
-    </style>
 </head>
 <body>
     <div id="app">
@@ -252,7 +23,7 @@
                 <el-input
                     v-model="searchQuery"
                     placeholder="搜索收藏夹..."
-                    :prefix-icon="Search"
+                    prefix-icon="Search"
                     clearable
                     @input="handleSearch"
                 />
@@ -265,7 +36,6 @@
                     node-key="id"
                     :current-node-key="currentFolderId"
                     @node-click="handleFolderClick"
-                    :icon="FolderIcon"
                 >
                     <template #default="{ node, data }">
                         <span style="display: flex; align-items: center; width: 100%;">
@@ -290,30 +60,27 @@
                     <el-button 
                         v-if="selectedItems.length > 0"
                         type="danger"
-                        :icon="Delete"
+                        icon="Delete"
                         @click="deleteSelected"
                     >
                         删除选中 ({{ selectedItems.length }})
                     </el-button>
-                    <el-dropdown @command="handleAddCommand">
-                        <el-button type="primary" class="custom-button">
-                            <el-icon><Plus /></el-icon>
-                            <span>添加</span>
-                            <el-icon style="margin-left: 4px;"><ArrowDown /></el-icon>
-                        </el-button>
-                        <template #dropdown>
-                            <el-dropdown-menu>
-                                <el-dropdown-item command="bookmark">
-                                    <el-icon><Link /></el-icon>
-                                    添加书签
-                                </el-dropdown-item>
-                                <el-dropdown-item command="folder">
-                                    <el-icon><Folder /></el-icon>
-                                    新建文件夹
-                                </el-dropdown-item>
-                            </el-dropdown-menu>
-                        </template>
-                    </el-dropdown>
+                    <el-button 
+                        type="primary" 
+                        class="custom-button"
+                        icon="Link"
+                        @click="showAddBookmarkDialog"
+                    >
+                        添加收藏
+                    </el-button>
+                    <el-button 
+                        type="primary" 
+                        class="custom-button"
+                        icon="Folder"
+                        @click="showAddFolderDialog"
+                    >
+                        添加文件夹
+                    </el-button>
                 </div>
             </div>
 
@@ -376,13 +143,13 @@
                                 />
                                 <el-button
                                     v-if="item.type === 'bookmark'"
-                                    :icon="Edit"
+                                    icon="Edit"
                                     size="small"
                                     text
                                     @click.stop="editBookmark(item)"
                                 />
                                 <el-button
-                                    :icon="Delete"
+                                    icon="Delete"
                                     size="small"
                                     type="danger"
                                     text
@@ -469,9 +236,8 @@
     <script>
         const { createApp } = Vue;
         const { ElMessage, ElMessageBox } = ElementPlus;
-        const { Search, Folder, Delete, Plus, ArrowDown, Link, Edit, Globe, Loading } = ElementPlusIconsVue;
 
-        createApp({
+        const app = createApp({
             data() {
                 return {
                     searchQuery: '',
@@ -657,13 +423,6 @@
                         }
                     }
                 },
-                handleAddCommand(command) {
-                    if (command === 'bookmark') {
-                        this.showAddBookmarkDialog();
-                    } else if (command === 'folder') {
-                        this.showAddFolderDialog();
-                    }
-                },
                 showAddBookmarkDialog() {
                     this.isEditing = false;
                     this.editingBookmarkId = null;
@@ -802,19 +561,15 @@
                         }
                     }
                 }
-            },
-            components: {
-                Search,
-                Folder,
-                Delete,
-                Plus,
-                ArrowDown,
-                Link,
-                Edit,
-                Globe,
-                Loading
             }
-        }).use(ElementPlus).mount('#app');
+        });
+
+        // 注册所有Element Plus图标
+        for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+            app.component(key, component);
+        }
+
+        app.use(ElementPlus).mount('#app');
     </script>
 </body>
 </html> 

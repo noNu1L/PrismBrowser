@@ -1,0 +1,629 @@
+/*
+ * PrismBrowser 页面主题样式
+ * 包含settings.html、bookmarks.html、history.html、downloads.html的统一样式
+ * 基于 theme.css 的设计变量和现代化UI设计
+ */
+
+/* =================== 基础样式 =================== */
+
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: var(--app-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#app {
+    height: 100vh;
+    display: flex;
+    background: #f5f7fa;
+}
+
+/* =================== 侧边栏通用样式 =================== */
+
+.sidebar {
+    width: 280px;
+    background: #ffffff;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+}
+
+.sidebar-header {
+    padding: 24px;
+    border-bottom: 1px solid #e4e7ed;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.sidebar-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+}
+
+.sidebar-subtitle {
+    font-size: 14px;
+    opacity: 0.8;
+    margin: 0;
+}
+
+/* 设置页面侧边栏头部特殊处理 */
+.sidebar-header.settings-header {
+    margin-bottom: 10px;
+}
+
+.sidebar-header.settings-header .sidebar-subtitle {
+    margin: 4px 0 0 0;
+}
+
+/* =================== 搜索容器样式 =================== */
+
+.search-container {
+    padding: 20px;
+    border-bottom: 1px solid #e4e7ed;
+}
+
+/* =================== 文件夹树样式 =================== */
+
+.folder-tree {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+/* =================== 主内容区域样式 =================== */
+
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    background: #f5f7fa;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-header {
+    padding: 24px 32px 16px;
+    background: white;
+    border-bottom: 1px solid #e4e7ed;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #303133;
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.content-container {
+    flex: 1;
+    padding: 16px 32px 32px;
+    overflow-y: auto;
+}
+
+/*!* 设置页面内容容器特殊样式 *!*/
+/*.content-container.settings-container {*/
+/*    max-width: 800px;*/
+/*    margin: 0 auto;*/
+/*    padding: 32px;*/
+/*}*/
+
+/* =================== 页面头部样式 =================== */
+
+.page-header {
+    margin-bottom: 32px;
+}
+
+.page-subtitle {
+    font-size: 16px;
+    color: #606266;
+    margin: 0;
+}
+
+/* =================== 空状态样式 =================== */
+
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: #909399;
+}
+
+.empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-text {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* =================== Element UI 组件样式覆盖 =================== */
+
+/* 菜单样式 - 增强优先级 */
+.el-menu {
+    border-right: none ;
+}
+
+.el-menu .el-menu-item {
+    height: 40px;
+    line-height: 40px;
+    margin: 6px 12px;
+    border-radius: 8px;
+}
+
+.el-menu .el-menu-item.is-active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) ;
+    color: white ;
+}
+
+.el-menu .el-menu-item:hover {
+    background: #f5f7fa ;
+    color: inherit;
+}
+
+.el-menu .el-menu-item.is-active:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) ;
+    color: white ;
+}
+
+/* 自定义按钮样式 */
+.custom-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+}
+
+.custom-button:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+/* 树组件样式 */
+.el-tree {
+    background: transparent;
+}
+
+.el-tree-node {
+    margin-bottom: 4px;
+}
+
+.el-tree-node__content {
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: all 0.2s;
+}
+
+.el-tree-node__content:hover {
+    background: #f5f7fa;
+}
+
+.el-tree-node.is-current > .el-tree-node__content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+/* 复选框样式 */
+.el-checkbox {
+    margin-right: 8px;
+}
+
+/* =================== 收藏夹页面特定样式 =================== */
+
+/* 面包屑导航 */
+.breadcrumb-container {
+    margin-bottom: 16px;
+}
+
+.el-breadcrumb__item:last-child .el-breadcrumb__inner {
+    color: #667eea;
+    font-weight: 600;
+}
+
+/* 收藏夹网格布局 */
+.bookmark-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+/* 收藏夹项目卡片 */
+.bookmark-item {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.bookmark-item:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-color: #e4e7ed;
+    transform: translateY(-2px);
+}
+
+.bookmark-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.bookmark-favicon {
+    width: 24px;
+    height: 24px;
+    margin-right: 12px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.bookmark-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #303133;
+    margin: 0;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bookmark-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.bookmark-item:hover .bookmark-actions {
+    opacity: 1;
+}
+
+.bookmark-url {
+    font-size: 14px;
+    color: #909399;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 文件夹项目特殊样式 */
+.folder-item {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.folder-item .bookmark-title {
+    color: white;
+}
+
+.folder-item .bookmark-url {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* =================== 历史记录页面特定样式 =================== */
+
+/* 日期分组 */
+.date-group {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.date-header {
+    padding: 16px 20px;
+    background: #fafbfc;
+    border-bottom: 1px solid #f0f2f5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.date-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #303133;
+    margin: 0;
+}
+
+/* 历史记录列表 */
+.history-list {
+    padding: 8px 0;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0f2f5;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-item:hover {
+    background: #f5f7fa;
+}
+
+.history-item.selected {
+    background: #ecf5ff;
+    border-color: #b3d8ff;
+}
+
+.history-favicon {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.history-content {
+    flex: 1;
+    min-width: 0;
+    margin-right: 12px;
+}
+
+.history-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #303133;
+    margin: 0 0 4px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-url {
+    font-size: 12px;
+    color: #909399;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-time {
+    font-size: 12px;
+    color: #909399;
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
+/* =================== 下载页面特定样式 =================== */
+
+/* 下载卡片 */
+.download-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    margin-bottom: 16px;
+    padding: 20px;
+    transition: all 0.2s;
+}
+
+.download-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+/* 文件图标 */
+.file-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 16px;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.file-icon.pdf { 
+    background: #ffebee; 
+}
+
+.file-icon.default { 
+    background: #f5f5f5; 
+}
+
+/* 下载信息 */
+.download-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.download-filename {
+    font-size: 16px;
+    font-weight: 600;
+    color: #303133;
+    margin: 0 0 4px 0;
+}
+
+.download-source {
+    font-size: 14px;
+    color: #909399;
+    margin: 0;
+}
+
+/* =================== 设置页面特定样式 =================== */
+
+/* 设置区块 */
+.settings-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.section-content {
+    padding: 24px;
+}
+
+.section-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #303133;
+    margin: 0 0 8px 0;
+}
+
+.section-subtitle {
+    font-size: 14px;
+    color: #606266;
+    margin: 0;
+}
+
+/* 工具栏分类 */
+.toolbar-category {
+    margin-bottom: 32px;
+}
+
+.toolbar-category:last-child {
+    margin-bottom: 0;
+}
+
+.category-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #409eff;
+    margin: 0 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #409eff;
+    position: relative;
+}
+
+.category-title::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 30px;
+    height: 2px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* 设置项 */
+.setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+}
+
+.setting-label {
+    flex: 1;
+    margin-right: 16px;
+}
+
+.setting-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #303133;
+    margin: 0 0 4px 0;
+}
+
+.setting-desc {
+    font-size: 14px;
+    color: #909399;
+    margin: 0;
+}
+
+.setting-control {
+    min-width: 200px;
+}
+
+/* =================== 代理加载弹窗样式 =================== */
+
+.proxy-loading-content {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.loading-icon {
+    color: #667eea;
+    animation: loading-rotate 2s linear infinite;
+    margin-bottom: 16px;
+}
+
+.loading-text {
+    font-size: 16px;
+    font-weight: 500;
+    color: #303133;
+    margin: 0 0 8px 0;
+}
+
+.loading-tip {
+    font-size: 14px;
+    color: #909399;
+    margin: 0;
+}
+
+@keyframes loading-rotate {
+    0% { 
+        transform: rotate(0deg); 
+    }
+    100% { 
+        transform: rotate(360deg); 
+    }
+}
+
+/* =================== 响应式设计 =================== */
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 240px;
+    }
+    
+    .content-container {
+        padding: 16px 20px 24px;
+    }
+    
+    .bookmark-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .setting-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .setting-control {
+        min-width: 100%;
+    }
+} 
