@@ -35,6 +35,7 @@
 
         .sidebar-header {
             padding: 24px;
+            margin-bottom: 10px;
             border-bottom: 1px solid #e4e7ed;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -89,27 +90,55 @@
             overflow: hidden;
         }
 
+        .section-content {
+            padding: 24px;
+        }
+
         .section-header {
-            padding: 20px 24px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
             border-bottom: 1px solid #f0f2f5;
-            background: #fafbfc;
         }
 
         .section-title {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
             color: #303133;
-            margin: 0 0 4px 0;
+            margin: 0 0 8px 0;
         }
 
-        .section-description {
+        .section-subtitle {
             font-size: 14px;
-            color: #909399;
+            color: #606266;
             margin: 0;
         }
 
-        .section-content {
-            padding: 24px;
+        .toolbar-category {
+            margin-bottom: 32px;
+        }
+
+        .toolbar-category:last-child {
+            margin-bottom: 0;
+        }
+
+        .category-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #409eff;
+            margin: 0 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #409eff;
+            position: relative;
+        }
+
+        .category-title::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: -2px;
+            width: 30px;
+            height: 2px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         .setting-item {
@@ -194,17 +223,13 @@
                 @select="handleSectionChange"
                 mode="vertical"
             >
-                <el-menu-item index="startup">
+                <el-menu-item index="general">
                     <el-icon><HomeFilled /></el-icon>
-                    <span>启动设置</span>
+                    <span>启动、主页和新标签页设置</span>
                 </el-menu-item>
-                <el-menu-item index="homepage">
-                    <el-icon><House /></el-icon>
-                    <span>主页设置</span>
-                </el-menu-item>
-                <el-menu-item index="newtab">
-                    <el-icon><Plus /></el-icon>
-                    <span>新标签页</span>
+                <el-menu-item index="toolbar">
+                    <el-icon><Setting /></el-icon>
+                    <span>自定义工具栏</span>
                 </el-menu-item>
                 <el-menu-item index="proxy">
                     <el-icon><Connection /></el-icon>
@@ -225,107 +250,200 @@
                     <p class="page-subtitle">{{ currentSectionDesc }}</p>
                 </div>
 
-                <!-- 启动设置 -->
-                <div v-show="activeSection === 'startup'" class="settings-section">
-                    <div class="section-header">
-                        <h2 class="section-title">启动选项</h2>
-                        <p class="section-description">配置浏览器启动时的默认行为</p>
-                    </div>
-                    <div class="section-content">
-                        <div class="setting-item">
-                            <div class="setting-label">
-                                <h3 class="setting-name">启动时打开</h3>
-                                <p class="setting-desc">选择浏览器启动时显示的页面</p>
+                <!-- 启动、主页和新标签页设置 -->
+                <div v-show="activeSection === 'general'">
+                    <!-- 浏览器启动设置 -->
+                    <div class="settings-section">
+                        <div class="section-content">
+                            <div class="section-header">
+                                <h2 class="section-title">浏览器启动设置</h2>
+                                <p class="section-subtitle">配置浏览器启动时的默认行为</p>
                             </div>
-                            <div class="setting-control">
-                                <el-select v-model="settings.startupOption" @change="saveSettings">
-                                    <el-option label="主页" value="homepage"></el-option>
-                                    <el-option label="新标签页" value="newtab"></el-option>
-                                    <el-option label="自定义网址" value="custom"></el-option>
-                                </el-select>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">浏览器启动时</h3>
+                                    <p class="setting-desc">选择浏览器启动时显示的页面</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-select v-model="settings.startupOption" @change="saveSettings">
+                                        <el-option label="打开空白页" value="blank"></el-option>
+                                        <el-option label="打开主页" value="homepage"></el-option>
+                                        <el-option label="继续浏览上次打开的页面" value="restore"></el-option>
+                                        <el-option label="打开自定义网址" value="custom"></el-option>
+                                    </el-select>
+                                </div>
+                            </div>
+                            <div v-show="settings.startupOption === 'custom'" class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">启动页面网址</h3>
+                                    <p class="setting-desc">输入启动时要打开的网址</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-input 
+                                        v-model="settings.startupCustomUrl"
+                                        @change="saveSettings"
+                                        placeholder="https://www.bing.com"
+                                    />
+                                </div>
                             </div>
                         </div>
-                        <div v-show="settings.startupOption === 'custom'" class="setting-item">
-                            <div class="setting-label">
-                                <h3 class="setting-name">自定义启动网址</h3>
-                                <p class="setting-desc">输入启动时要打开的网址</p>
+                    </div>
+                    
+                    <!-- 主页设置 -->
+                    <div class="settings-section">
+                        <div class="section-content">
+                            <div class="section-header">
+                                <h2 class="section-title">主页设置</h2>
+                                <p class="section-subtitle">配置点击主页按钮时的默认行为</p>
                             </div>
-                            <div class="setting-control">
-                                <el-input 
-                                    v-model="settings.startupCustomUrl"
-                                    @change="saveSettings"
-                                    placeholder="https://www.google.com"
-                                />
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">主页显示内容</h3>
+                                    <p class="setting-desc">点击主页按钮时显示的页面</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-select v-model="settings.homepageOption" @change="saveSettings">
+                                        <el-option label="空白页" value="blank"></el-option>
+                                        <el-option label="自定义网址" value="custom"></el-option>
+                                    </el-select>
+                                </div>
+                            </div>
+                            <div v-show="settings.homepageOption === 'custom'" class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">主页网址</h3>
+                                    <p class="setting-desc">输入主页网址</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-input 
+                                        v-model="settings.homepageCustomUrl"
+                                        @change="saveSettings"
+                                        placeholder="https://www.bing.com"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 新标签页设置 -->
+                    <div class="settings-section">
+                        <div class="section-content">
+                            <div class="section-header">
+                                <h2 class="section-title">新标签页设置</h2>
+                                <p class="section-subtitle">配置新建标签页时的默认内容</p>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">新标签页显示内容</h3>
+                                    <p class="setting-desc">新建标签页时显示的内容</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-select v-model="settings.newtabOption" @change="saveSettings">
+                                        <el-option label="空白页" value="blank"></el-option>
+                                        <el-option label="自定义网址" value="custom"></el-option>
+                                    </el-select>
+                                </div>
+                            </div>
+                            <div v-show="settings.newtabOption === 'custom'" class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">新标签页网址</h3>
+                                    <p class="setting-desc">输入新标签页要显示的网址</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-input 
+                                        v-model="settings.newtabCustomUrl"
+                                        @change="saveSettings"
+                                        placeholder="https://www.bing.com"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 主页设置 -->
-                <div v-show="activeSection === 'homepage'" class="settings-section">
-                    <div class="section-header">
-                        <h2 class="section-title">主页设置</h2>
-                        <p class="section-description">自定义您的浏览器主页</p>
-                    </div>
+                <!-- 自定义工具栏 -->
+                <div v-show="activeSection === 'toolbar'" class="settings-section">
                     <div class="section-content">
-                        <div class="setting-item">
-                            <div class="setting-label">
-                                <h3 class="setting-name">主页</h3>
-                                <p class="setting-desc">选择点击主页按钮时显示的页面</p>
-                            </div>
-                            <div class="setting-control">
-                                <el-select v-model="settings.homepageOption" @change="saveSettings">
-                                    <el-option label="新标签页" value="newtab"></el-option>
-                                    <el-option label="自定义网址" value="custom"></el-option>
-                                </el-select>
-                            </div>
-                        </div>
-                        <div v-show="settings.homepageOption === 'custom'" class="setting-item">
-                            <div class="setting-label">
-                                <h3 class="setting-name">自定义主页网址</h3>
-                                <p class="setting-desc">输入主页网址</p>
-                            </div>
-                            <div class="setting-control">
-                                <el-input 
-                                    v-model="settings.homepageCustomUrl"
-                                    @change="saveSettings"
-                                    placeholder="https://www.google.com"
-                                />
+                        <div class="toolbar-category">
+                            <h3 class="category-title">导航功能</h3>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">主页按钮</h3>
+                                    <p class="setting-desc">快速跳转到主页的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showHome"
+                                        @change="saveSettings"
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- 新标签页设置 -->
-                <div v-show="activeSection === 'newtab'" class="settings-section">
-                    <div class="section-header">
-                        <h2 class="section-title">新标签页</h2>
-                        <p class="section-description">配置新标签页的显示内容</p>
-                    </div>
-                    <div class="section-content">
-                        <div class="setting-item">
-                            <div class="setting-label">
-                                <h3 class="setting-name">新标签页显示</h3>
-                                <p class="setting-desc">选择新标签页的默认内容</p>
+                        <div class="toolbar-category">
+                            <h3 class="category-title">内容管理</h3>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">收藏夹按钮</h3>
+                                    <p class="setting-desc">访问和管理收藏夹的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showFavorites"
+                                        @change="saveSettings"
+                                    />
+                                </div>
                             </div>
-                            <div class="setting-control">
-                                <el-select v-model="settings.newtabOption" @change="saveSettings">
-                                    <el-option label="空白页" value="blank"></el-option>
-                                    <el-option label="自定义网址" value="custom"></el-option>
-                                </el-select>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">历史记录按钮</h3>
+                                    <p class="setting-desc">查看浏览历史记录的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showHistory"
+                                        @change="saveSettings"
+                                    />
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">下载管理按钮</h3>
+                                    <p class="setting-desc">查看和管理下载内容的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showDownloads"
+                                        @change="saveSettings"
+                                    />
+                                </div>
                             </div>
                         </div>
-                        <div v-show="settings.newtabOption === 'custom'" class="setting-item">
-                            <div class="setting-label">
-                                <h3 class="setting-name">自定义新标签页网址</h3>
-                                <p class="setting-desc">输入新标签页要显示的网址</p>
+
+                        <div class="toolbar-category">
+                            <h3 class="category-title">系统功能</h3>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">设置按钮</h3>
+                                    <p class="setting-desc">打开浏览器设置页面的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showSettings"
+                                        @change="saveSettings"
+                                    />
+                                </div>
                             </div>
-                            <div class="setting-control">
-                                <el-input 
-                                    v-model="settings.newtabCustomUrl"
-                                    @change="saveSettings"
-                                    placeholder="https://www.google.com"
-                                />
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">日志切换按钮</h3>
+                                    <p class="setting-desc">显示/隐藏系统日志的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showToggleLogs"
+                                        @change="saveSettings"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -333,11 +451,22 @@
 
                 <!-- 代理设置 -->
                 <div v-show="activeSection === 'proxy'" class="settings-section">
-                    <div class="section-header">
-                        <h2 class="section-title">代理配置</h2>
-                        <p class="section-description">管理 Clash.Meta 代理设置</p>
-                    </div>
                     <div class="section-content">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">代理开关</h3>
+                                <p class="setting-desc">手动启动或停止代理服务</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-switch 
+                                    v-model="proxyEnabled"
+                                    :loading="proxyToggleLoading"
+                                    @change="toggleProxy"
+                                    active-text="开启"
+                                    inactive-text="关闭"
+                                />
+                            </div>
+                        </div>
                         <div class="setting-item">
                             <div class="setting-label">
                                 <h3 class="setting-name">代理状态</h3>
@@ -378,10 +507,6 @@
 
                 <!-- 关于 -->
                 <div v-show="activeSection === 'about'" class="settings-section">
-                    <div class="section-header">
-                        <h2 class="section-title">关于 PrismBrowser</h2>
-                        <p class="section-description">应用程序信息和版本详情</p>
-                    </div>
                     <div class="section-content">
                         <div class="setting-item">
                             <div class="setting-label">
@@ -423,26 +548,36 @@
         createApp({
             data() {
                 return {
-                    activeSection: 'startup',
+                    activeSection: 'general',
                     settings: {
                         startupOption: 'homepage',
-                        startupCustomUrl: 'https://www.google.com',
+                        startupCustomUrl: 'https://www.bing.com',
                         homepageOption: 'custom',
-                        homepageCustomUrl: 'https://www.google.com',
+                        homepageCustomUrl: 'https://www.bing.com',
                         newtabOption: 'blank',
-                        newtabCustomUrl: 'https://www.google.com'
+                        newtabCustomUrl: '',
+                        toolbar: {
+                            showToggleLogs: true,
+                            showFavorites: true,
+                            showHistory: true,
+                            showDownloads: true,
+                            showSettings: true,
+                            showHome: true
+                        }
                     },
                     proxyStatus: '检查中...',
                     appVersion: '1.0.0',
-                    electronVersion: '34.5.8'
+                    electronVersion: '34.5.8',
+                    proxyEnabled: false,
+                    proxyToggleLoading: false,
+                    proxyStatusInterval: null
                 };
             },
             computed: {
                 currentSectionTitle() {
                     const titles = {
-                        startup: '启动设置',
-                        homepage: '主页设置', 
-                        newtab: '新标签页',
+                        general: '启动、主页和新标签页设置',
+                        toolbar: '自定义工具栏',
                         proxy: '代理设置',
                         about: '关于'
                     };
@@ -450,9 +585,8 @@
                 },
                 currentSectionDesc() {
                     const descriptions = {
-                        startup: '配置浏览器启动时的默认行为',
-                        homepage: '自定义您的浏览器主页',
-                        newtab: '配置新标签页的显示内容',
+                        general: '配置浏览器启动、主页和新标签页的默认行为',
+                        toolbar: '自定义工具栏按钮的显示与隐藏',
                         proxy: '管理 Clash.Meta 代理设置',
                         about: '应用程序信息和版本详情'
                     };
@@ -462,6 +596,16 @@
             async mounted() {
                 await this.loadSettings();
                 this.checkProxyStatus();
+                
+                // 定期检查代理状态
+                this.proxyStatusInterval = setInterval(() => {
+                    this.checkProxyStatus();
+                }, 5000);
+            },
+            beforeUnmount() {
+                if (this.proxyStatusInterval) {
+                    clearInterval(this.proxyStatusInterval);
+                }
             },
             methods: {
                 handleSectionChange(section) {
@@ -469,22 +613,37 @@
                 },
                 async loadSettings() {
                     try {
+                        console.log('开始加载设置...');
                         const keys = [
                             'settings.startupOption',
                             'settings.startupCustomUrl', 
                             'settings.homepageOption',
                             'settings.homepageCustomUrl',
                             'settings.newtabOption',
-                            'settings.newtabCustomUrl'
+                            'settings.newtabCustomUrl',
+                            'settings.toolbar.showToggleLogs',
+                            'settings.toolbar.showFavorites',
+                            'settings.toolbar.showHistory',
+                            'settings.toolbar.showDownloads',
+                            'settings.toolbar.showSettings',
+                            'settings.toolbar.showHome'
                         ];
                         
                         for (const key of keys) {
                             const value = await window.api.getSetting(key);
-                            if (value !== undefined) {
-                                const settingKey = key.replace('settings.', '');
-                                this.settings[settingKey] = value;
+                            console.log(`加载设置: ${key} = ${value}`);
+                            if (value !== undefined && value !== null) {
+                                if (key.startsWith('settings.toolbar.')) {
+                                    // 处理工具栏设置
+                                    const toolbarKey = key.replace('settings.toolbar.', '');
+                                    this.settings.toolbar[toolbarKey] = value;
+                                } else {
+                                    const settingKey = key.replace('settings.', '');
+                                    this.settings[settingKey] = value;
+                                }
                             }
                         }
+                        console.log('设置加载完成:', this.settings);
                     } catch (error) {
                         console.error('加载设置失败:', error);
                     }
@@ -492,7 +651,14 @@
                 async saveSettings() {
                     try {
                         for (const [key, value] of Object.entries(this.settings)) {
-                            await window.api.setSetting(`settings.${key}`, value);
+                            if (key === 'toolbar') {
+                                // 处理工具栏设置
+                                for (const [toolbarKey, toolbarValue] of Object.entries(value)) {
+                                    await window.api.setSetting(`settings.toolbar.${toolbarKey}`, toolbarValue);
+                                }
+                            } else {
+                                await window.api.setSetting(`settings.${key}`, value);
+                            }
                         }
                         ElMessage.success('设置已保存');
                     } catch (error) {
@@ -501,13 +667,15 @@
                     }
                 },
                 checkProxyStatus() {
-                    // 简单的代理状态检查
+                    // 检查代理状态并更新开关状态
                     fetch('http://127.0.0.1:9090/version')
                         .then(() => {
                             this.proxyStatus = '运行中';
+                            this.proxyEnabled = true;
                         })
                         .catch(() => {
                             this.proxyStatus = '未运行';
+                            this.proxyEnabled = false;
                         });
                 },
                 openProxyDashboard() {
@@ -523,6 +691,20 @@
                 },
                 openGitHub() {
                     window.api.openInNewTab('https://github.com');
+                },
+                async toggleProxy() {
+                    this.proxyToggleLoading = true;
+                    try {
+                        await window.api.toggleProxy();
+                        await this.loadSettings();
+                        this.checkProxyStatus();
+                        ElMessage.success('代理状态已更新');
+                    } catch (error) {
+                        console.error('切换代理失败:', error);
+                        ElMessage.error('切换代理失败');
+                    } finally {
+                        this.proxyToggleLoading = false;
+                    }
                 }
             }
         }).use(ElementPlus).mount('#app');

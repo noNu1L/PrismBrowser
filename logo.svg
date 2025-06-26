@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100px" height="88px" viewBox="0 0 100 88" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Prism Browser Logo</title>
+    <desc>A three-sided pyramid logo with faces in light blue, medium blue, and dark gray, representing a prism.</desc>
+    <g id="logo" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <!-- Right Face (Dark) -->
+        <polygon id="face-right" fill="#1D293F" points="50 0 85 40 70 65 50 65"></polygon>
+        <!-- Bottom Face (Medium Blue) -->
+<!--        <polygon id="face-bottom" fill="#185ABC" points="0 75 100 50 50 65"></polygon>-->
+        <!-- Left Face (Light Blue) -->
+<!--        <polygon id="face-left" fill="#248DFF" points="50 0 0 75 50 65"></polygon>-->
+    </g>
+</svg> 

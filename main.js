@@ -12,12 +12,12 @@ let addFolderPopup = null;
 
 function getHomePage() {
     const option = store.get('settings.homepageOption', 'custom');
-    if (option === 'newtab') {
-        return getNewTabPageUrl();
+    if (option === 'blank') {
+        return 'about:blank';
     } else if (option === 'custom') {
-        return store.get('settings.homepageCustomUrl', 'https://www.google.com');
+        return store.get('settings.homepageCustomUrl', 'https://www.bing.com');
     }
-    return 'https://www.google.com';
+    return 'https://www.bing.com';
 }
 
 function getNewTabPageUrl() {
@@ -25,24 +25,49 @@ function getNewTabPageUrl() {
     if (option === 'blank') {
         return 'about:blank';
     } else if (option === 'custom') {
-        return store.get('settings.newtabCustomUrl', 'https://www.google.com');
+        return store.get('settings.newtabCustomUrl', 'https://www.bing.com');
     }
     return 'about:blank';
 }
 
 function getStartupUrl() {
     const option = store.get('settings.startupOption', 'homepage');
-    if (option === 'homepage') {
+    if (option === 'blank') {
+        return 'about:blank';
+    } else if (option === 'homepage') {
         return getHomePage();
-    } else if (option === 'newtab') {
-        return getNewTabPageUrl();
+    } else if (option === 'restore') {
+        // 会话恢复模式，返回特殊标识
+        return 'session:restore';
     } else if (option === 'custom') {
-        return store.get('settings.startupCustomUrl', 'https://www.google.com');
-    } else if (option === 'lastsession') {
-        // TODO: 实现恢复上次会话的功能
-        return getHomePage(); // 暂时回退到主页
+        return store.get('settings.startupCustomUrl', 'https://www.bing.com');
     }
     return getHomePage();
+}
+
+// 保存会话状态
+function saveSessionState(sessionData) {
+    // 如果传入的是数组（旧格式），转换为新格式
+    if (Array.isArray(sessionData)) {
+        sessionData = {
+            tabs: sessionData,
+            activeTabIndex: 0
+        };
+    }
+    
+    // 添加时间戳
+    const finalSessionData = {
+        tabs: sessionData.tabs,
+        activeTabIndex: sessionData.activeTabIndex || 0,
+        timestamp: new Date().toISOString()
+    };
+    
+    store.set('sessionState', finalSessionData);
+}
+
+// 获取会话状态
+function getSessionState() {
+    return store.get('sessionState', null);
 }
 
 function createWindow() {
@@ -53,11 +78,11 @@ function createWindow() {
     titleBarStyle: 'hidden',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      // For security reasons, contextIsolation is recommended to be true.
+      // 为安全起见，建议将 contextIsolation 设置为 true。
       contextIsolation: true,
-      // nodeIntegration should be false.
+      // nodeIntegration 应设置为 false。
       nodeIntegration: false,
-      // Enable the webview tag.
+      // 启用 webview 标签。
       webviewTag: true
     }
   });
@@ -77,6 +102,13 @@ function createWindow() {
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (input.control && input.shift && input.key.toLowerCase() === 'i') {
       mainWindow.webContents.toggleDevTools();
+    }
+  });
+
+  // 监听窗口失去焦点事件
+  mainWindow.on('blur', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('window-blurred');
     }
   });
 
@@ -180,6 +212,36 @@ function createWindow() {
   // 为不同session设置下载监听
   mainSession.on('will-download', handleDownload);
   defaultSession.on('will-download', handleDownload);
+
+  // --- 窗口关闭处理 ---
+  let isAppClosing = false;
+  
+  // 窗口关闭前事件处理
+  mainWindow.on('close', (event) => {
+    if (!isAppClosing) {
+      event.preventDefault();
+      
+      // 询问渲染进程是否需要保存会话状态并关闭
+      mainWindow.webContents.send('app-before-quit');
+    }
+  });
+
+  // 监听渲染进程的关闭确认
+  ipcMain.on('confirm-app-close', () => {
+    isAppClosing = true;
+    stopClash(); // 停止Clash进程
+    mainWindow.close();
+  });
+
+  // 监听最后一个标签页关闭事件
+  ipcMain.on('last-tab-closed', () => {
+    isAppClosing = true;
+    stopClash(); // 停止Clash进程
+    mainWindow.close();
+  });
+
+  // 标记应用异常关闭
+  store.set('appCrashedLastTime', true);
 }
 
 function createBookmarkPopup(data) {
@@ -224,7 +286,7 @@ function createBookmarkPopup(data) {
         resizable: false,
         maximizable: false,
         minimizable: false,
-        show: false, // Don't show until ready
+        show: false, // 准备好后再显示
         alwaysOnTop: true, // 保持在最顶层
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -240,7 +302,7 @@ function createBookmarkPopup(data) {
             bookmarkPopup.setPosition(x, y);
         }
         bookmarkPopup.show();
-        // Send initial data to the popup window
+        // 发送初始数据到弹窗
         bookmarkPopup.webContents.send('popup-data', data);
     });
 
@@ -266,8 +328,8 @@ function createAddFolderPopup(data) {
     }
     const bounds = mainWindow.getBounds();
     addFolderPopup = new BrowserWindow({
-        x: bounds.x + (bounds.width / 2) - 180, // Center horizontally
-        y: bounds.y + 150, // Position near the top
+        x: bounds.x + (bounds.width / 2) - 180, // 水平居中
+        y: bounds.y + 150, // 定位到顶部附近
         width: 360,
         height: 210,
         frame: false,
@@ -295,9 +357,15 @@ function createAddFolderPopup(data) {
     });
 }
 
-function startClash() {
+function startClash(forceStart = false) {
+  // 如果已经在运行，直接返回
+  if (clashProcess) {
+    console.log('Clash process is already running');
+    return;
+  }
+
   const clashExe = 'mihomo.exe';
-  // Determine the base path based on whether the app is packaged or not.
+  // 根据应用是否打包来确定基本路径。
   const basePath = app.isPackaged
     ? path.join(process.resourcesPath, 'clash-meta')
     : path.join(__dirname, 'clash-meta');
@@ -306,14 +374,37 @@ function startClash() {
 
   console.log(`Starting Mihomo (Clash.Meta) from: ${clashPath}`);
 
-  // Start the Mihomo process.
-  // The '-d' argument specifies the directory where config.yaml is located.
+  // 启动 Mihomo 进程。
+  // '-d' 参数指定 config.yaml 所在的目录。
   clashProcess = spawn(clashPath, ['-d', basePath]);
+
+  let clashReady = false;
+  const setProxy = () => {
+      if (clashReady) return;
+      clashReady = true;
+
+      // 配置 Electron 使用代理
+      const proxyPort = 17890;
+      const proxyUrl = `http://127.0.0.1:${proxyPort}`;
+      session.defaultSession.setProxy({
+          proxyRules: proxyUrl,
+          proxyBypassRules: '<local>' // 绕过本地地址
+      }).then(() => {
+          console.log(`Proxy configured to use: ${proxyUrl}`);
+      }).catch(err => {
+          console.error('Failed to set proxy:', err);
+      });
+  };
 
   clashProcess.stdout.on('data', (data) => {
     const logMessage = data.toString();
     console.log(`Mihomo stdout: ${logMessage}`);
     if (mainWindow) mainWindow.webContents.send('mihomo-log', logMessage);
+
+    // 检测到代理端口成功监听的日志后，再设置代理
+    if (logMessage.includes('Mixed proxy listening at')) {
+        setProxy();
+    }
   });
 
   clashProcess.stderr.on('data', (data) => {
@@ -322,10 +413,20 @@ function startClash() {
     if (mainWindow) mainWindow.webContents.send('mihomo-log', logMessage);
   });
 
+  // 设置一个超时，以防Clash因为某些原因没有输出成功日志
+  setTimeout(() => {
+      if (!clashReady) {
+          console.warn('Clash process started but did not emit ready signal in time. Forcing proxy setup.');
+          setProxy();
+      }
+  }, 5000); // 5秒后强制设置
+
   clashProcess.on('close', (code) => {
     const logMessage = `Mihomo process exited with code ${code}`;
     console.log(logMessage);
     clashProcess = null;
+    console.error(logMessage);
+    if (mainWindow) mainWindow.webContents.send('mihomo-log', logMessage);
   });
 
   clashProcess.on('error', (err) => {
@@ -341,17 +442,63 @@ function stopClash() {
     clashProcess.kill();
     clashProcess = null;
   }
+  // 取消 Electron 的代理配置
+  // session.defaultSession.setProxy({
+  //     proxyRules: '' // 清空代理规则
+  // }).then(() => {
+  //     console.log('Proxy configuration cleared.');
+  // }).catch(err => {
+  //     console.error('Failed to clear proxy:', err);
+  // });
+}
+
+// --- 默认设置初始化 ---
+function initializeDefaultSettings() {
+    console.log('Checking and initializing default settings...');
+    
+    // 定义所有默认设置
+    const defaultSettings = {
+        'settings.startupOption': 'homepage',
+        'settings.startupCustomUrl': 'https://www.bing.com',
+        'settings.homepageOption': 'custom',
+        'settings.homepageCustomUrl': 'https://www.bing.com',
+        'settings.newtabOption': 'blank',
+        'settings.newtabCustomUrl': '',
+        'settings.toolbar.showToggleLogs': true,
+        'settings.toolbar.showFavorites': true,
+        'settings.toolbar.showHistory': true,
+        'settings.toolbar.showDownloads': true,
+        'settings.toolbar.showSettings': true,
+        'settings.toolbar.showHome': true
+    };
+    
+    // 检查并设置默认值
+    let hasInitialized = false;
+    for (const [key, defaultValue] of Object.entries(defaultSettings)) {
+        const currentValue = store.get(key);
+        if (currentValue === undefined || currentValue === null) {
+            store.set(key, defaultValue);
+            console.log(`Initialized setting: ${key} = ${defaultValue}`);
+            hasInitialized = true;
+        }
+    }
+    
+    if (hasInitialized) {
+        console.log('Default settings initialization complete.');
+    } else {
+        console.log('All settings already exist, no initialization needed.');
+    }
 }
 
 // --- IPC Handlers for Bookmarks (New Tree Structure) ---
 function initializeBookmarks() {
     const bookmarks = store.get('bookmarks');
-    // A more robust check. If the data is not an array, is empty, or doesn't contain the essential folders, reset it.
+    // 一个更健壮的检查。如果数据不是数组，为空，或不包含必要的文件夹，则重置它。
     const hasToolbar = bookmarks && Array.isArray(bookmarks) && bookmarks.some(folder => folder.id === 'toolbar');
     const hasOther = bookmarks && Array.isArray(bookmarks) && bookmarks.some(folder => folder.id === 'other');
 
     if (!hasToolbar || !hasOther) {
-        // If bookmarks are old format, non-existent, or missing essential folders, reset.
+        // 如果书签是旧格式、不存在或缺少必要的文件夹，则重置。
         store.set('bookmarks', [
             { id: 'toolbar', type: 'folder', title: '收藏栏', children: [] },
             { id: 'other', type: 'folder', title: '其他收藏', children: [] }
@@ -361,7 +508,7 @@ function initializeBookmarks() {
 
 const PROTECTED_FOLDER_IDS = ['toolbar', 'other'];
 
-// Helper for recursive search
+// 递归搜索辅助函数
 function findItem(nodes, id) {
     for (const node of nodes) {
         if (node.id === id) return { node, parent: nodes };
@@ -403,7 +550,7 @@ ipcMain.handle('update-bookmark', async (event, { id, title, url }) => {
 
 ipcMain.handle('delete-bookmarks', async (event, ids) => {
     let bookmarks = store.get('bookmarks', []);
-    // Prevent deletion of protected folders
+    // 防止删除受保护的文件夹
     const filteredIds = ids.filter(id => !PROTECTED_FOLDER_IDS.includes(id));
     const originalLength = bookmarks.length;
 
@@ -423,7 +570,7 @@ ipcMain.handle('delete-bookmarks', async (event, ids) => {
 
 ipcMain.handle('add-bookmark-folder', async (event, { parentId, title }) => {
     const bookmarks = store.get('bookmarks', []);
-    const parentFolder = findItem(bookmarks, parentId || 'other')?.node; // Default to 'other' if no parent
+    const parentFolder = findItem(bookmarks, parentId || 'other')?.node; // 如果没有父级，则默认为"其他"
      if (parentFolder && parentFolder.type === 'folder') {
         const newFolder = { id: `f-${Date.now()}`, type: 'folder', title, children: [] };
         parentFolder.children.push(newFolder);
@@ -446,7 +593,7 @@ ipcMain.handle('update-bookmark-folder', async (event, { id, title }) => {
     return { success: false };
 });
 
-// Note: deleteBookmarkFolder is covered by deleteBookmarks, so we need to protect it there.
+// 注意：deleteBookmarkFolder 已被 deleteBookmarks 覆盖，所以我们需要在那里保护它。
 
 // --- IPC Handlers for Popup ---
 ipcMain.on('open-add-bookmark-popup', (event, data) => {
@@ -464,7 +611,7 @@ ipcMain.on('close-popup-and-refresh', (event) => {
     if (addFolderPopup) {
         addFolderPopup.close();
     }
-    // Notify main window to refresh its bookmark state
+    // 通知主窗口刷新其书签状态
     mainWindow.webContents.send('bookmark-updated');
 });
 
@@ -611,7 +758,7 @@ ipcMain.handle('show-download-in-folder', async (event, downloadId) => {
 
 ipcMain.on('open-in-new-tab', (event, url) => {
     if (mainWindow) {
-        // If a specific URL is provided, open it. Otherwise, use the new tab page setting.
+        // 如果提供了特定的 URL，则打开它。否则，使用新标签页设置。
         const urlToOpen = url || getNewTabPageUrl();
         mainWindow.webContents.send('new-tab-request', urlToOpen);
         mainWindow.focus();
@@ -632,6 +779,64 @@ ipcMain.handle('set-setting', (event, { key, value }) => {
     return { success: true };
 });
 
+// --- 数据重置功能 ---
+ipcMain.handle('show-confirm-dialog', async (event, options) => {
+    const { dialog } = require('electron');
+    if (!mainWindow) return { response: 1 }; // Fallback if no window
+    return await dialog.showMessageBox(mainWindow, options);
+});
+
+ipcMain.handle('reset-all-data', async (event) => {
+    try {
+        const path = require('path');
+        const fs = require('fs');
+        
+        console.log('Data initialization Start...');
+        
+        // 清空存储的所有数据
+        store.clear();
+        
+        // 重新初始化必要的默认数据
+        initializeDefaultSettings();
+        initializeBookmarks();
+        
+        // 清空用户数据目录（缓存、Cookie等）
+        const { app, session } = require('electron');
+        const defaultSession = session.defaultSession;
+        
+        // 清除所有存储数据
+        await defaultSession.clearStorageData({
+            storages: [
+                'appcache',
+                'cookies',
+                'filesystem',
+                'indexdb',
+                'localstorage',
+                'shadercache',
+                'websql',
+                'serviceworkers',
+                'cachestorage'
+            ]
+        });
+        
+        // 清除缓存
+        await defaultSession.clearCache();
+        
+        console.log('Data initialization completed. Preparing to restart the application...');
+        
+        // 延迟一段时间后重启应用
+        setTimeout(() => {
+            app.relaunch();
+            app.exit(0);
+        }, 1000);
+        
+        return { success: true };
+    } catch (error) {
+        console.error('数据初始化失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
 ipcMain.handle('get-clash-config', async () => {
     try {
         const configPath = path.join(__dirname, 'clash-meta', 'config.yaml');
@@ -646,11 +851,30 @@ ipcMain.handle('get-clash-config', async () => {
 ipcMain.handle('restart-clash', async () => {
     console.log('Restarting Clash process requested...');
     stopClash();
-    // Give it a moment to release resources before starting again
+    // 在重新开始前给它一点时间释放资源
     setTimeout(() => {
         startClash();
     }, 500);
     return { success: true };
+});
+
+ipcMain.handle('toggle-proxy', async () => {
+    try {
+        if (clashProcess) {
+            // 当前运行中，停止代理
+            console.log('Stopping proxy process...');
+            stopClash();
+            return { success: true, action: 'stopped' };
+        } else {
+            // 当前未运行，启动代理
+            console.log('Starting proxy process...');
+            startClash();
+            return { success: true, action: 'started' };
+        }
+    } catch (error) {
+        console.error('Toggle proxy failed:', error);
+        return { success: false, error: error.message };
+    }
 });
 
 ipcMain.handle('clear-browsing-data', async (event, dataTypes) => {
@@ -700,40 +924,58 @@ ipcMain.handle('get-window-bounds', () => {
     return { x: bounds.x, y: bounds.y };
 });
 
-app.whenReady().then(async () => {
-  // 默认关闭Mihomo代理功能，如需使用请在设置中手动启动
-  // startClash();
-  
-  // Initialize data stores
+ipcMain.on('toggle-main-devtools', () => {
+    if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.toggleDevTools();
+    }
+});
+
+// --- 会话恢复功能 ---
+ipcMain.handle('save-session-state', async (event, sessionData) => {
+    saveSessionState(sessionData);
+    return { success: true };
+});
+
+ipcMain.handle('get-session-state', async () => {
+    return getSessionState();
+});
+
+ipcMain.handle('clear-session-state', async () => {
+    store.delete('sessionState');
+    return { success: true };
+});
+
+// --- 异常关闭检测 ---
+ipcMain.handle('check-crash-recovery', async () => {
+    const appCrashedLastTime = store.get('appCrashedLastTime', false);
+    return { crashed: appCrashedLastTime };
+});
+
+app.whenReady().then(() => {
+  initializeDefaultSettings();
   initializeBookmarks();
-
-  // 默认关闭代理配置，使用直连模式
-  // const proxyRules = 'http=127.0.0.1:17890;https=127.0.0.1:17890';
-  // await session.defaultSession.setProxy({
-  //   proxyRules: proxyRules,
-  //   // You can add bypass rules for local addresses if needed.
-  //   proxyBypassRules: '<local>'
-  // });
-  // console.log(`Proxy configured to: ${proxyRules}`);
-
+  startClash(); // 已移除：不再自动启动代理
   createWindow();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
+  // 应用正常启动，清除异常关闭标记
+  store.set('appCrashedLastTime', false);
 });
 
 app.on('window-all-closed', () => {
-  // On macOS it's common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
   if (process.platform !== 'darwin') {
+    // 应用正常关闭，清除异常关闭标记
+    store.set('appCrashedLastTime', false);
     app.quit();
   }
 });
 
-// Make sure to stop the Mihomo process when the app quits.
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
+// 确保在应用退出时停止 Mihomo 进程。
 app.on('will-quit', () => {
   stopClash();
 }); 

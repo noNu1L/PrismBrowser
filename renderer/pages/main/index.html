@@ -430,46 +430,23 @@
             });
             
             webview.addEventListener('did-start-loading', () => { 
-                tabsManager.showLoadingIndicator(el, true);
+                tabsManager.showLoading(el);
                 if (titleEl.textContent === '新标签页') {
-                    const url = webview.getURL() || webview.src;
-                    titleEl.textContent = getHostname(url);
+                    try {
+                        const url = (webview.getURL && webview.getURL()) || webview.src || '';
+                        if (url) {
+                            titleEl.textContent = getHostname(url);
+                        }
+                    } catch (error) {
+                        console.error('Error getting URL for title update:', error);
+                        // 保持原标题或使用默认值
+                    }
                 }
                 addressBarManager.updateNavButtonsState(); 
             });
 
-            webview.addEventListener('did-finish-load', async () => {
-                tabsManager.showLoadingIndicator(el, false);
-                const url = webview.getURL();
-                const title = webview.getTitle();
-                if (url && title && url !== 'about:blank' && !url.startsWith('file://')) {
-                    window.api.addHistory({ url, title, favicon: tab.favicon, timestamp: new Date().toISOString() });
-                }
-
-                const currentIcon = el.querySelector('.tab-icon');
-                if (currentIcon && currentIcon.classList.contains('loading-spinner')) {
-                    try {
-                        const faviconURL = await webview.executeJavaScript(`
-                            (() => {
-                                const icon = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
-                                return icon ? icon.href : null;
-                            })();
-                        `);
-                        if (faviconURL) {
-                            tab.favicon = faviconURL;
-                            tabsManager.setTabIcon(el, `<img class="tab-icon" src="${faviconURL}">`);
-                        } else {
-                            tabsManager.setTabIcon(el, defaultGlobeIcon);
-                        }
-                    } catch (error) {
-                        console.error('通过 JS 获取网站图标时出错:', error);
-                        tabsManager.setTabIcon(el, defaultGlobeIcon);
-                    }
-                }
-            });
-
             webview.addEventListener('did-stop-loading', () => {
-                tabsManager.showLoadingIndicator(el, false);
+                tabsManager.hideLoading(el);
                 addressBarManager.updateNavButtonsState();
             });
 
@@ -477,14 +454,20 @@
                 if (id === tabsManager.activeTabId) {
                     const displayUrl = tab.internalUrl || e.url;
                     addressBarManager.urlInput.value = displayUrl;
-                    addressBarManager.updateBookmarkStar(e.url);
+                    try {
+                        // 安全地获取URL用于更新收藏星标
+                        const bookmarkUrl = e.url || (webview.getURL ? webview.getURL() : '');
+                        addressBarManager.updateBookmarkStar(bookmarkUrl);
+                    } catch (error) {
+                        console.error('Error updating bookmark star on navigate:', error);
+                        addressBarManager.updateBookmarkStar('');
+                    }
                 }
                 addressBarManager.updateNavButtonsState();
             });
 
             webview.addEventListener('did-fail-load', (e) => {
-                if (e.errorCode === -3) return;
-                tabsManager.showLoadingIndicator(el, false);
+                if (e.errorCode === -3) return; // -3 is ABORTED, we can ignore it.
                 
                 titleEl.textContent = getHostname(e.validatedURL);
 
@@ -495,161 +478,127 @@
                 }
             });
 
-            // 处理新窗口/新标签页请求
+            // Handle new windows (e.g., target="_blank")
             webview.addEventListener('new-window', (e) => {
-                console.log('new-window 事件触发:', e.url, 'disposition:', e.disposition);
-                e.preventDefault(); // 阻止默认行为
-                // 在新标签页中打开链接
+                e.preventDefault(); // Prevent default Electron window behavior
                 tabsManager.createNewTab(e.url);
             });
-
-            // 添加额外的DOM就绪事件监听器来注入链接拦截脚本
-            webview.addEventListener('dom-ready', () => {
-                // 注入JavaScript来拦截目标为_blank的链接和中键点击
-                webview.executeJavaScript(`
-                    (function() {
-                        console.log('链接拦截脚本已注入');
-                        
-                        // 拦截所有链接点击
-                        document.addEventListener('click', function(e) {
-                            const link = e.target.closest('a');
-                            if (link) {
-                                const href = link.href || link.getAttribute('href');
-                                // 检查是否应该在新标签页打开
-                                const shouldOpenNewTab = link.target === '_blank' || 
-                                                        e.ctrlKey || 
-                                                        e.metaKey || 
-                                                        e.button === 1; // 中键点击
-                                                        
-                                if (shouldOpenNewTab && href && (href.startsWith('http') || href.startsWith('https'))) {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    console.log('拦截到新标签页链接:', href);
-                                    
-                                    // 创建一个临时的标记元素来触发事件
-                                    const marker = document.createElement('div');
-                                    marker.style.display = 'none';
-                                    marker.setAttribute('data-new-tab-url', href);
-                                    marker.setAttribute('data-event-type', 'link-click');
-                                    document.body.appendChild(marker);
-                                    
-                                    // 立即移除标记元素
-                                    setTimeout(() => {
-                                        if (marker.parentNode) {
-                                            marker.parentNode.removeChild(marker);
-                                        }
-                                    }, 100);
-                                }
-                            }
-                        }, true);
-
-                        // 拦截鼠标中键点击
-                        document.addEventListener('auxclick', function(e) {
-                            if (e.button === 1) { // 中键
-                                const link = e.target.closest('a');
-                                if (link) {
-                                    const href = link.href || link.getAttribute('href');
-                                    if (href && (href.startsWith('http') || href.startsWith('https'))) {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        console.log('拦截到中键点击链接:', href);
-                                        
-                                        const marker = document.createElement('div');
-                                        marker.style.display = 'none';
-                                        marker.setAttribute('data-new-tab-url', href);
-                                        marker.setAttribute('data-event-type', 'middle-click');
-                                        document.body.appendChild(marker);
-                                        
-                                        setTimeout(() => {
-                                            if (marker.parentNode) {
-                                                marker.parentNode.removeChild(marker);
-                                            }
-                                        }, 100);
-                                    }
-                                }
-                            }
-                        }, true);
-
-                        // 拦截window.open调用
-                        const originalOpen = window.open;
-                        window.open = function(url, target, features) {
-                            if (url && (url.startsWith('http') || url.startsWith('https'))) {
-                                console.log('拦截到window.open调用:', url);
-                                
-                                const marker = document.createElement('div');
-                                marker.style.display = 'none';
-                                marker.setAttribute('data-new-tab-url', url);
-                                marker.setAttribute('data-event-type', 'window-open');
-                                document.body.appendChild(marker);
-                                
-                                setTimeout(() => {
-                                    if (marker.parentNode) {
-                                        marker.parentNode.removeChild(marker);
-                                    }
-                                }, 100);
-                                
-                                return null; // 阻止原始的window.open
-                            }
-                            return originalOpen.call(this, url, target, features);
-                        };
-                    })();
-                `).catch(error => {
-                    console.error('注入链接拦截脚本失败:', error);
-                });
-            });
-
-            // 定期检查webview中的新标签页请求标记
-            const checkForNewTabRequests = () => {
-                webview.executeJavaScript(`
-                    (() => {
-                        const markers = document.querySelectorAll('[data-new-tab-url]');
-                        const urls = [];
-                        markers.forEach(marker => {
-                            urls.push(marker.getAttribute('data-new-tab-url'));
-                            marker.remove();
-                        });
-                        return urls;
-                    })();
-                `).then(urls => {
-                    urls.forEach(url => {
-                        if (url) {
-                            console.log('检测到新标签页请求:', url);
-                            tabsManager.createNewTab(url);
-                        }
-                    });
-                }).catch(error => {
-                    // 忽略执行错误，可能是页面还没准备好
-                });
-            };
-
-            // 每100ms检查一次新标签页请求
-            const newTabCheckInterval = setInterval(checkForNewTabRequests, 100);
-            
-            // 当webview销毁时清理定时器
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    mutation.removedNodes.forEach((node) => {
-                        if (node === webview) {
-                            clearInterval(newTabCheckInterval);
-                            observer.disconnect();
-                        }
-                    });
-                });
-            });
-            observer.observe(document.getElementById('webview-container'), { childList: true });
-
-            // 监听console消息来调试
-            webview.addEventListener('console-message', (e) => {
-                if (e.message.includes('拦截到') || e.message.includes('链接拦截脚本')) {
-                    console.log('Webview console:', e.message);
-                }
-            });
-
-
         };
 
         // 设置全局函数可访问
         window.addWebviewListeners = addWebviewListeners;
+
+        // --- 会话状态管理 ---
+        let sessionSaveTimer = null;
+        
+        // 保存当前会话状态
+        async function saveCurrentSession() {
+            try {
+                // 检查是否有标签页管理器和标签页
+                if (!tabsManager || !tabsManager.tabs || tabsManager.tabs.length === 0) {
+                    // 没有标签页时，清除会话状态而不是保存空状态
+                    await window.api.clearSessionState();
+                    return;
+                }
+
+                const tabs = tabsManager.tabs.map(tab => {
+                    let url = 'about:blank';
+                    try {
+                        if (tab.internalUrl) {
+                            url = tab.internalUrl;
+                        } else if (tab.webview && typeof tab.webview.getURL === 'function') {
+                            const webviewUrl = tab.webview.getURL();
+                            if (webviewUrl && webviewUrl !== '' && !webviewUrl.startsWith('file://')) {
+                                url = webviewUrl;
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('获取标签页URL失败:', error);
+                    }
+                    
+                    return {
+                        url: url,
+                        title: tab.el.querySelector('.tab-title').textContent || '新标签页'
+                    };
+                });
+                
+                // 只保存有效的标签页（非空白页和非文件协议）
+                const validTabs = tabs.filter(tab => 
+                    tab.url !== 'about:blank' && 
+                    !tab.url.startsWith('file://') &&
+                    tab.url !== ''
+                );
+                
+                if (validTabs.length > 0) {
+                    const activeTabIndex = tabsManager.tabs.findIndex(tab => tab.id === tabsManager.activeTabId);
+                    const sessionData = {
+                        tabs: validTabs,
+                        activeTabIndex: Math.max(0, activeTabIndex) // 确保索引有效
+                    };
+                    await window.api.saveSessionState(sessionData);
+                } else {
+                    // 没有有效标签页时，清除会话状态
+                    await window.api.clearSessionState();
+                }
+            } catch (error) {
+                console.error('保存会话状态失败:', error);
+            }
+        }
+        
+        // 设置会话状态自动保存
+        function setupSessionSaving() {
+            // 每30秒自动保存一次会话状态
+            sessionSaveTimer = setInterval(() => {
+                saveCurrentSession();
+            }, 30000);
+            
+            // 监听页面卸载事件，在关闭前保存会话
+            window.addEventListener('beforeunload', () => {
+                saveCurrentSession();
+            });
+            
+            // 监听标签页变化，对于关闭操作立即保存，其他操作延迟保存
+            const debouncedSave = debounce(saveCurrentSession, 5000);
+            
+            // 重写 TabsManager 的方法以触发会话保存
+            const originalCreateNewTab = tabsManager.createNewTab.bind(tabsManager);
+            const originalCloseTab = tabsManager.closeTab.bind(tabsManager);
+            const originalSwitchToTab = tabsManager.switchToTab.bind(tabsManager);
+            
+            tabsManager.createNewTab = function(...args) {
+                const result = originalCreateNewTab(...args);
+                debouncedSave(); // 创建新标签页使用防抖
+                return result;
+            };
+            
+            tabsManager.closeTab = function(...args) {
+                const result = originalCloseTab(...args);
+                // 标签页关闭后立即保存会话状态（如果还有标签页的话）
+                if (this.tabs.length > 0) {
+                    saveCurrentSession();
+                }
+                return result;
+            };
+            
+            tabsManager.switchToTab = function(...args) {
+                const result = originalSwitchToTab(...args);
+                debouncedSave(); // 切换标签页使用防抖
+                return result;
+            };
+        }
+        
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
 
 
 
@@ -668,21 +617,15 @@
 
         // 监听下载事件
         window.api.onDownloadStarted((downloadItem) => {
-            console.log('Renderer received download started event:', downloadItem);
             // 自动显示下载弹窗，稍微延迟以确保组件已完全初始化
             setTimeout(() => {
-                console.log('Attempting to show downloads popup, addressBarManager:', !!window.addressBarManager);
                 if (window.addressBarManager && window.addressBarManager.showDownloadsPopup) {
-                    console.log('Calling showDownloadsPopup...');
                     window.addressBarManager.showDownloadsPopup();
-                } else {
-                    console.error('addressBarManager or showDownloadsPopup method not available');
                 }
             }, 500);
         });
 
         window.api.onDownloadProgress((downloadItem) => {
-            console.log('Download progress updated:', downloadItem);
             // 如果下载弹窗打开，刷新内容
             const popup = document.getElementById('downloads-popup');
             if (popup && popup.style.display === 'block' && window.addressBarManager) {
@@ -691,7 +634,6 @@
         });
 
         window.api.onDownloadCompleted((downloadItem) => {
-            console.log('Download completed:', downloadItem);
             // 如果下载弹窗打开，刷新内容
             const popup = document.getElementById('downloads-popup');
             if (popup && popup.style.display === 'block' && window.addressBarManager) {
@@ -704,11 +646,123 @@
         maximizeBtn.addEventListener('click', () => window.api.sendWindowControl('maximize'));
         closeBtn.addEventListener('click', () => window.api.sendWindowControl('close'));
 
+        // --- 异常关闭恢复对话框 ---
+        async function showCrashRecoveryDialog() {
+            return new Promise((resolve) => {
+                // 创建模态对话框
+                const dialog = document.createElement('div');
+                dialog.className = 'crash-recovery-dialog';
+                dialog.innerHTML = `
+                    <div class="dialog-overlay">
+                        <div class="dialog-content">
+                            <h2>恢复会话</h2>
+                            <p>检测到浏览器上次异常关闭，是否恢复上次的浏览会话？</p>
+                            <div class="dialog-buttons">
+                                <button id="restore-session-btn" class="primary-btn">恢复会话</button>
+                                <button id="new-session-btn" class="secondary-btn">重新开始</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 添加样式
+                const style = document.createElement('style');
+                style.textContent = `
+                    .crash-recovery-dialog {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        z-index: 10000;
+                    }
+                    .dialog-overlay {
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.5);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .dialog-content {
+                        background: #fff;
+                        border-radius: 8px;
+                        padding: 24px;
+                        width: 400px;
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                    }
+                    .dialog-content h2 {
+                        margin: 0 0 12px 0;
+                        color: #333;
+                        font-size: 18px;
+                    }
+                    .dialog-content p {
+                        margin: 0 0 20px 0;
+                        color: #666;
+                        line-height: 1.4;
+                    }
+                    .dialog-buttons {
+                        display: flex;
+                        gap: 12px;
+                        justify-content: flex-end;
+                    }
+                    .dialog-buttons button {
+                        padding: 8px 16px;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    }
+                    .primary-btn {
+                        background: #007acc;
+                        color: white;
+                    }
+                    .primary-btn:hover {
+                        background: #005f99;
+                    }
+                    .secondary-btn {
+                        background: #f1f1f1;
+                        color: #333;
+                    }
+                    .secondary-btn:hover {
+                        background: #e0e0e0;
+                    }
+                `;
+                
+                document.head.appendChild(style);
+                document.body.appendChild(dialog);
+                
+                // 绑定按钮事件
+                document.getElementById('restore-session-btn').addEventListener('click', () => {
+                    document.body.removeChild(dialog);
+                    document.head.removeChild(style);
+                    resolve(true);
+                });
+                
+                document.getElementById('new-session-btn').addEventListener('click', () => {
+                    document.body.removeChild(dialog);
+                    document.head.removeChild(style);
+                    resolve(false);
+                });
+            });
+        }
+
+        // --- 应用关闭前处理 ---
+        window.api.onAppBeforeQuit(async () => {
+            // 只有在还有标签页的情况下才保存会话状态
+            if (window.tabsManager && window.tabsManager.tabs.length > 0) {
+                await saveCurrentSession();
+            } else {
+                // 如果没有标签页，清除会话状态
+                await window.api.clearSessionState();
+            }
+            // 确认关闭
+            window.api.confirmAppClose();
+        });
+
         // --- 组件加载函数 ---
         async function loadComponents() {
             try {
-                console.log('🔄 开始加载组件...');
-                
                 // 加载标签栏组件
                 const tabsResponse = await fetch('tabs/tabs.html');
                 if (!tabsResponse.ok) {
@@ -716,7 +770,6 @@
                 }
                 const tabsHTML = await tabsResponse.text();
                 document.getElementById('tabs-bar-container').innerHTML = tabsHTML;
-                console.log('✅ 标签栏组件加载完成');
 
                 // 加载地址栏组件
                 const addressbarResponse = await fetch('addressbar/addressbar.html');
@@ -725,7 +778,6 @@
                 }
                 const addressbarHTML = await addressbarResponse.text();
                 document.getElementById('addressbar-container').innerHTML = addressbarHTML;
-                console.log('✅ 地址栏组件加载完成');
 
                 // 加载收藏夹栏组件
                 const bookmarksResponse = await fetch('bookmarks-bar/bookmarks-bar.html');
@@ -734,7 +786,6 @@
                 }
                 const bookmarksHTML = await bookmarksResponse.text();
                 document.getElementById('bookmarks-bar-container').innerHTML = bookmarksHTML;
-                console.log('✅ 收藏夹栏组件加载完成');
 
                 // 加载日志查看器组件
                 const logViewerResponse = await fetch('log-viewer/log-viewer.html');
@@ -743,9 +794,7 @@
                 }
                 const logViewerHTML = await logViewerResponse.text();
                 document.getElementById('log-viewer-container').innerHTML = logViewerHTML;
-                console.log('✅ 日志查看器组件加载完成');
                 
-                console.log('✅ 所有组件加载完成');
                 return true;
             } catch (error) {
                 console.error('❌ 组件加载失败:', error);
@@ -757,7 +806,19 @@
         // --- 主初始化函数 ---
         const init = async () => {
             try {
-                console.log('🚀 开始初始化应用程序...');
+                // 0. 检查是否需要异常关闭恢复
+                const crashRecovery = await window.api.checkCrashRecovery();
+                if (crashRecovery.crashed) {
+                    const shouldRestore = await showCrashRecoveryDialog();
+                    if (shouldRestore) {
+                        // 用户选择恢复，设置启动选项为恢复模式
+                        await window.api.setSetting('tempStartupOption', 'restore');
+                    } else {
+                        // 用户选择不恢复，清除会话状态
+                        await window.api.clearSessionState();
+                        await window.api.setSetting('tempStartupOption', 'normal');
+                    }
+                }
                 
                 // 1. 首先加载组件 HTML
                 const componentsLoaded = await loadComponents();
@@ -768,7 +829,6 @@
                 }
                 
                 // 2. 初始化组件管理器
-                console.log('🔧 初始化组件管理器...');
                 tabsManager = new TabsManager();
                 addressBarManager = new AddressBarManager();
                 bookmarksBarManager = new BookmarksBarManager();
@@ -781,49 +841,74 @@
                 window.logViewerManager = logViewerManager;
                 
                 // 根据启动时设置决定打开什么页面
-                const startupOption = await window.api.getSetting('settings.startupOption') || 'homepage';
-                let startupUrl;
+                const tempStartupOption = await window.api.getSetting('tempStartupOption');
+                const startupOption = tempStartupOption || await window.api.getSetting('settings.startupOption') || 'homepage';
                 
-                if (startupOption === 'homepage') {
-                    const homepageOption = await window.api.getSetting('settings.homepageOption') || 'custom';
-                    if (homepageOption === 'newtab') {
-                        const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
-                        startupUrl = newtabOption === 'blank' ? 'about:blank' : 
-                                    (await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com');
-                    } else {
-                        startupUrl = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
-                    }
-                } else if (startupOption === 'newtab') {
-                    const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
-                    startupUrl = newtabOption === 'blank' ? 'about:blank' : 
-                                (await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com');
-                } else if (startupOption === 'custom') {
-                    startupUrl = await window.api.getSetting('settings.startupCustomUrl') || 'https://www.google.com';
-                } else {
-                    startupUrl = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
+                // 清除临时启动选项
+                if (tempStartupOption) {
+                    await window.api.setSetting('tempStartupOption', null);
                 }
                 
-                tabsManager.createNewTab(startupUrl);
-                console.log('✅ 应用程序初始化完成');
-                
-                // 测试下载弹窗是否工作（调试用）
-                setTimeout(() => {
-                    console.log('Testing downloads popup functionality...');
-                    if (window.addressBarManager && window.addressBarManager.showDownloadsPopup) {
-                        console.log('addressBarManager.showDownloadsPopup available');
-                        
-                        // 添加测试快捷键 Ctrl+Shift+D 来手动触发下载弹窗
-                        document.addEventListener('keydown', (e) => {
-                            if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-                                console.log('Manual test: showing downloads popup...');
-                                window.addressBarManager.showDownloadsPopup();
+                if (startupOption === 'restore') {
+                    // 会话恢复模式
+                    try {
+                        const sessionState = await window.api.getSessionState();
+                        if (sessionState && sessionState.tabs && sessionState.tabs.length > 0) {
+                            // 恢复所有标签页 - 加入延迟避免ID冲突
+                            for (let i = 0; i < sessionState.tabs.length; i++) {
+                                const tab = sessionState.tabs[i];
+                                
+                                // 第一个标签页不隐藏，其他隐藏 - 让TabsManager自然处理激活状态
+                                const shouldHide = i > 0;
+                                
+                                // 添加微小延迟确保每个标签页有唯一的时间戳
+                                if (i > 0) {
+                                    await new Promise(resolve => setTimeout(resolve, 1));
+                                }
+                                
+                                tabsManager.createNewTab(tab.url, shouldHide);
                             }
-                        });
-                        
-                    } else {
-                        console.error('addressBarManager.showDownloadsPopup not available during init');
+                        } else {
+                            // 没有会话数据，创建默认标签页
+                            const homepageOption = await window.api.getSetting('settings.homepageOption') || 'custom';
+                            const defaultUrl = homepageOption === 'blank' ? 'about:blank' : 
+                                              await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.bing.com';
+                            tabsManager.createNewTab(defaultUrl);
+                        }
+                    } catch (error) {
+                        console.error('恢复会话失败:', error);
+                        // 出错时创建默认标签页
+                        tabsManager.createNewTab('https://www.bing.com');
                     }
-                }, 2000);
+                } else {
+                    // 正常启动模式
+                    let startupUrl;
+                    
+                    if (startupOption === 'blank') {
+                        startupUrl = 'about:blank';
+                    } else if (startupOption === 'homepage') {
+                        const homepageOption = await window.api.getSetting('settings.homepageOption') || 'custom';
+                        if (homepageOption === 'blank') {
+                            startupUrl = 'about:blank';
+                        } else {
+                            startupUrl = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.bing.com';
+                        }
+                    } else if (startupOption === 'custom') {
+                        startupUrl = await window.api.getSetting('settings.startupCustomUrl') || 'https://www.bing.com';
+                    } else {
+                        // 默认回退到主页
+                        const homepageOption = await window.api.getSetting('settings.homepageOption') || 'custom';
+                        if (homepageOption === 'blank') {
+                            startupUrl = 'about:blank';
+                        } else {
+                            startupUrl = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.bing.com';
+                        }
+                    }
+                    
+                    tabsManager.createNewTab(startupUrl);
+                }
+                // 设置会话状态保存
+                setupSessionSaving();
             } catch (error) {
                 console.error('❌ 应用程序初始化失败:', error);
             }
@@ -836,6 +921,13 @@
         window.api.onBookmarkUpdated(() => {
             if (window.bookmarksBarManager) {
                 window.bookmarksBarManager.refreshBookmarks();
+            }
+        });
+
+        // 页面卸载时清理资源
+        window.addEventListener('beforeunload', () => {
+            if (window.tabsManager && window.tabsManager.cleanup) {
+                window.tabsManager.cleanup();
             }
         });
     </script>

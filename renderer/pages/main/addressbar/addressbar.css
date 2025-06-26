@@ -7,8 +7,8 @@
     border-bottom: 1px solid var(--border-color-secondary); 
     flex-shrink: 0; 
     position: relative; 
-    z-index: 1; 
-    -webkit-app-region: no-drag; 
+    z-index: 900; 
+    -webkit-app-region: no-drag;
 }
 
 #nav-buttons { 

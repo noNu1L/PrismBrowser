@@ -1,28 +1,27 @@
-// All of the Node.js APIs are available in the preload process.
-// It has the same sandbox as a Chrome extension.
-// We can use the contextBridge to expose specific functions to the renderer process
-// for safe communication with the main process.
+// 在预加载进程中，所有 Node.js API 都是可用的。
+// 它拥有与 Chrome 扩展程序相同的沙盒环境。
+// 我们可以使用 contextBridge 将特定功能安全地暴露给渲染进程，
+// 以便与主进程进行安全通信。
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose a safe, limited API to the renderer process.
+// 向渲染器进程暴露一个安全的、有限的API。
 contextBridge.exposeInMainWorld('api', {
   /**
-   * Provide a function to the renderer that will be called every time a
-   * 'mihomo-log' message is received from the main process.
-   * @param {function(string)} callback The function to call with the log data.
+   * 为渲染器提供一个函数，每当从主进程接收到 'mihomo-log' 消息时，该函数都将被调用。
+   * @param {function(string)} callback 要使用日志数据调用的函数。
    */
   onMihomoLog: (callback) => {
     ipcRenderer.on('mihomo-log', (_event, value) => callback(value));
   },
-  // --- Bookmarks (Tree Structure) ---
+  // --- 书签 (树状结构) ---
   getBookmarksTree: () => ipcRenderer.invoke('get-bookmarks-tree'),
   addBookmark: (data) => ipcRenderer.invoke('add-bookmark', data),
   updateBookmark: (data) => ipcRenderer.invoke('update-bookmark', data),
   deleteBookmarks: (ids) => ipcRenderer.invoke('delete-bookmarks', ids),
   addBookmarkFolder: (data) => ipcRenderer.invoke('add-bookmark-folder', data),
   updateBookmarkFolder: (data) => ipcRenderer.invoke('update-bookmark-folder', data),
-  // --- History ---
+  // --- 历史记录 ---
   getHistory: () => ipcRenderer.invoke('get-history'),
   addHistory: (item) => ipcRenderer.invoke('add-history', item),
   deleteHistoryItems: (urls) => ipcRenderer.invoke('delete-history-items', urls),
@@ -36,7 +35,7 @@ contextBridge.exposeInMainWorld('api', {
   onNewTabRequest: (callback) => {
     ipcRenderer.on('new-tab-request', (_event, url) => callback(url));
   },
-  // --- Downloads ---
+  // --- 下载 ---
   getDownloads: () => ipcRenderer.invoke('get-downloads'),
   addDownload: (item) => ipcRenderer.invoke('add-download', item),
   updateDownload: (id, data) => ipcRenderer.invoke('update-download', { id, data }),
@@ -59,29 +58,46 @@ contextBridge.exposeInMainWorld('api', {
   onDownloadCompleted: (callback) => {
     ipcRenderer.on('download-completed', (_event, downloadItem) => callback(downloadItem));
   },
-  // --- Settings ---
+  // --- 设置 ---
   getSetting: (key) => ipcRenderer.invoke('get-setting', key),
   setSetting: (key, value) => ipcRenderer.invoke('set-setting', { key, value }),
   getClashConfig: () => ipcRenderer.invoke('get-clash-config'),
   restartClash: () => ipcRenderer.invoke('restart-clash'),
+  toggleProxy: () => ipcRenderer.invoke('toggle-proxy'),
   clearBrowsingData: (dataTypes) => ipcRenderer.invoke('clear-browsing-data', dataTypes),
+  resetAllData: () => ipcRenderer.invoke('reset-all-data'),
   onSettingUpdated: (callback) => {
     ipcRenderer.on('setting-updated', (_event, { key, value }) => callback({ key, value }));
   },
-  // --- Window ---
+  showConfirmDialog: (options) => ipcRenderer.invoke('show-confirm-dialog', options),
+  // --- 窗口 ---
   sendWindowControl: (action) => ipcRenderer.send('window-control', action),
   getWindowBounds: () => ipcRenderer.invoke('get-window-bounds'),
-  // openLogWindow: () => ipcRenderer.send('open-log-window'), // No longer needed
-  // --- Popups ---
+  onWindowBlurred: (callback) => ipcRenderer.on('window-blurred', () => callback()),
+  // openLogWindow: () => ipcRenderer.send('open-log-window'), // 不再需要
+  // --- 弹窗 ---
   openAddBookmarkPopup: (data) => ipcRenderer.send('open-add-bookmark-popup', data),
   openAddFolderPopup: (data) => ipcRenderer.send('open-add-folder-popup', data),
   onPopupData: (callback) => ipcRenderer.on('popup-data', (_event, data) => callback(data)),
   closePopupAndRefresh: () => ipcRenderer.send('close-popup-and-refresh'),
   onBookmarkUpdated: (callback) => ipcRenderer.on('bookmark-updated', () => callback()),
   getPreloadPath: () => ipcRenderer.invoke('get-preload-path'),
+  // --- 开发者工具 ---
+  toggleMainDevTools: () => ipcRenderer.send('toggle-main-devtools'),
+  
+  // --- 会话管理 ---
+  saveSessionState: (sessionData) => ipcRenderer.invoke('save-session-state', sessionData),
+  getSessionState: () => ipcRenderer.invoke('get-session-state'),
+  clearSessionState: () => ipcRenderer.invoke('clear-session-state'),
+  
+  // --- 应用生命周期 ---
+  checkCrashRecovery: () => ipcRenderer.invoke('check-crash-recovery'),
+  confirmAppClose: () => ipcRenderer.send('confirm-app-close'),
+  lastTabClosed: () => ipcRenderer.send('last-tab-closed'),
+  onAppBeforeQuit: (callback) => ipcRenderer.on('app-before-quit', () => callback())
 });
 
 window.addEventListener('DOMContentLoaded', () => {
-    // You can add code here to run when the renderer process's DOM is ready.
+    // 你可以在这里添加当渲染器进程的 DOM 准备就绪时运行的代码。
     console.log('Preload script loaded and API exposed.');
 }); 

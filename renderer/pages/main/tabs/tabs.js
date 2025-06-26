@@ -64,7 +64,7 @@ class TabsManager {
             if (newtabOption === 'blank') {
                 urlToLoad = 'about:blank';
             } else {
-                urlToLoad = await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com';
+                urlToLoad = await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.bing.com';
             }
         }
 
@@ -102,7 +102,8 @@ class TabsManager {
             systemPageInfo = window.INTERNAL_PROTOCOLS[internalUrl];
         }
 
-        const tabId = `tab-${Date.now()}`;
+        // 使用更唯一的ID生成方法，包括随机数避免冲突
+        const tabId = `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
         const tabEl = document.createElement('div');
         tabEl.className = 'tab-item';
@@ -115,7 +116,6 @@ class TabsManager {
         tabEl.innerHTML = `
             <div class="tab-icon-container">
                 ${initialIcon}
-                <div class="loading-spinner"></div>
             </div>
             <span class="tab-title">${initialTitle}</span>
             <button class="close-tab" title="关闭标签页">&times;</button>
@@ -163,11 +163,27 @@ class TabsManager {
         // 在用户输入可能导致的任何导航之前附加监听器
         window.addWebviewListeners(newTab);
 
-        tabEl.addEventListener('click', () => this.switchToTab(tabId));
-        tabEl.querySelector('.close-tab').addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.closeTab(tabId);
-        });
+        // 使用立即执行函数确保每个标签页都有独立的闭包
+        ((currentTabId) => {
+            tabEl.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // 检查是否点击了关闭按钮
+                if (e.target.classList.contains('close-tab') || e.target.closest('.close-tab')) {
+                    return;
+                }
+                
+                this.switchToTab(currentTabId);
+            });
+        })(tabId);
+        // 同样为关闭按钮使用独立闭包
+        ((currentTabId) => {
+            tabEl.querySelector('.close-tab').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.closeTab(currentTabId);
+            });
+        })(tabId);
         
         if (!isHidden) {
             this.switchToTab(tabId);
@@ -177,14 +193,22 @@ class TabsManager {
 
     switchToTab(tabId) {
         const tabToActivate = this.tabs.find(t => t.id === tabId);
-        if (!tabToActivate) return;
+        if (!tabToActivate) {
+            console.warn('尝试激活不存在的标签页:', tabId);
+            return;
+        }
 
         this.activeTabId = tabId;
 
+        // 首先移除所有标签页的激活状态
         this.tabs.forEach(tab => {
-            tab.el.classList.toggle('active', tab.id === tabId);
-            tab.webview.classList.toggle('active', tab.id === tabId);
+            tab.el.classList.remove('active');
+            tab.webview.classList.remove('active');
         });
+        
+        // 然后只为目标标签页添加激活状态
+        tabToActivate.el.classList.add('active');
+        tabToActivate.webview.classList.add('active');
         
         // 如果活动标签页不完全可见，则将其滚动到视野中
         const tabEl = tabToActivate.el;
@@ -215,8 +239,8 @@ class TabsManager {
         if (tabIndex === -1) return;
 
         const tabToClose = this.tabs[tabIndex];
-
-        // Add to recently closed list if it's a valid web page
+        
+        // 如果是有效的网页，则添加到最近关闭列表中
         const url = tabToClose.webview.getURL();
         const title = tabToClose.webview.getTitle();
         if (url && title && !url.startsWith('file://') && url !== 'about:blank') {
@@ -243,8 +267,23 @@ class TabsManager {
                 const newActiveIndex = Math.max(0, tabIndex - 1);
                 this.switchToTab(this.tabs[newActiveIndex].id);
             } else {
-                this.createNewTab(); // 始终保持至少一个标签页
+                // 当关闭最后一个标签页时，先清除会话状态，然后关闭应用
+                this.handleLastTabClosed();
             }
+        }
+    }
+
+    // 处理最后一个标签页关闭
+    async handleLastTabClosed() {
+        try {
+            // 立即清除会话状态，避免恢复空的浏览器
+            await window.api.clearSessionState();
+            // 然后通知主进程关闭应用
+            window.api.lastTabClosed();
+        } catch (error) {
+            console.error('处理最后标签页关闭失败:', error);
+            // 即使出错也要关闭应用
+            window.api.lastTabClosed();
         }
     }
 
@@ -270,19 +309,29 @@ class TabsManager {
         }
     }
 
-    showLoadingIndicator(tabEl, show) {
+    // 显示加载动画
+    showLoading(tabEl) {
         const iconContainer = tabEl.querySelector('.tab-icon-container');
-        const spinner = iconContainer.querySelector('.loading-spinner');
-        const icon = iconContainer.querySelector('.tab-icon');
+        iconContainer.innerHTML = '<div class="tab-loading-spinner"></div>';
+    }
 
-        if (show) {
-            if (icon) icon.style.display = 'none';
-            if (spinner) spinner.style.display = 'block';
-        } else {
-            if (spinner) spinner.style.display = 'none';
-            if (icon) icon.style.display = 'block';
+    // 隐藏加载动画，恢复图标
+    hideLoading(tabEl) {
+        const tabData = this.tabs.find(tab => tab.el === tabEl);
+        if (tabData) {
+            // 如果有favicon则显示favicon，否则显示默认图标
+            if (tabData.favicon) {
+                this.setTabIcon(tabEl, `<img class="tab-icon" src="${tabData.favicon}">`);
+            } else {
+                // 检查是否是系统页面
+                const systemPageInfo = tabData.internalUrl ? window.INTERNAL_PROTOCOLS[tabData.internalUrl] : null;
+                const defaultIcon = systemPageInfo ? window.SYSTEM_ICONS[systemPageInfo.icon] : window.defaultGlobeIcon;
+                this.setTabIcon(tabEl, defaultIcon);
+            }
         }
     }
+
+
 }
 
 // 导出 TabsManager 类供主应用使用

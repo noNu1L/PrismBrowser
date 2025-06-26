@@ -5,6 +5,10 @@
     background-color: var(--app-bg-color);
     padding: 5px 140px 0 5px; /* Right padding reserves space for window controls */
     flex-shrink: 0;
+    min-height: 35px;
+    position: relative; /* z-index 需要 position */
+    z-index: 900;
+    /*-webkit-app-region: no-drag; !* 明确将整个标签栏设为不可拖拽区域 *!*/
 }
 
 #tabs-container {
@@ -37,7 +41,7 @@
 .tab-item {
     display: flex;
     align-items: center; /* Vertically align icon/spinner and title */
-    padding: 6px 10px;
+    padding: 7px 10px;
     border: 0;
     border-bottom: none;
     border-radius: 6px 6px 0 0;
@@ -72,14 +76,6 @@
     background-color: var(--border-color-primary);
 }
 
-.tab-item.loading .tab-icon {
-    display: none;
-}
-
-.tab-item.loading .loading-spinner {
-    display: block;
-}
-
 .tab-item.active {
     background-color: var(--tab-bg-color-active);
     z-index: 2;
@@ -88,11 +84,14 @@
 .tab-icon-container {
     width: 16px;
     height: 16px;
+    min-width: 16px;
+    min-height: 16px;
     margin-right: 8px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 .tab-icon {
@@ -100,30 +99,23 @@
     height: 16px;
 }
 
-.tab-item.loading .tab-icon {
-    display: none;
-}
-
-.tab-item .loading-spinner { /* spinner is always inside a tab-item */
-    display: none; /* Default hide */
-}
-
-.tab-item.loading .loading-spinner {
-    display: block;
-}
-
-.loading-spinner {
-    width: 16px; /* 统一尺寸 */
-    height: 16px; /* 统一尺寸 */
-    border: 2px solid var(--button-primary-bg); /* 使用主题蓝色 */
-    border-left-color: transparent; /* 关键：隐藏一条边来制造"缺口" */
+/* 加载动画样式 */
+.tab-loading-spinner {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    border: 2px solid #e5e7eb;
+    border-top: 2px solid #667eea;
     border-radius: 50%;
-    animation: spin 0.6s linear infinite; /* 调整动画速度 */
-    box-sizing: border-box; /* 确保边框包含在尺寸内 */
+    animation: tab-spin 1s linear infinite;
+    flex-shrink: 0;
+    box-sizing: border-box;
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
+@keyframes tab-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .tab-title {
@@ -156,8 +148,8 @@
 }
 
 #new-tab-btn {
-    width: 28px; /* Adjust width to be more like a square */
-    height: 28px; /* Match the visual height of the tabs */
+    width: 32px; /* Adjust width to be more like a square */
+    height: 32px; /* Match the visual height of the tabs */
     font-size: 26px;
     color: var(--button-icon-color);
     margin-left: 2px;

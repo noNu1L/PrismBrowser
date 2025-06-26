@@ -112,13 +112,13 @@
 
         let pageData = null;
 
-        // Populate folder dropdown from the bookmarks tree
+        // 从书签树填充文件夹下拉列表
         function populateFolders(nodes, level = 0) {
             nodes.forEach(node => {
                 if (node.type === 'folder') {
                     const option = document.createElement('option');
                     option.value = node.id;
-                    // Add indentation for visual hierarchy
+                    // 添加缩进以实现视觉层次结构
                     option.textContent = '  '.repeat(level) + node.title;
                     folderSelect.appendChild(option);
                     if (node.children) {
@@ -128,7 +128,7 @@
             });
         }
         
-        // Find the parent folder ID of an existing bookmark
+        // 查找现有书签的父文件夹ID
         function findParentFolderId(nodes, bookmarkId, parentId = 'root') {
              for (const node of nodes) {
                 if (node.id === bookmarkId) return parentId;
@@ -145,12 +145,12 @@
             nameInput.value = data.title;
             populateFolders(data.bookmarksTree);
 
-            if (data.bookmark) { // Existing bookmark
+            if (data.bookmark) { // 现有书签
                 const parentId = findParentFolderId(data.bookmarksTree, data.bookmark.id);
                 folderSelect.value = parentId || 'root';
                 removeBtn.style.display = 'block';
-            } else { // New bookmark
-                folderSelect.value = 'toolbar'; // Default to toolbar
+            } else { // 新书签
+                folderSelect.value = 'toolbar'; // 默认为工具栏
                 removeBtn.style.display = 'none';
             }
         });
@@ -159,14 +159,14 @@
             const name = nameInput.value;
             const parentId = folderSelect.value;
 
-            if (pageData.bookmark) { // Update existing
+            if (pageData.bookmark) { // 更新现有
                 await window.api.updateBookmark({
                     id: pageData.bookmark.id,
                     title: name,
-                    url: pageData.url, // URL doesn't change, but good to be explicit
+                    url: pageData.url, // URL不变，但明确指出
                 });
-                // Note: Moving folders is not implemented in this step
-            } else { // Add new
+                // 注意：此步骤未实现移动文件夹
+            } else { // 添加新的
                 await window.api.addBookmark({
                     parentId,
                     title: name,
@@ -184,7 +184,7 @@
         });
 
         closeBtn.addEventListener('click', () => {
-            // Simply close without saving
+            // 直接关闭而不保存
              window.api.closePopupAndRefresh();
         });
     </script>

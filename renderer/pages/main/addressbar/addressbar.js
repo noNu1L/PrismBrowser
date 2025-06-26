@@ -23,20 +23,23 @@ class AddressBarManager {
         
         // 状态
         this.bookmarkTreeCache = [];
-        this.homeURL = 'https://www.google.com';
+        this.homeURL = '';
         
         this.init();
     }
 
     async init() {
         // 初始化设置
-        this.homeURL = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
+        this.homeURL = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.bing.com';
         
         // 绑定事件监听器
         this.bindEvents();
         
         // 初始化收藏夹
         await this.refreshBookmarks();
+        
+        // 初始化工具栏按钮可见性
+        await this.updateToolbarVisibility();
         
         // 监听收藏夹更新
         window.api.onBookmarkUpdated(() => {
@@ -47,7 +50,15 @@ class AddressBarManager {
         window.api.onSettingUpdated(({ key, value }) => {
             if (key === 'settings.homepageCustomUrl') {
                 this.homeURL = value;
+            } else if (key.startsWith('settings.toolbar.')) {
+                this.updateToolbarVisibility();
             }
+        });
+        
+        // 监听窗口失去焦点事件来关闭弹窗
+        window.api.onWindowBlurred(() => {
+            this.hideMainMenu();
+            this.hideDownloadsPopup();
         });
     }
 
@@ -75,14 +86,19 @@ class AddressBarManager {
                 const homepageOption = await window.api.getSetting('settings.homepageOption') || 'custom';
                 let url;
                 
-                if (homepageOption === 'newtab') {
-                    const newtabOption = await window.api.getSetting('settings.newtabOption') || 'blank';
-                    url = newtabOption === 'blank' ? 'about:blank' : 
-                          (await window.api.getSetting('settings.newtabCustomUrl') || 'https://www.google.com');
+                if (homepageOption === 'blank') {
+                    url = 'about:blank';
                 } else {
-                    url = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.google.com';
+                    url = await window.api.getSetting('settings.homepageCustomUrl') || 'https://www.bing.com';
                 }
                 
+                // 清除内部URL标记，因为现在要导航到普通网页
+                tab.internalUrl = null;
+                
+                // 立即更新地址栏显示
+                this.urlInput.value = url;
+                
+                // 加载新的URL
                 tab.webview.loadURL(window.normalizeUrl(url));
             }
         });
@@ -235,10 +251,41 @@ class AddressBarManager {
         // 添加菜单项的事件监听
         this.addMenuItemListeners(menu);
 
-        // 添加点击外部关闭菜单的监听
-        setTimeout(() => {
-            document.addEventListener('click', () => this.hideMainMenu(), { once: true });
-        }, 0);
+        // 创建并显示一个透明的遮罩层，用于捕获外部点击
+        this.createClickEater(this.hideMainMenu.bind(this));
+    }
+
+    createClickEater(onClick) {
+        // 移除已存在的遮罩层
+        this.removeClickEater();
+
+        const clickEater = document.createElement('div');
+        clickEater.id = 'click-eater';
+        clickEater.style.position = 'fixed';
+        clickEater.style.top = '0';
+        clickEater.style.left = '0';
+        clickEater.style.width = '100vw';
+        clickEater.style.height = '100vh';
+        clickEater.style.zIndex = '9998'; // 确保在弹窗之下，但在页面大部分内容之上
+        clickEater.style.background = 'transparent'; // 完全透明
+        clickEater.style.webkitAppRegion = 'no-drag'; // 关键：让遮罩层自身成为可交互区，捕获所有点击
+
+        clickEater.addEventListener('click', () => {
+            onClick();
+        }, { once: true }); // 点击一次后自动移除监听器
+
+        document.body.appendChild(clickEater);
+    }
+    
+    removeClickEater() {
+        const clickEater = document.getElementById('click-eater');
+        if (clickEater) {
+            clickEater.remove();
+        }
+    }
+
+    setupOutsideClickHandler() {
+        // 此方法不再需要，由 createClickEater 替代
     }
 
     hideMainMenu() {
@@ -246,14 +293,25 @@ class AddressBarManager {
         if (menu) {
             menu.style.display = 'none';
         }
+
+        // 移除遮罩层
+        this.removeClickEater();
     }
 
     createMenuItems() {
         const menuItems = [
+            { id: 'menu-toggle-logs', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>', text: '切换日志', action: 'toggle-logs' },
+            { id: 'menu-favorites', icon: window.SYSTEM_ICONS.bookmarks, text: '收藏夹', action: 'prism://bookmarks' },
+            { id: 'menu-history', icon: window.SYSTEM_ICONS.history, text: '历史记录', action: 'prism://history' },
             { id: 'menu-downloads', icon: window.SYSTEM_ICONS.downloads, text: '下载管理', action: 'prism://downloads' },
+            { id: 'menu-settings', icon: window.SYSTEM_ICONS.settings, text: '设置', action: 'prism://settings' },
+            { separator: true },
             { id: 'menu-dashboard', icon: window.SYSTEM_ICONS.dashboard, text: '代理面板', action: 'prism://dashboard' },
             { separator: true },
-            { id: 'menu-devtools', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>', text: '开发者工具', action: 'devtools' },
+            { id: 'menu-reset-data', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>', text: '数据初始化', action: 'reset-data' },
+            { separator: true },
+            { id: 'menu-page-devtools', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>', text: '切换页面开发者工具', action: 'page-devtools' },
+            { id: 'menu-main-devtools', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>', text: '切换主窗口开发者工具', action: 'main-devtools' }
         ];
 
         return menuItems.map(item => {
@@ -271,14 +329,26 @@ class AddressBarManager {
 
     addMenuItemListeners(menu) {
         menu.querySelectorAll('.popup-menu-item').forEach(item => {
-            item.addEventListener('click', (e) => {
+            item.addEventListener('click', async (e) => {
                 const action = e.currentTarget.dataset.action;
                 if (action) {
-                    if (action === 'devtools') {
+                    if (action === 'page-devtools') {
                         const activeTab = window.tabsManager.getActiveTab();
                         if (activeTab && activeTab.webview) {
                             activeTab.webview.openDevTools();
                         }
+                    } else if (action === 'main-devtools') {
+                        window.api.toggleMainDevTools();
+                    } else if (action === 'toggle-logs') {
+                        // 调用日志查看器组件的切换方法
+                        if (window.logViewerManager) {
+                            window.logViewerManager.toggle();
+                        } else {
+                            console.warn('日志查看器管理器尚未初始化');
+                        }
+                    } else if (action === 'reset-data') {
+                        // 数据初始化确认对话框
+                        await this.handleDataReset();
                     } else {
                         window.tabsManager.createNewTab(action);
                     }
@@ -288,19 +358,87 @@ class AddressBarManager {
         });
     }
 
+    // --- 数据初始化处理 ---
+    async handleDataReset() {
+        try {
+            // 显示确认对话框
+            const confirmed = await window.api.showConfirmDialog({
+                type: 'warning',
+                title: '数据初始化确认',
+                message: '此操作将清空所有数据，包括：\n\n• 浏览历史记录\n• 收藏夹和书签\n• 下载记录\n• 所有设置和偏好\n• 缓存和Cookie\n\n此操作不可撤销，确定要继续吗？',
+                buttons: ['取消', '确定初始化'],
+                defaultId: 0,
+                cancelId: 0
+            });
+
+            if (confirmed.response === 1) { // 用户点击了"确定初始化"
+                // 显示第二次确认
+                const doubleConfirmed = await window.api.showConfirmDialog({
+                    type: 'error',
+                    title: '最终确认',
+                    message: '请再次确认：您真的要删除所有数据并恢复到初始状态吗？\n\n这将关闭浏览器并清空所有用户数据。',
+                    buttons: ['取消', '是的，清空所有数据'],
+                    defaultId: 0,
+                    cancelId: 0
+                });
+
+                if (doubleConfirmed.response === 1) {
+                    // 执行数据初始化
+                    await window.api.resetAllData();
+                }
+            }
+        } catch (error) {
+            console.error('数据初始化失败:', error);
+            // 可以考虑显示错误提示
+        }
+    }
+
     // --- 从标签页更新地址栏 ---
     updateFromTab(tab) {
         if (!tab) return;
         
-        // 显示内部协议URL或实际URL
-        const displayUrl = tab.internalUrl || tab.webview.getURL() || tab.webview.src;
-        this.urlInput.value = displayUrl;
-        
-        // 更新导航按钮状态
-        this.updateNavButtonsState(tab);
-        
-        // 更新收藏星标
-        this.updateBookmarkStar(tab.webview.getURL());
+        try {
+            // 显示内部协议URL或实际URL
+            let displayUrl = tab.internalUrl || '';
+            
+            // 只有当webview准备好时才尝试获取URL
+            if (tab.webview && typeof tab.webview.getURL === 'function') {
+                try {
+                    const webviewUrl = tab.webview.getURL();
+                    if (webviewUrl && !tab.internalUrl) {
+                        displayUrl = webviewUrl;
+                    }
+                } catch (e) {
+                    // webview还没准备好，使用src或默认值
+                    displayUrl = tab.webview.src || displayUrl || 'Loading...';
+                }
+            }
+            
+            this.urlInput.value = displayUrl;
+            
+            // 更新导航按钮状态
+            this.updateNavButtonsState(tab);
+            
+            // 更新收藏星标
+            try {
+                if (tab.webview && typeof tab.webview.getURL === 'function') {
+                    const bookmarkUrl = tab.webview.getURL();
+                    if (bookmarkUrl) {
+                        this.updateBookmarkStar(bookmarkUrl);
+                    } else {
+                        this.updateBookmarkStar('');
+                    }
+                } else {
+                    this.updateBookmarkStar('');
+                }
+            } catch (e) {
+                this.updateBookmarkStar('');
+            }
+        } catch (error) {
+            console.error('Error updating address bar from tab:', error);
+            this.urlInput.value = 'Loading...';
+            this.updateBookmarkStar('');
+        }
     }
 
     updateNavButtonsState(tab) {
@@ -309,8 +447,21 @@ class AddressBarManager {
         }
         if (!tab) return;
         
-        this.backButton.disabled = !tab.webview.canGoBack();
-        this.forwardButton.disabled = !tab.webview.canGoForward();
+        try {
+            // 只有当webview准备好时才尝试检查导航状态
+            if (tab.webview && typeof tab.webview.canGoBack === 'function' && typeof tab.webview.canGoForward === 'function') {
+                this.backButton.disabled = !tab.webview.canGoBack();
+                this.forwardButton.disabled = !tab.webview.canGoForward();
+            } else {
+                // webview还没准备好，禁用导航按钮
+                this.backButton.disabled = true;
+                this.forwardButton.disabled = true;
+            }
+        } catch (error) {
+            console.error('Error updating navigation buttons state:', error);
+            this.backButton.disabled = true;
+            this.forwardButton.disabled = true;
+        }
     }
 
     // --- 收藏夹相关 ---
@@ -346,7 +497,52 @@ class AddressBarManager {
         // 更新当前标签页的收藏星标
         const activeTab = window.tabsManager.getActiveTab();
         if (activeTab) {
-            this.updateBookmarkStar(activeTab.webview.getURL());
+            try {
+                if (activeTab.webview && typeof activeTab.webview.getURL === 'function') {
+                    const url = activeTab.webview.getURL();
+                    this.updateBookmarkStar(url || '');
+                } else {
+                    this.updateBookmarkStar('');
+                }
+            } catch (error) {
+                console.error('Error getting URL for bookmark star update:', error);
+                this.updateBookmarkStar('');
+            }
+        }
+    }
+
+    // --- 工具栏可见性管理 ---
+    async updateToolbarVisibility() {
+        try {
+            // 获取工具栏设置
+            const showToggleLogs = await window.api.getSetting('settings.toolbar.showToggleLogs') ?? true;
+            const showFavorites = await window.api.getSetting('settings.toolbar.showFavorites') ?? true;
+            const showHistory = await window.api.getSetting('settings.toolbar.showHistory') ?? true;
+            const showDownloads = await window.api.getSetting('settings.toolbar.showDownloads') ?? true;
+            const showSettings = await window.api.getSetting('settings.toolbar.showSettings') ?? true;
+            const showHome = await window.api.getSetting('settings.toolbar.showHome') ?? true;
+
+            // 更新按钮可见性
+            if (this.toggleLogsBtn) {
+                this.toggleLogsBtn.style.display = showToggleLogs ? 'block' : 'none';
+            }
+            if (this.favoritesBtn) {
+                this.favoritesBtn.style.display = showFavorites ? 'block' : 'none';
+            }
+            if (this.historyBtn) {
+                this.historyBtn.style.display = showHistory ? 'block' : 'none';
+            }
+            if (this.downloadsBtn) {
+                this.downloadsBtn.style.display = showDownloads ? 'block' : 'none';
+            }
+            if (this.settingsBtn) {
+                this.settingsBtn.style.display = showSettings ? 'block' : 'none';
+            }
+            if (this.homeButton) {
+                this.homeButton.style.display = showHome ? 'block' : 'none';
+            }
+        } catch (error) {
+            console.error('更新工具栏可见性失败:', error);
         }
     }
 
@@ -376,10 +572,12 @@ class AddressBarManager {
         // 添加事件监听
         this.addDownloadsPopupListeners(popup);
 
-        // 添加点击外部关闭弹窗的监听
-        setTimeout(() => {
-            document.addEventListener('click', () => this.hideDownloadsPopup(), { once: true });
-        }, 0);
+        // 创建并显示一个透明的遮罩层，用于捕获外部点击
+        this.createClickEater(this.hideDownloadsPopup.bind(this));
+    }
+
+    setupDownloadsOutsideClickHandler() {
+       // 此方法不再需要，由 createClickEater 替代
     }
 
     hideDownloadsPopup() {
@@ -387,6 +585,9 @@ class AddressBarManager {
         if (popup) {
             popup.style.display = 'none';
         }
+
+        // 移除遮罩层
+        this.removeClickEater();
     }
 
     async createDownloadsPopupContent() {
