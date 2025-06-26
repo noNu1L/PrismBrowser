@@ -208,6 +208,36 @@
         .custom-button:hover {
             background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
         }
+
+        /* 代理加载弹窗样式 */
+        .proxy-loading-content {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .loading-icon {
+            color: #667eea;
+            animation: loading-rotate 2s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        .loading-text {
+            font-size: 16px;
+            font-weight: 500;
+            color: #303133;
+            margin: 0 0 8px 0;
+        }
+
+        .loading-tip {
+            font-size: 14px;
+            color: #909399;
+            margin: 0;
+        }
+
+        @keyframes loading-rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -539,6 +569,25 @@
                 </div>
             </div>
         </div>
+
+        <!-- 代理状态加载弹窗 -->
+        <el-dialog
+            v-model="proxyLoadingVisible"
+            title="代理状态变更"
+            width="400px"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
+            :show-close="false"
+            align-center
+        >
+            <div class="proxy-loading-content">
+                <el-icon class="loading-icon" size="32">
+                    <Loading />
+                </el-icon>
+                <p class="loading-text">{{ proxyLoadingText }}</p>
+                <p class="loading-tip">请稍候，操作正在进行中...</p>
+            </div>
+        </el-dialog>
     </div>
 
     <script>
@@ -570,7 +619,9 @@
                     electronVersion: '34.5.8',
                     proxyEnabled: false,
                     proxyToggleLoading: false,
-                    proxyStatusInterval: null
+                    proxyStatusInterval: null,
+                    proxyLoadingVisible: false,
+                    proxyLoadingText: '正在启动代理服务...'
                 };
             },
             computed: {
@@ -694,16 +745,31 @@
                 },
                 async toggleProxy() {
                     this.proxyToggleLoading = true;
+                    
+                    // 根据当前状态设置加载文本
+                    if (this.proxyEnabled) {
+                        this.proxyLoadingText = '正在停止代理服务...';
+                    } else {
+                        this.proxyLoadingText = '正在启动代理服务...';
+                    }
+                    
+                    // 显示加载弹窗
+                    this.proxyLoadingVisible = true;
+                    
                     try {
                         await window.api.toggleProxy();
-                        await this.loadSettings();
-                        this.checkProxyStatus();
-                        ElMessage.success('代理状态已更新');
+                        // ElMessage.success('代理状态已更新');
                     } catch (error) {
                         console.error('切换代理失败:', error);
                         ElMessage.error('切换代理失败');
+
                     } finally {
                         this.proxyToggleLoading = false;
+                        
+                        // 3秒后自动关闭弹窗
+                        setTimeout(() => {
+                            this.proxyLoadingVisible = false;
+                        }, 3000);
                     }
                 }
             }

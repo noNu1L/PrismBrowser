@@ -954,7 +954,7 @@ ipcMain.handle('check-crash-recovery', async () => {
 app.whenReady().then(() => {
   initializeDefaultSettings();
   initializeBookmarks();
-  startClash(); // 已移除：不再自动启动代理
+  // startClash(); // 已移除：不再自动启动代理
   createWindow();
 
   // 应用正常启动，清除异常关闭标记
