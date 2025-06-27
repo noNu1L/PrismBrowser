@@ -114,11 +114,20 @@ function close() {
   align-items: flex-end;
   margin-top: 8px;
   gap: 2px;
+  max-width: calc(100%); /* 预留空间给窗口控制按钮 */
+  overflow: hidden;
 }
 
 .tabs-container {
   display: flex;
   align-items: flex-end;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+.tabs-container::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-item {
@@ -128,7 +137,6 @@ function close() {
   width: 240px;
   background: #e8e8e8;
   border-bottom: none;
-  border-radius: 2px 2px 0 0;
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
@@ -165,6 +173,7 @@ function close() {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
+  font-weight: 400;
   color: #000000;
   line-height: 1;
 }
@@ -194,13 +203,27 @@ function close() {
   width: 32px !important;
   min-width: 32px !important;
   min-height: 32px !important;
+  color: black;
+  background: #e8e8e8;
   padding: 0 !important;
-  border: 1px solid #d0d0d0 !important;
-  border-bottom: 0 !important;
-  border-radius: 2px 2px 0 0;
-  align-self: flex-end;
-  box-sizing: border-box !important;
+  border : none !important;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  box-sizing: border-box;
 }
+
+.add-tab-btn:hover {
+  background: #dadada;
+}
+
+.add-tab-btn.active {
+
+  background: #ffffff;
+  border-color: #c0c0c0;
+  z-index: 1;
+}
+
 
 .window-controls {
   position: absolute;
