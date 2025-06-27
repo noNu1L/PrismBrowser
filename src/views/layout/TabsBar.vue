@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import {ref, watch} from 'vue'
+import {ref, watch, onMounted, onUnmounted} from 'vue'
 import {Close, FullScreen, Minus, Plus, Document} from "@element-plus/icons-vue";
 
 const activeTabId = ref('tab1')
@@ -170,6 +170,27 @@ function maximize() {
 function close() {
   window.api?.sendWindowControl('close')
 }
+
+// 窗口大小变化处理
+function handleResize() {
+  // 如果有标签正在关闭，不立即更新
+  const hasClosingTabs = tabs.value.some(tab => tab.closing)
+  if (hasClosingTabs) {
+    pendingWidthUpdate.value = true
+  } else {
+    updateAllTabWidths()
+  }
+}
+
+// 组件挂载时添加窗口大小监听
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+// 组件卸载时移除监听
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 
 </script>
