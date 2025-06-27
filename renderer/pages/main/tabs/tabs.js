@@ -129,7 +129,8 @@ class TabsManager {
         const preloadPath = await window.api.getPreloadPath();
         webviewEl.setAttribute('preload', preloadPath);
         // 设置partition让webview使用主窗口的session，这样下载事件可以被正确监听
-        webviewEl.setAttribute('partition', 'persist:main');
+        // 暂时注释 不清楚为什么会影响代理
+        // webviewEl.setAttribute('partition', 'persist:main');
         // 启用新窗口打开功能
         webviewEl.setAttribute('allowpopups', 'true');
         // 启用新窗口和popup处理
