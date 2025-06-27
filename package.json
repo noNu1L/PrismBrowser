@@ -2,7 +2,7 @@
   "name": "PrismBrowser",
   "version": "1.0.0",
   "description": "An Electron browser with built-in Clash.Meta",
-  "main": "main.js",
+  "main": "src/main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
@@ -32,7 +32,7 @@
     ],
     "extraResources": [
       {
-        "from": "clash-meta",
+        "from": "src/vendor/clash-meta",
         "to": "clash-meta",
         "filter": [
           "**/*"
