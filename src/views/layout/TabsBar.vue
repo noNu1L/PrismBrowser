@@ -114,7 +114,7 @@ function close() {
   align-items: flex-end;
   margin-top: 8px;
   gap: 2px;
-  max-width: calc(100%); /* 预留空间给窗口控制按钮 */
+  max-width: calc(100% - 30px); /* 预留空间给窗口控制按钮 */
   overflow: hidden;
 }
 
@@ -132,7 +132,7 @@ function close() {
 
 .tab-item {
   height: 32px;
-  min-width: 120px;
+  min-width: 80px;
   max-width: 240px;
   width: 240px;
   background: #e8e8e8;
@@ -141,6 +141,30 @@ function close() {
   position: relative;
   transition: all 0.2s;
   box-sizing: border-box;
+}
+
+/* 未激活标签右侧分割线 */
+.tab-item:not(.active)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background: #2d2d2d;
+  opacity: 0.6;
+}
+
+/* 如果右侧相邻的是激活标签，则不显示分割线 */
+.tab-item:not(.active):has(+ .tab-item.active)::after,
+.tab-item:not(.active):last-child::after {
+  display: none;
+}
+
+/* 鼠标悬停时隐藏分割线 */
+.tab-item:not(.active):hover::after,
+.tab-item:not(.active):has(+ .tab-item:hover)::after {
+  display: none;
 }
 
 .tab-item:hover {
