@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import {ref} from 'vue'
+import {ref, watch} from 'vue'
 import {Close, FullScreen, Minus, Plus, Document} from "@element-plus/icons-vue";
 
 const activeTabId = ref('tab1')
@@ -89,23 +89,48 @@ function addTab() {
   }
   tabs.value.push(newTab)
   activeTabId.value = newTab.id
-  updateAllTabWidths()
+  
+  // 检查是否有标签正在关闭
+  const hasClosingTabs = tabs.value.some(tab => tab.closing)
+  if (hasClosingTabs) {
+    pendingWidthUpdate.value = true
+  } else {
+    updateAllTabWidths()
+  }
 }
 
 // 计算最佳标签宽度
 function calculateOptimalWidth() {
   const maxWidth = 240
-  const minWidth = 80
-  const containerWidth = 800 // 假设容器宽度，实际应该动态获取
+  const minWidth = 20
+  const containerWidth = window.innerWidth
   const addBtnWidth = 32
-  const availableWidth = containerWidth - addBtnWidth - 60 // 减去边距
   
-  const calculatedWidth = Math.max(minWidth, Math.min(maxWidth, availableWidth / tabs.value.length))
+  // 标签栏的右边距 (考虑窗口控制按钮)
+  const rightPadding = 140
+  // 标签栏的左边距
+  const leftPadding = 8
+  // 预留的空间
+  const reservedSpace = 30
+  
+  const availableWidth = containerWidth - rightPadding - leftPadding - addBtnWidth - reservedSpace
+  
+  // 计算当前所有非关闭标签的数量
+  const activeTabCount = tabs.value.filter(tab => !tab.closing).length
+  
+  const calculatedWidth = Math.max(minWidth, Math.min(maxWidth, availableWidth / activeTabCount))
+  
   return calculatedWidth
 }
 
 // 更新所有标签宽度
 function updateAllTabWidths() {
+  // 如果有标签正在关闭且鼠标在标签区域，不更新宽度
+  const hasClosingTabs = tabs.value.some(tab => tab.closing)
+  if (hasClosingTabs && isHoveringTabArea.value) {
+    return
+  }
+  
   const newWidth = calculateOptimalWidth()
   tabs.value.forEach(tab => {
     if (!tab.closing) {
@@ -145,6 +170,8 @@ function maximize() {
 function close() {
   window.api?.sendWindowControl('close')
 }
+
+
 </script>
 
 <style scoped>
@@ -170,7 +197,6 @@ function close() {
   display: flex;
   align-items: flex-end;
   margin-top: 8px;
-  gap: 2px;
   max-width: calc(100% - 30px); /* 预留空间给窗口控制按钮 */
   overflow: hidden;
 }
@@ -197,6 +223,11 @@ function close() {
   position: relative;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s, transform 0.3s;
   box-sizing: border-box;
+  margin-right: 2px;
+}
+
+.tab-item:last-child {
+  margin-right: 0;
 }
 
 /* 标签关闭动画 */
@@ -207,6 +238,12 @@ function close() {
   transform: scaleX(0);
   transform-origin: center;
   overflow: hidden;
+  margin-left: 0 !important;
+  margin-right: 2px !important; /* 保持右边距，避免其他标签移动 */
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
 }
 
 /* 未激活标签右侧分割线 */
