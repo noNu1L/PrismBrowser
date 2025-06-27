@@ -2,13 +2,14 @@
   <div class="tabs-bar drag-region">
     <div class="tabs-bar-left">
       <!-- 标签区域 -->
-      <div class="tabs-area">
+      <div class="tabs-area" @mouseenter="onTabAreaMouseEnter" @mouseleave="onTabAreaMouseLeave">
         <!-- 自定义标签页 -->
         <div class="tabs-container">
           <div
               v-for="tab in tabs"
               :key="tab.id"
-              :class="['tab-item', { 'active': tab.id === activeTabId }]"
+              :class="['tab-item', { 'active': tab.id === activeTabId, 'closing': tab.closing }]"
+              :style="{ width: `${tab.width}px` }"
               @click="setActiveTab(tab.id)"
           >
             <div class="tab-content no-drag">
@@ -46,11 +47,13 @@ import {Close, FullScreen, Minus, Plus, Document} from "@element-plus/icons-vue"
 
 const activeTabId = ref('tab1')
 const tabs = ref([
-  { id: 'tab1', title: '新标签页' },
-  { id: 'tab2', title: '标签页 2' }
+  { id: 'tab1', title: '新标签页', width: 240 },
+  { id: 'tab2', title: '标签页 2', width: 240 }
 ])
 
 let tabCounter = 3
+const isHoveringTabArea = ref(false)
+const pendingWidthUpdate = ref(false)
 
 function setActiveTab(tabId) {
   activeTabId.value = tabId
@@ -59,22 +62,76 @@ function setActiveTab(tabId) {
 function closeTab(tabId) {
   const index = tabs.value.findIndex(tab => tab.id === tabId)
   if (index > -1) {
-    tabs.value.splice(index, 1)
-    // 如果关闭的是当前激活标签，切换到相邻标签
-    if (tabId === activeTabId.value && tabs.value.length > 0) {
-      const newIndex = Math.max(0, index - 1)
-      activeTabId.value = tabs.value[newIndex].id
-    }
+    // 标记需要延迟更新宽度
+    pendingWidthUpdate.value = true
+    
+    // 添加关闭动画类
+    const tab = tabs.value[index]
+    tab.closing = true
+    
+    // 延迟移除标签，让动画完成
+    setTimeout(() => {
+      tabs.value.splice(index, 1)
+      // 如果关闭的是当前激活标签，切换到相邻标签
+      if (tabId === activeTabId.value && tabs.value.length > 0) {
+        const newIndex = Math.max(0, index - 1)
+        activeTabId.value = tabs.value[newIndex].id
+      }
+    }, 300) // 与CSS动画时间匹配
   }
 }
 
 function addTab() {
   const newTab = {
     id: `tab${tabCounter++}`,
-    title: `新标签页 ${tabCounter - 1}`
+    title: `新标签页 ${tabCounter - 1}`,
+    width: calculateOptimalWidth()
   }
   tabs.value.push(newTab)
   activeTabId.value = newTab.id
+  updateAllTabWidths()
+}
+
+// 计算最佳标签宽度
+function calculateOptimalWidth() {
+  const maxWidth = 240
+  const minWidth = 80
+  const containerWidth = 800 // 假设容器宽度，实际应该动态获取
+  const addBtnWidth = 32
+  const availableWidth = containerWidth - addBtnWidth - 60 // 减去边距
+  
+  const calculatedWidth = Math.max(minWidth, Math.min(maxWidth, availableWidth / tabs.value.length))
+  return calculatedWidth
+}
+
+// 更新所有标签宽度
+function updateAllTabWidths() {
+  const newWidth = calculateOptimalWidth()
+  tabs.value.forEach(tab => {
+    if (!tab.closing) {
+      tab.width = newWidth
+    }
+  })
+}
+
+// 鼠标进入标签区域
+function onTabAreaMouseEnter() {
+  isHoveringTabArea.value = true
+}
+
+// 鼠标离开标签区域
+function onTabAreaMouseLeave() {
+  isHoveringTabArea.value = false
+  
+  // 如果有待处理的宽度更新，延迟执行
+  if (pendingWidthUpdate.value) {
+    setTimeout(() => {
+      if (!isHoveringTabArea.value) {
+        updateAllTabWidths()
+        pendingWidthUpdate.value = false
+      }
+    }, 150)
+  }
 }
 
 function minimize() {
@@ -134,13 +191,22 @@ function close() {
   height: 32px;
   min-width: 80px;
   max-width: 240px;
-  width: 240px;
   background: #e8e8e8;
   border-bottom: none;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s, transform 0.3s;
   box-sizing: border-box;
+}
+
+/* 标签关闭动画 */
+.tab-item.closing {
+  width: 0 !important;
+  min-width: 0 !important;
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: center;
+  overflow: hidden;
 }
 
 /* 未激活标签右侧分割线 */
