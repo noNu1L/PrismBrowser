@@ -109,7 +109,7 @@ function createWindow() {
     });
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'views/main/index.html'));
+  mainWindow.loadFile(path.join(__dirname, 'views/layout-index.html'));
   
   // 添加开发者工具快捷键支持
   mainWindow.webContents.on('before-input-event', (event, input) => {

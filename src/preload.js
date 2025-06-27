@@ -97,7 +97,10 @@ contextBridge.exposeInMainWorld('api', {
   checkCrashRecovery: () => ipcRenderer.invoke('check-crash-recovery'),
   confirmAppClose: () => ipcRenderer.send('confirm-app-close'),
   lastTabClosed: () => ipcRenderer.send('last-tab-closed'),
-  onAppBeforeQuit: (callback) => ipcRenderer.on('app-before-quit', () => callback())
+  onAppBeforeQuit: (callback) => ipcRenderer.on('app-before-quit', () => callback()),
+  
+  // --- 协议路由 ---
+  onProtocolNavigate: (callback) => ipcRenderer.on('protocol-navigate', (_event, protocolUrl) => callback(protocolUrl))
 });
 
 window.addEventListener('DOMContentLoaded', () => {

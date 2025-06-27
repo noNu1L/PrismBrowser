@@ -5,8 +5,10 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder",
-    "build:compressed": "electron-builder --config.compression=maximum",
+    "dev": "vite",
+    "build:vue": "vite build",
+    "build": "npm run build:vue && electron-builder",
+    "build:compressed": "npm run build:vue && electron-builder --config.compression=maximum",
     "update-dashboard": "cmd.exe /c update-dashboard.bat"
   },
   "keywords": [
@@ -17,8 +19,11 @@
   "author": "noNu1L",
   "license": "MIT",
   "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.4",
     "electron": "^34.5.8",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "vite": "^6.3.5",
+    "vue-router": "^4.5.1"
   },
   "build": {
     "appId": "com.prismbrowser.app",
