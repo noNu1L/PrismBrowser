@@ -73,11 +73,11 @@
             border: 1px solid var(--input-border);
             cursor: pointer;
         }
-        #done-btn {
-            background-color: var(--button-primary-bg);
-            border-color: var(--button-primary-bg);
-            color: white;
-        }
+        //#done-btn {
+        //    background-color: var(--button-primary-bg);
+        //    border-color: var(--button-primary-bg);
+        //    color: white;
+        //}
     </style>
 </head>
 <body>
@@ -99,8 +99,8 @@
         </div>
 
         <footer>
-            <button id="remove-btn">删除</button>
-            <button id="done-btn">完成</button>
+            <button id="remove-btn" class="btn-back">删除</button>
+            <button id="done-btn" class="btn-confirm">完成</button>
         </footer>
     </div>
     <script>
@@ -142,14 +142,18 @@
 
         window.api.onPopupData((data) => {
             pageData = data;
+            console.log('[书签弹窗] 接收到的数据:', data);
+            
             nameInput.value = data.title;
             populateFolders(data.bookmarksTree);
 
             if (data.bookmark) { // 现有书签
+                console.log('[书签弹窗] 编辑现有书签:', data.bookmark);
                 const parentId = findParentFolderId(data.bookmarksTree, data.bookmark.id);
                 folderSelect.value = parentId || 'root';
                 removeBtn.style.display = 'block';
             } else { // 新书签
+                console.log('[书签弹窗] 添加新书签，favicon:', data.favicon);
                 folderSelect.value = 'toolbar'; // 默认为工具栏
                 removeBtn.style.display = 'none';
             }
@@ -160,17 +164,21 @@
             const parentId = folderSelect.value;
 
             if (pageData.bookmark) { // 更新现有
+                console.log('[书签弹窗] 更新书签，包含favicon:', pageData.favicon);
                 await window.api.updateBookmark({
                     id: pageData.bookmark.id,
                     title: name,
                     url: pageData.url, // URL不变，但明确指出
+                    favicon: pageData.favicon // 添加favicon信息
                 });
                 // 注意：此步骤未实现移动文件夹
             } else { // 添加新的
+                console.log('[书签弹窗] 添加新书签，favicon:', pageData.favicon);
                 await window.api.addBookmark({
                     parentId,
                     title: name,
                     url: pageData.url,
+                    favicon: pageData.favicon // 添加favicon信息
                 });
             }
             window.api.closePopupAndRefresh();

@@ -138,6 +138,13 @@ class AddressBarManager {
             const title = activeTab.webview.getTitle();
             if (!url || !title) return;
 
+            console.log('[地址栏] 点击收藏按钮:', {
+                url,
+                title,
+                tabFavicon: activeTab.favicon,
+                tabInfo: activeTab
+            });
+
             const existingBookmark = this.findBookmarkByUrl(this.bookmarkTreeCache, url);
             
             // 获取收藏按钮的位置信息
@@ -183,13 +190,18 @@ class AddressBarManager {
                 y: popupY
             };
             
-            window.api.openAddBookmarkPopup({
+            // 传递favicon信息
+            const popupData = {
                 url,
                 title,
+                favicon: activeTab.favicon || null, // 添加favicon信息
                 bookmark: existingBookmark, // 如果未收藏则为 null
                 bookmarksTree: this.bookmarkTreeCache,
                 buttonPosition: buttonPosition
-            });
+            };
+            
+            console.log('[地址栏] 传递给弹窗的数据:', popupData);
+            window.api.openAddBookmarkPopup(popupData);
         });
 
         // 操作按钮事件
@@ -448,12 +460,39 @@ class AddressBarManager {
         if (!tab) return;
         
         try {
-            // 只有当webview准备好时才尝试检查导航状态
-            if (tab.webview && typeof tab.webview.canGoBack === 'function' && typeof tab.webview.canGoForward === 'function') {
-                this.backButton.disabled = !tab.webview.canGoBack();
-                this.forwardButton.disabled = !tab.webview.canGoForward();
+            // 检查webview是否存在且已准备好
+            if (tab.webview && 
+                typeof tab.webview.canGoBack === 'function' && 
+                typeof tab.webview.canGoForward === 'function') {
+                
+                // 先检查getWebContentsId是否可用，并且能够成功调用
+                let webContentsReady = false;
+                try {
+                    if (tab.webview.getWebContentsId && tab.webview.getWebContentsId() !== -1) {
+                        webContentsReady = true;
+                    }
+                } catch (webContentsError) {
+                    // getWebContentsId调用失败，说明webview还没准备好
+                    webContentsReady = false;
+                }
+                
+                // 只有在webContents准备好时才尝试检查导航状态
+                if (webContentsReady) {
+                    try {
+                        this.backButton.disabled = !tab.webview.canGoBack();
+                        this.forwardButton.disabled = !tab.webview.canGoForward();
+                    } catch (webviewError) {
+                        console.warn('WebView导航状态检查失败，禁用导航按钮:', webviewError.message);
+                        this.backButton.disabled = true;
+                        this.forwardButton.disabled = true;
+                    }
+                } else {
+                    // webview还没准备好，禁用导航按钮
+                    this.backButton.disabled = true;
+                    this.forwardButton.disabled = true;
+                }
             } else {
-                // webview还没准备好，禁用导航按钮
+                // webview不存在或方法不可用，禁用导航按钮
                 this.backButton.disabled = true;
                 this.forwardButton.disabled = true;
             }

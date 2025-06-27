@@ -132,8 +132,9 @@ class TabsManager {
         webviewEl.setAttribute('partition', 'persist:main');
         // 启用新窗口打开功能
         webviewEl.setAttribute('allowpopups', 'true');
-        // 启用新窗口事件
-        webviewEl.setAttribute('webpreferences', 'nativeWindowOpen=no');
+        // 启用新窗口和popup处理
+        webviewEl.setAttribute('webpreferences', 'contextIsolation=yes,enableRemoteModule=no,nodeIntegration=no');
+        console.log('Created webview with allowpopups and partition settings for tab:', tabId);
         
         // 确定最终要加载的URL
         let finalUrl;

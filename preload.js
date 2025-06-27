@@ -35,6 +35,9 @@ contextBridge.exposeInMainWorld('api', {
   onNewTabRequest: (callback) => {
     ipcRenderer.on('new-tab-request', (_event, url) => callback(url));
   },
+  onCreateNewTab: (callback) => {
+    ipcRenderer.on('create-new-tab', (_event, url) => callback(url));
+  },
   // --- 下载 ---
   getDownloads: () => ipcRenderer.invoke('get-downloads'),
   addDownload: (item) => ipcRenderer.invoke('add-download', item),

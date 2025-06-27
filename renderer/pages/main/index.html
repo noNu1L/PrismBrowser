@@ -416,6 +416,8 @@
             const { webview, el, id } = tab;
             const titleEl = el.querySelector('.tab-title');
 
+            console.log('Adding webview listeners for tab:', id);
+
             webview.addEventListener('page-favicon-updated', (e) => {
                 if (e.favicons && e.favicons.length > 0) {
                     const bestFavicon = e.favicons[0];
@@ -450,6 +452,34 @@
                 addressBarManager.updateNavButtonsState();
             });
 
+            // 页面加载完成时添加到历史记录
+            webview.addEventListener('did-finish-load', async () => {
+                try {
+                    const url = webview.getURL();
+                    const title = webview.getTitle();
+                    
+                    // 只记录有效的网页（排除内部页面、空白页和文件协议）
+                    if (url && 
+                        title && 
+                        !url.startsWith('file://') && 
+                        url !== 'about:blank' && 
+                        !url.includes('localhost') &&
+                        !tab.internalUrl) { // 排除系统页面
+                        
+                        console.log('[历史记录添加] URL:', url, 'Title:', title, 'Favicon:', tab.favicon);
+                        
+                        await window.api.addHistory({
+                            url: url,
+                            title: title,
+                            favicon: tab.favicon || null,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                } catch (error) {
+                    console.error('添加历史记录失败:', error);
+                }
+            });
+
             webview.addEventListener('did-navigate', (e) => {
                 if (id === tabsManager.activeTabId) {
                     const displayUrl = tab.internalUrl || e.url;
@@ -478,9 +508,10 @@
                 }
             });
 
-            // Handle new windows (e.g., target="_blank")
+            // Handle new windows (e.g., target="_blank") - 保留作为备用
             webview.addEventListener('new-window', (e) => {
-                e.preventDefault(); // Prevent default Electron window behavior
+                console.log('--- new-window event fired (fallback) ---', { url: e.url, disposition: e.disposition });
+                e.preventDefault();
                 tabsManager.createNewTab(e.url);
             });
         };
@@ -612,6 +643,12 @@
 
         // 监听来自其他窗口的新标签页请求
         window.api.onNewTabRequest((url) => {
+            tabsManager.createNewTab(url);
+        });
+
+        // 监听来自主进程的新标签页创建请求（用于处理新窗口）
+        window.api.onCreateNewTab((url) => {
+            console.log('Received create-new-tab request from main process:', url);
             tabsManager.createNewTab(url);
         });
 

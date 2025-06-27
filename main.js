@@ -94,6 +94,19 @@ function createWindow() {
   app.on('web-contents-created', (event, contents) => {
     // 为每个新的 webContents 设置更高的最大监听器数量
     contents.setMaxListeners(100);
+    
+    // 处理新窗口请求
+    contents.setWindowOpenHandler(({ url }) => {
+      console.log('Main process: Window open request for URL:', url);
+      
+      // 阻止创建新窗口，而是发送消息给渲染进程创建新标签页
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('create-new-tab', url);
+      }
+      
+      // 返回 { action: 'deny' } 阻止创建新窗口
+      return { action: 'deny' };
+    });
   });
 
   mainWindow.loadFile('renderer/pages/main/index.html');
@@ -524,11 +537,19 @@ ipcMain.handle('get-bookmarks-tree', async () => {
     return store.get('bookmarks', []);
 });
 
-ipcMain.handle('add-bookmark', async (event, { parentId, title, url }) => {
+ipcMain.handle('add-bookmark', async (event, { parentId, title, url, favicon }) => {
+    console.log('[Main] 添加书签请求:', { parentId, title, url, favicon });
     const bookmarks = store.get('bookmarks', []);
     const parentFolder = findItem(bookmarks, parentId)?.node;
     if (parentFolder && parentFolder.type === 'folder') {
-        const newBookmark = { id: `bm-${Date.now()}`, type: 'bookmark', title, url };
+        const newBookmark = { 
+            id: `bm-${Date.now()}`, 
+            type: 'bookmark', 
+            title, 
+            url,
+            favicon: favicon || null // 添加favicon字段
+        };
+        console.log('[Main] 创建的书签对象:', newBookmark);
         parentFolder.children.push(newBookmark);
         store.set('bookmarks', bookmarks);
         return { success: true };
@@ -536,12 +557,17 @@ ipcMain.handle('add-bookmark', async (event, { parentId, title, url }) => {
     return { success: false };
 });
 
-ipcMain.handle('update-bookmark', async (event, { id, title, url }) => {
+ipcMain.handle('update-bookmark', async (event, { id, title, url, favicon }) => {
+    console.log('[Main] 更新书签请求:', { id, title, url, favicon });
     const bookmarks = store.get('bookmarks', []);
     const item = findItem(bookmarks, id)?.node;
     if (item && item.type === 'bookmark') {
         item.title = title;
         item.url = url;
+        if (favicon !== undefined) {
+            item.favicon = favicon; // 更新favicon字段
+        }
+        console.log('[Main] 更新后的书签对象:', item);
         store.set('bookmarks', bookmarks);
         return { success: true };
     }
@@ -954,7 +980,7 @@ ipcMain.handle('check-crash-recovery', async () => {
 app.whenReady().then(() => {
   initializeDefaultSettings();
   initializeBookmarks();
-  // startClash(); // 已移除：不再自动启动代理
+  startClash(); // 已移除：不再自动启动代理
   createWindow();
 
   // 应用正常启动，清除异常关闭标记

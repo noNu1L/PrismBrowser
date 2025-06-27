@@ -110,32 +110,44 @@
                             :class="{ selected: selectedItems.includes(item.url) }"
                             @click="openHistoryItem(item)"
                         >
-                            <el-checkbox
-                                :model-value="selectedItems.includes(item.url)"
-                                @change="toggleItemSelection(item.url, $event)"
-                                @click.stop
-                            />
-                            <img 
-                                v-if="item.favicon"
-                                :src="item.favicon"
-                                class="history-favicon"
-                                @error="$event.target.style.display='none'"
-                            />
-                            <el-icon v-else class="history-favicon" color="#909399">
-                                <Globe />
-                            </el-icon>
-                            <div class="history-content">
-                                <h4 class="history-title">{{ item.title || item.url }}</h4>
-                                <p class="history-url">{{ getHostname(item.url) }}</p>
+                            <div class="history-item-left">
+                                <el-checkbox
+                                    :model-value="selectedItems.includes(item.url)"
+                                    @change="toggleItemSelection(item.url, $event)"
+                                    @click.stop
+                                />
+                                <div class="history-favicon-container">
+                                    <img 
+                                        v-if="item.favicon && !item.faviconError"
+                                        :src="item.favicon"
+                                        class="history-favicon"
+                                        @error="handleFaviconError(item)"
+                                    />
+                                    <div 
+                                        v-if="!item.favicon || item.faviconError" 
+                                        class="history-favicon-default"
+                                        v-html="getDefaultGlobeIcon()"
+                                    ></div>
+                                </div>
                             </div>
-                            <span class="history-time">{{ formatTime(item.timestamp) }}</span>
-                            <el-button
-                                type="danger"
-                                :icon="Delete"
-                                size="small"
-                                text
-                                @click.stop="deleteItem(item.url)"
-                            />
+                            
+                            <div class="history-content">
+                                <div class="history-info">
+                                    <span class="history-title">{{ item.title || item.url }}</span>
+                                    <span class="history-url">{{ getHostname(item.url) }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="history-item-right">
+                                <span class="history-time">{{ formatTime(item.timestamp) }}</span>
+                                <el-button
+                                    type="danger"
+                                    :icon="Delete"
+                                    size="small"
+                                    text
+                                    @click.stop="deleteItem(item.url)"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -146,7 +158,7 @@
     <script>
         const { createApp } = Vue;
         const { ElMessage, ElMessageBox } = ElementPlus;
-        const { Search, Grid, Clock, Delete, DeleteFilled, Loading, Globe } = ElementPlusIconsVue;
+        const { Search, Grid, Clock, Delete, DeleteFilled, Loading } = ElementPlusIconsVue;
 
         createApp({
             data() {
@@ -214,12 +226,28 @@
                 }
             },
             methods: {
+                // 处理favicon加载错误
+                handleFaviconError(item) {
+                    this.$set(item, 'faviconError', true);
+                },
+                
+                // 获取默认地球图标
+                getDefaultGlobeIcon() {
+                    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; color: #909399;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
+                },
+                
                 async loadData() {
                     this.loading = true;
                     try {
+                        if (!window.api) {
+                            ElMessage.error('API未初始化');
+                            return;
+                        }
+                        
                         this.historyData = await window.api.getHistory() || [];
                         this.recentlyClosedData = await window.api.getRecentlyClosed() || [];
                         this.selectedItems = [];
+                        
                     } catch (error) {
                         console.error('加载数据失败:', error);
                         ElMessage.error('加载数据失败');
@@ -227,17 +255,21 @@
                         this.loading = false;
                     }
                 },
+                
                 handleViewChange(view) {
                     this.activeView = view;
                     this.selectedItems = [];
                     this.searchQuery = '';
                 },
+                
                 handleSearch() {
                     this.selectedItems = [];
                 },
+                
                 openHistoryItem(item) {
                     window.api.openInNewTab(item.url);
                 },
+                
                 getHostname(url) {
                     try {
                         return new URL(url).hostname;
@@ -245,12 +277,14 @@
                         return url;
                     }
                 },
+                
                 formatTime(timestamp) {
                     return new Date(timestamp).toLocaleTimeString('zh-CN', { 
                         hour: '2-digit', 
                         minute: '2-digit' 
                     });
                 },
+                
                 formatDateGroup(dateStr) {
                     const date = new Date(dateStr);
                     const today = new Date();
@@ -266,6 +300,7 @@
                         day: 'numeric' 
                     });
                 },
+                
                 toggleItemSelection(url, checked) {
                     if (checked) {
                         if (!this.selectedItems.includes(url)) {
@@ -278,15 +313,18 @@
                         }
                     }
                 },
+                
                 isGroupSelected(group) {
                     const groupUrls = group.items.map(item => item.url);
                     return groupUrls.length > 0 && groupUrls.every(url => this.selectedItems.includes(url));
                 },
+                
                 isGroupIndeterminate(group) {
                     const groupUrls = group.items.map(item => item.url);
                     const selectedInGroup = groupUrls.filter(url => this.selectedItems.includes(url));
                     return selectedInGroup.length > 0 && selectedInGroup.length < groupUrls.length;
                 },
+                
                 toggleGroupSelection(group, checked) {
                     const groupUrls = group.items.map(item => item.url);
                     if (checked) {
@@ -304,6 +342,7 @@
                         });
                     }
                 },
+                
                 async deleteItem(url) {
                     try {
                         await window.api.deleteHistoryItems([url]);
@@ -314,6 +353,7 @@
                         ElMessage.error('删除失败');
                     }
                 },
+                
                 async deleteSelected() {
                     if (this.selectedItems.length === 0) return;
                     
@@ -338,6 +378,7 @@
                         }
                     }
                 },
+                
                 async clearAllHistory() {
                     try {
                         if (this.activeView === 'all') {
@@ -350,15 +391,6 @@
                         ElMessage.error('清除失败');
                     }
                 }
-            },
-            components: {
-                Search,
-                Grid, 
-                Clock,
-                Delete,
-                DeleteFilled,
-                Loading,
-                Globe
             }
         }).use(ElementPlus).mount('#app');
     </script>

@@ -35,6 +35,7 @@
                     :props="treeProps"
                     node-key="id"
                     :current-node-key="currentFolderId"
+                    :default-expand-all="true"
                     @node-click="handleFolderClick"
                 >
                     <template #default="{ node, data }">
@@ -67,15 +68,15 @@
                     </el-button>
                     <el-button 
                         type="primary" 
-                        class="custom-button"
-                        icon="Link"
+                        class="btn-base"
+                        icon="Plus"
                         @click="showAddBookmarkDialog"
                     >
                         添加收藏
                     </el-button>
                     <el-button 
                         type="primary" 
-                        class="custom-button"
+                        class="btn-base"
                         icon="Folder"
                         @click="showAddFolderDialog"
                     >
@@ -125,15 +126,23 @@
                             <el-icon v-if="item.type === 'folder'" class="bookmark-favicon" size="24">
                                 <Folder />
                             </el-icon>
-                            <img 
-                                v-else-if="item.favicon"
-                                :src="item.favicon"
-                                class="bookmark-favicon"
-                                @error="$event.target.style.display='none'"
-                            />
-                            <el-icon v-else class="bookmark-favicon" size="24" color="#909399">
-                                <Globe />
-                            </el-icon>
+                            <!-- 网站图标：优化显示逻辑 -->
+                            <template v-else>
+                                <img 
+                                    v-if="item.favicon && !faviconErrors[item.id]"
+                                    :src="item.favicon"
+                                    class="bookmark-favicon"
+                                    @error="handleFaviconError($event, item.id)"
+                                    @load="handleFaviconLoad"
+                                />
+                                <!-- 默认地球图标：没有favicon或加载失败时显示 -->
+                                <div 
+                                    v-else
+                                    class="bookmark-favicon default-globe-icon" 
+                                    v-html="getDefaultGlobeIcon()"
+                                    :title="item.favicon ? 'Favicon 加载失败' : '没有网站图标'"
+                                ></div>
+                            </template>
                             <h4 class="bookmark-title">{{ item.title }}</h4>
                             <div class="bookmark-actions">
                                 <el-checkbox
@@ -192,8 +201,8 @@
             </el-form>
             <template #footer>
                 <span class="dialog-footer">
-                    <el-button @click="bookmarkDialogVisible = false">取消</el-button>
-                    <el-button type="primary" class="custom-button" @click="saveBookmark">
+                    <el-button class="btn-back" @click="bookmarkDialogVisible = false">取消</el-button>
+                    <el-button class="btn-confirm" @click="saveBookmark">
                         保存
                     </el-button>
                 </span>
@@ -224,8 +233,8 @@
             </el-form>
             <template #footer>
                 <span class="dialog-footer">
-                    <el-button @click="folderDialogVisible = false">取消</el-button>
-                    <el-button type="primary" class="custom-button" @click="saveFolder">
+                    <el-button class="btn-back" @click="folderDialogVisible = false">取消</el-button>
+                    <el-button class="btn-confirm" @click="saveFolder">
                         创建
                     </el-button>
                 </span>
@@ -249,6 +258,7 @@
                     folderDialogVisible: false,
                     isEditing: false,
                     editingBookmarkId: null,
+                    faviconErrors: {},
                     bookmarkForm: {
                         title: '',
                         url: '',
@@ -291,7 +301,20 @@
                     return '此文件夹为空';
                 },
                 treeData() {
-                    return this.bookmarksData.filter(item => item.type === 'folder');
+                    const buildFolderTree = (items) => {
+                        const folders = [];
+                        items.forEach(item => {
+                            if (item.type === 'folder') {
+                                const folder = {
+                                    ...item,
+                                    children: item.children ? buildFolderTree(item.children) : []
+                                };
+                                folders.push(folder);
+                            }
+                        });
+                        return folders;
+                    };
+                    return buildFolderTree(this.bookmarksData);
                 },
                 allFolders() {
                     const folders = [];
@@ -335,13 +358,76 @@
                 async loadBookmarks() {
                     this.loading = true;
                     try {
+                        // 重置favicon错误状态
+                        this.resetFaviconErrors();
+                        
                         this.bookmarksData = await window.api.getBookmarksTree() || [];
                         this.selectedItems = [];
+                        
+                        // 添加日志：检查收藏夹数据结构
+                        console.log('[收藏夹] 加载的收藏夹数据:', this.bookmarksData);
+                        
+                        // 详细检查每个书签的favicon信息
+                        const allBookmarks = this.searchAllItems(this.bookmarksData);
+                        console.log('[收藏夹] 所有书签数量:', allBookmarks.length);
+                        
+                        allBookmarks.forEach((bookmark, index) => {
+                            console.log(`[收藏夹] 书签 ${index + 1}:`, {
+                                id: bookmark.id,
+                                title: bookmark.title,
+                                url: bookmark.url,
+                                favicon: bookmark.favicon,
+                                hasFavicon: !!bookmark.favicon,
+                                faviconType: typeof bookmark.favicon
+                            });
+                        });
+                        
                     } catch (error) {
                         console.error('加载收藏夹失败:', error);
                         ElMessage.error('加载收藏夹失败');
                     } finally {
                         this.loading = false;
+                    }
+                },
+                // 检查favicon是否加载失败
+                getFaviconErrorState(id) {
+                    return this.faviconErrors[id] || false;
+                },
+                // 处理 favicon 加载失败的情况
+                handleFaviconError(event, id) {
+                    const target = event.target;
+                    console.log('[收藏夹] Favicon加载失败:', {
+                        src: target.src,
+                        id: id,
+                        error: event
+                    });
+                    
+                    // 更新错误状态，触发Vue重新渲染
+                    this.$set(this.faviconErrors, id, true);
+                    console.log('[收藏夹] 已标记favicon为失败状态，将显示默认图标');
+                },
+                // 处理 favicon 加载成功的情况
+                handleFaviconLoad(event) {
+                    const target = event.target;
+                    console.log('[收藏夹] Favicon加载成功:', {
+                        src: target.src,
+                        naturalWidth: target.naturalWidth,
+                        naturalHeight: target.naturalHeight
+                    });
+                },
+                // 重置favicon错误状态
+                resetFaviconErrors() {
+                    this.faviconErrors = {};
+                },
+                getDefaultFavicon(url) {
+                    try {
+                        const urlObj = new URL(url);
+                        const defaultFavicon = `${urlObj.protocol}//${urlObj.host}/favicon.ico`;
+                        console.log('[收藏夹] 生成默认favicon URL:', defaultFavicon);
+                        return defaultFavicon;
+                    } catch (error) {
+                        console.log('[收藏夹] 无法解析URL生成默认favicon:', url, error);
+                        return null;
                     }
                 },
                 findItemById(items, id) {
@@ -473,17 +559,33 @@
 
                     try {
                         if (this.isEditing) {
+                            console.log('[收藏夹管理] 更新书签:', {
+                                id: this.editingBookmarkId,
+                                title: this.bookmarkForm.title,
+                                url: this.bookmarkForm.url,
+                                favicon: null // 管理页面暂时不处理favicon更新
+                            });
+                            
                             await window.api.updateBookmark({
                                 id: this.editingBookmarkId,
                                 title: this.bookmarkForm.title,
                                 url: this.bookmarkForm.url
+                                // 注意：管理页面暂时不更新favicon，保持原有的favicon
                             });
                             ElMessage.success('书签已更新');
                         } else {
+                            console.log('[收藏夹管理] 添加新书签:', {
+                                parentId: this.bookmarkForm.parentId,
+                                title: this.bookmarkForm.title,
+                                url: this.bookmarkForm.url,
+                                favicon: null // 新建书签时，暂时不设置favicon
+                            });
+                            
                             await window.api.addBookmark({
                                 parentId: this.bookmarkForm.parentId,
                                 title: this.bookmarkForm.title,
-                                url: this.bookmarkForm.url
+                                url: this.bookmarkForm.url,
+                                favicon: null // 新建书签时设置为null，后续可能会自动获取
                             });
                             ElMessage.success('书签已添加');
                         }
@@ -560,6 +662,11 @@
                             ElMessage.error('删除失败');
                         }
                     }
+                },
+                // 获取默认地球图标SVG
+                getDefaultGlobeIcon() {
+                    // 使用与标签栏相同的地球图标SVG
+                    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px; color: #909399;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
                 }
             }
         });
