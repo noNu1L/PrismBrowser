@@ -1,0 +1,169 @@
+/* --- 标签栏样式 --- */
+#tabs-bar {
+    display: flex;
+    align-items: flex-end; /* Align to bottom for better look */
+    background-color: var(--app-bg-color);
+    padding: 5px 140px 0 5px; /* Right padding reserves space for window controls */
+    flex-shrink: 0;
+    min-height: 35px;
+    position: relative; /* z-index 需要 position */
+    z-index: 900;
+    /*-webkit-app-region: no-drag; !* 明确将整个标签栏设为不可拖拽区域 *!*/
+}
+
+#tabs-container {
+    flex-shrink: 1;
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden; /* Prevent vertical scrollbar */
+    -webkit-app-region: no-drag; /* Exclude scrollable area from drag */
+    /* Hide scrollbar by default, will be styled below */
+    scrollbar-width: none; /* For Firefox */
+}
+
+#tabs-container::-webkit-scrollbar {
+    height: 4px; /* Set height of the scrollbar */
+}
+
+#tabs-container::-webkit-scrollbar-track {
+    background: transparent; /* Make the track invisible */
+}
+
+#tabs-container::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb-color); /* Color of the scroll thumb */
+    border-radius: 2px;
+}
+
+#tabs-container::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover-color); /* 鼠标悬停在滚动条滑块上时的颜色 */
+}
+
+.tab-item {
+    display: flex;
+    align-items: center; /* Vertically align icon/spinner and title */
+    padding: 7px 10px;
+    border: 0;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    background-color: var(--tab-bg-color);
+    margin-left: -1px;
+    position: relative;
+    cursor: default;
+    flex-shrink: 1;   /* Allow tabs to shrink */
+    min-width: 80px; /* But not too much */
+    max-width: 180px; /* And not too large */
+    width: 180px;     /* Default width */
+    box-sizing: border-box; /* Ensure padding is included in the width */
+    -webkit-app-region: no-drag; /* Tabs are clickable */
+    transition: background-color 0.2s ease-in-out, width 0.15s ease-in-out; /* Add smooth transition */
+}
+
+.tab-item:first-child {
+    margin-left: 0;
+}
+
+.tab-item:not(.active):hover {
+    background-color: var(--tab-hover-bg-color); /* Use the new theme variable */
+}
+
+.tab-item:not(.active):not(:hover) + .tab-item:not(.active):not(:hover)::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background-color: var(--border-color-primary);
+}
+
+.tab-item.active {
+    background-color: var(--tab-bg-color-active);
+    z-index: 2;
+}
+
+.tab-icon-container {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    margin-right: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.tab-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* 加载动画样式 */
+.tab-loading-spinner {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    border: 2px solid #e5e7eb;
+    border-top: 2px solid #667eea;
+    border-radius: 50%;
+    animation: tab-spin 1s linear infinite;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+@keyframes tab-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.tab-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    flex-grow: 1; /* Allow title to take up available space */
+}
+
+.close-tab {
+    margin-left: auto; /* Push the close button to the far right */
+    width: 18px;
+    height: 18px;
+    border: none;
+    background: transparent;
+    opacity: 0.5;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 16px; /* 放大图标 */
+    font-weight: 700; /* 加粗图标 */
+    display: flex; /* 使用 flex 确保完美居中 */
+    align-items: center;
+    justify-content: center;
+}
+
+.close-tab:hover {
+    opacity: 1;
+    background-color: var(--tab-close-button-hover-bg);
+}
+
+#new-tab-btn {
+    width: 32px; /* Adjust width to be more like a square */
+    height: 32px; /* Match the visual height of the tabs */
+    font-size: 26px;
+    color: var(--button-icon-color);
+    margin-left: 2px;
+    border: 0;
+    border-radius: 4px;
+    background-color: var(--tab-bg-color);
+    flex-shrink: 0;
+    -webkit-app-region: no-drag; /* New tab button is clickable */
+    padding: 0; /* Reset padding */
+    box-sizing: border-box; /* Ensure border is included */
+    align-self: flex-end; /* Align to the bottom of the flex container */
+    transition: background-color 0.2s ease-in-out; /* Add smooth transition */
+}
+
+#new-tab-btn:hover {
+    background-color: var(--new-tab-button-hover-bg);
+} 

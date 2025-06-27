@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>添加文件夹</title>
+    <link rel="stylesheet" href="../../styles/theme.css">
+    <style>
+        body, html {
+            margin: 0; padding: 0; 
+            overflow: hidden;
+            font-family: var(--app-font-family);
+            background-color: var(--card-bg);
+            color: var(--text-color-primary);
+        }
+        .container {
+            padding: 16px 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        #close-btn {
+             font-size: 20px;
+             background: none;
+             border: none;
+             cursor: pointer;
+             opacity: 0.6;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .form-group input {
+            width: 100%;
+            height: 36px;
+            padding: 0 10px;
+            box-sizing: border-box;
+            border-radius: 6px;
+            border: 1px solid var(--input-border);
+            background-color: var(--input-bg);
+            font-size: 14px;
+        }
+        footer {
+            margin-top: 10px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            border: 1px solid var(--input-border);
+            cursor: pointer;
+        }
+        #save-btn {
+            background-color: var(--button-primary-bg);
+            border-color: var(--button-primary-bg);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>添加文件夹</h1>
+            <button id="close-btn">&times;</button>
+        </header>
+
+        <div class="form-group">
+            <label for="name-input">名称</label>
+            <input type="text" id="name-input">
+        </div>
+
+        <footer>
+            <button id="cancel-btn">取消</button>
+            <button id="save-btn">保存</button>
+        </footer>
+    </div>
+    <script>
+        const nameInput = document.getElementById('name-input');
+        const saveBtn = document.getElementById('save-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const closeBtn = document.getElementById('close-btn');
+
+        let parentId = null;
+
+        window.api.onPopupData((data) => {
+            parentId = data.parentId;
+            nameInput.focus(); // 自动聚焦输入框
+        });
+
+        async function saveFolder() {
+            const name = nameInput.value.trim();
+            if (name && parentId) {
+                const result = await window.api.addBookmarkFolder({ parentId: parentId, title: name });
+                if (result.success) {
+                    window.api.closePopupAndRefresh();
+                } else {
+                    alert('创建文件夹失败。');
+                }
+            } else if (!name) {
+                alert('文件夹名称不能为空。');
+            }
+        }
+
+        saveBtn.addEventListener('click', saveFolder);
+
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                saveFolder();
+            }
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            window.api.closePopupAndRefresh();
+        });
+
+        closeBtn.addEventListener('click', () => {
+             window.api.closePopupAndRefresh();
+        });
+    </script>
+</body>
+</html> 

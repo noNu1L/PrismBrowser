@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>设置</title>
+    <link rel="stylesheet" href="../../styles/theme.css">
+    <link rel="stylesheet" href="../../vendor/vue/element-plus.css">
+    <link rel="stylesheet" href="../../styles/page-theme.css">
+    <script src="../../vendor/vue/vue.global.js"></script>
+    <script src="../../vendor/vue/element-plus.full.js"></script>
+    <script src="../../vendor/vue/element-plus-icons.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header settings-header">
+                <h1 class="sidebar-title">设置</h1>
+                <p class="sidebar-subtitle">配置您的浏览器偏好</p>
+            </div>
+            <el-menu 
+                :default-active="activeSection"
+                @select="handleSectionChange"
+                mode="vertical"
+            >
+                <el-menu-item index="general">
+                    <!-- 使用与主页一样的图标 -->
+                    <el-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    </el-icon>
+                    <span>启动、主页和新标签页设置</span>
+                </el-menu-item>
+                <el-menu-item index="toolbar">
+                    <el-icon><Setting /></el-icon>
+                    <span>自定义工具栏</span>
+                </el-menu-item>
+                <el-menu-item index="proxy">
+                    <el-icon><Connection /></el-icon>
+                    <span>代理设置</span>
+                </el-menu-item>
+                <el-menu-item index="about">
+                    <el-icon><Document /></el-icon>
+                    <span>关于</span>
+                </el-menu-item>
+            </el-menu>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="main-content">
+            <div class="content-container">
+                <div class="page-header">
+                    <h1 class="page-title">{{ currentSectionTitle }}</h1>
+                    <p class="page-subtitle">{{ currentSectionDesc }}</p>
+                </div>
+
+                <!-- 启动、主页和新标签页设置 -->
+                <div v-show="activeSection === 'general'">
+                    <!-- 浏览器启动设置 -->
+                    <div class="settings-section">
+                        <div class="section-content">
+                            <div class="section-header">
+                                <h2 class="section-title">浏览器启动设置</h2>
+                                <p class="section-subtitle">配置浏览器启动时的默认行为</p>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">浏览器启动时</h3>
+                                    <p class="setting-desc">选择浏览器启动时显示的页面</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-select v-model="settings.startupOption" @change="saveSettings">
+                                        <el-option label="打开空白页" value="blank"></el-option>
+                                        <el-option label="打开主页" value="homepage"></el-option>
+                                        <el-option label="继续浏览上次打开的页面" value="restore"></el-option>
+                                        <el-option label="打开自定义网址" value="custom"></el-option>
+                                    </el-select>
+                                </div>
+                            </div>
+                            <div v-show="settings.startupOption === 'custom'" class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">启动页面网址</h3>
+                                    <p class="setting-desc">输入启动时要打开的网址</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-input 
+                                        v-model="settings.startupCustomUrl"
+                                        @change="saveSettings"
+                                        placeholder="https://www.bing.com"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 主页设置 -->
+                    <div class="settings-section">
+                        <div class="section-content">
+                            <div class="section-header">
+                                <h2 class="section-title">主页设置</h2>
+                                <p class="section-subtitle">配置点击主页按钮时的默认行为</p>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">主页显示内容</h3>
+                                    <p class="setting-desc">点击主页按钮时显示的页面</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-select v-model="settings.homepageOption" @change="saveSettings">
+                                        <el-option label="空白页" value="blank"></el-option>
+                                        <el-option label="自定义网址" value="custom"></el-option>
+                                    </el-select>
+                                </div>
+                            </div>
+                            <div v-show="settings.homepageOption === 'custom'" class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">主页网址</h3>
+                                    <p class="setting-desc">输入主页网址</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-input 
+                                        v-model="settings.homepageCustomUrl"
+                                        @change="saveSettings"
+                                        placeholder="https://www.bing.com"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 新标签页设置 -->
+                    <div class="settings-section">
+                        <div class="section-content">
+                            <div class="section-header">
+                                <h2 class="section-title">新标签页设置</h2>
+                                <p class="section-subtitle">配置新建标签页时的默认内容</p>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">新标签页显示内容</h3>
+                                    <p class="setting-desc">新建标签页时显示的内容</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-select v-model="settings.newtabOption" @change="saveSettings">
+                                        <el-option label="空白页" value="blank"></el-option>
+                                        <el-option label="自定义网址" value="custom"></el-option>
+                                    </el-select>
+                                </div>
+                            </div>
+                            <div v-show="settings.newtabOption === 'custom'" class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">新标签页网址</h3>
+                                    <p class="setting-desc">输入新标签页要显示的网址</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-input 
+                                        v-model="settings.newtabCustomUrl"
+                                        @change="saveSettings"
+                                        placeholder="https://www.bing.com"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 自定义工具栏 -->
+                <div v-show="activeSection === 'toolbar'" class="settings-section">
+                    <div class="section-content">
+                        <div class="toolbar-category">
+                            <h3 class="category-title">导航功能</h3>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">主页按钮</h3>
+                                    <p class="setting-desc">快速跳转到主页的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showHome"
+                                        @change="saveSettings"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="toolbar-category">
+                            <h3 class="category-title">内容管理</h3>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">收藏夹按钮</h3>
+                                    <p class="setting-desc">访问和管理收藏夹的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showFavorites"
+                                        @change="saveSettings"
+                                    />
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">历史记录按钮</h3>
+                                    <p class="setting-desc">查看浏览历史记录的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showHistory"
+                                        @change="saveSettings"
+                                    />
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">下载管理按钮</h3>
+                                    <p class="setting-desc">查看和管理下载内容的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showDownloads"
+                                        @change="saveSettings"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="toolbar-category">
+                            <h3 class="category-title">系统功能</h3>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">设置按钮</h3>
+                                    <p class="setting-desc">打开浏览器设置页面的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showSettings"
+                                        @change="saveSettings"
+                                    />
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <h3 class="setting-name">日志切换按钮</h3>
+                                    <p class="setting-desc">显示/隐藏系统日志的按钮</p>
+                                </div>
+                                <div class="setting-control">
+                                    <el-switch 
+                                        v-model="settings.toolbar.showToggleLogs"
+                                        @change="saveSettings"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 代理设置 -->
+                <div v-show="activeSection === 'proxy'" class="settings-section">
+                    <div class="section-content">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">代理开关</h3>
+                                <p class="setting-desc">手动启动或停止代理服务</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-switch 
+                                    v-model="proxyEnabled"
+                                    :loading="proxyToggleLoading"
+                                    @change="toggleProxy"
+                                    active-text="开启"
+                                    inactive-text="关闭"
+                                />
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">代理状态</h3>
+                                <p class="setting-desc">当前代理服务运行状态</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-tag :type="proxyStatus === '运行中' ? 'success' : 'danger'">
+                                    {{ proxyStatus }}
+                                </el-tag>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">代理面板</h3>
+                                <p class="setting-desc">打开 Clash.Meta 控制面板</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-button 
+                                    type="primary" 
+                                    class="custom-button"
+                                    @click="openProxyDashboard"
+                                >
+                                    打开面板
+                                </el-button>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">配置文件</h3>
+                                <p class="setting-desc">查看当前的代理配置</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-button @click="viewConfig">查看配置</el-button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 关于 -->
+                <div v-show="activeSection === 'about'" class="settings-section">
+                    <div class="section-content">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">版本</h3>
+                                <p class="setting-desc">当前应用程序版本</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-tag>{{ appVersion }}</el-tag>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">Electron</h3>
+                                <p class="setting-desc">Electron 框架版本</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-tag type="info">{{ electronVersion }}</el-tag>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h3 class="setting-name">开源许可</h3>
+                                <p class="setting-desc">本项目使用 MIT 许可证</p>
+                            </div>
+                            <div class="setting-control">
+                                <el-button @click="openGitHub">查看源码</el-button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 代理状态加载弹窗 -->
+        <el-dialog
+            v-model="proxyLoadingVisible"
+            title="代理状态变更"
+            width="400px"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
+            :show-close="false"
+            align-center
+        >
+            <div class="proxy-loading-content">
+                <el-icon class="loading-icon" size="32">
+                    <Loading />
+                </el-icon>
+                <p class="loading-text">{{ proxyLoadingText }}</p>
+                <p class="loading-tip">请稍候，操作正在进行中...</p>
+            </div>
+        </el-dialog>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        const { ElMessage } = ElementPlus;
+
+        const app = createApp({
+            data() {
+                return {
+                    activeSection: 'general',
+                    settings: {
+                        startupOption: 'homepage',
+                        startupCustomUrl: 'https://www.bing.com',
+                        homepageOption: 'custom',
+                        homepageCustomUrl: 'https://www.bing.com',
+                        newtabOption: 'blank',
+                        newtabCustomUrl: '',
+                        toolbar: {
+                            showToggleLogs: true,
+                            showFavorites: true,
+                            showHistory: true,
+                            showDownloads: true,
+                            showSettings: true,
+                            showHome: true
+                        }
+                    },
+                    proxyStatus: '检查中...',
+                    appVersion: '1.0.0',
+                    electronVersion: '34.5.8',
+                    proxyEnabled: false,
+                    proxyToggleLoading: false,
+                    proxyStatusInterval: null,
+                    proxyLoadingVisible: false,
+                    proxyLoadingText: '正在启动代理服务...'
+                };
+            },
+            computed: {
+                currentSectionTitle() {
+                    const titles = {
+                        general: '启动、主页和新标签页设置',
+                        toolbar: '自定义工具栏',
+                        proxy: '代理设置',
+                        about: '关于'
+                    };
+                    return titles[this.activeSection] || '设置';
+                },
+                currentSectionDesc() {
+                    const descriptions = {
+                        general: '配置浏览器启动、主页和新标签页的默认行为',
+                        toolbar: '自定义工具栏按钮的显示与隐藏',
+                        proxy: '管理 Clash.Meta 代理设置',
+                        about: '应用程序信息和版本详情'
+                    };
+                    return descriptions[this.activeSection] || '';
+                }
+            },
+            async mounted() {
+                await this.loadSettings();
+                this.checkProxyStatus();
+                
+                // 定期检查代理状态
+                this.proxyStatusInterval = setInterval(() => {
+                    this.checkProxyStatus();
+                }, 5000);
+            },
+            beforeUnmount() {
+                if (this.proxyStatusInterval) {
+                    clearInterval(this.proxyStatusInterval);
+                }
+            },
+            methods: {
+                handleSectionChange(section) {
+                    this.activeSection = section;
+                },
+                async loadSettings() {
+                    try {
+                        console.log('开始加载设置...');
+                        const keys = [
+                            'settings.startupOption',
+                            'settings.startupCustomUrl', 
+                            'settings.homepageOption',
+                            'settings.homepageCustomUrl',
+                            'settings.newtabOption',
+                            'settings.newtabCustomUrl',
+                            'settings.toolbar.showToggleLogs',
+                            'settings.toolbar.showFavorites',
+                            'settings.toolbar.showHistory',
+                            'settings.toolbar.showDownloads',
+                            'settings.toolbar.showSettings',
+                            'settings.toolbar.showHome'
+                        ];
+                        
+                        for (const key of keys) {
+                            const value = await window.api.getSetting(key);
+                            console.log(`加载设置: ${key} = ${value}`);
+                            if (value !== undefined && value !== null) {
+                                if (key.startsWith('settings.toolbar.')) {
+                                    // 处理工具栏设置
+                                    const toolbarKey = key.replace('settings.toolbar.', '');
+                                    this.settings.toolbar[toolbarKey] = value;
+                                } else {
+                                    const settingKey = key.replace('settings.', '');
+                                    this.settings[settingKey] = value;
+                                }
+                            }
+                        }
+                        console.log('设置加载完成:', this.settings);
+                    } catch (error) {
+                        console.error('加载设置失败:', error);
+                    }
+                },
+                async saveSettings() {
+                    try {
+                        for (const [key, value] of Object.entries(this.settings)) {
+                            if (key === 'toolbar') {
+                                // 处理工具栏设置
+                                for (const [toolbarKey, toolbarValue] of Object.entries(value)) {
+                                    await window.api.setSetting(`settings.toolbar.${toolbarKey}`, toolbarValue);
+                                }
+                            } else {
+                                await window.api.setSetting(`settings.${key}`, value);
+                            }
+                        }
+                        ElMessage.success('设置已保存');
+                    } catch (error) {
+                        console.error('保存设置失败:', error);
+                        ElMessage.error('保存设置失败');
+                    }
+                },
+                checkProxyStatus() {
+                    // 检查代理状态并更新开关状态
+                    fetch('http://127.0.0.1:9090/version')
+                        .then(() => {
+                            this.proxyStatus = '运行中';
+                            this.proxyEnabled = true;
+                        })
+                        .catch(() => {
+                            this.proxyStatus = '未运行';
+                            this.proxyEnabled = false;
+                        });
+                },
+                openProxyDashboard() {
+                    window.api.openInNewTab('prism://dashboard');
+                },
+                viewConfig() {
+                    window.api.getClashConfig().then(config => {
+                        this.$alert(config, '代理配置', {
+                            confirmButtonText: '确定',
+                            customClass: 'config-alert'
+                        });
+                    });
+                },
+                openGitHub() {
+                    window.api.openInNewTab('https://github.com');
+                },
+                async toggleProxy() {
+                    this.proxyToggleLoading = true;
+                    
+                    // 根据当前状态设置加载文本
+                    if (this.proxyEnabled) {
+                        this.proxyLoadingText = '正在停止代理服务...';
+                    } else {
+                        this.proxyLoadingText = '正在启动代理服务...';
+                    }
+                    
+                    // 显示加载弹窗
+                    this.proxyLoadingVisible = true;
+                    
+                    try {
+                        await window.api.toggleProxy();
+                        // ElMessage.success('代理状态已更新');
+                    } catch (error) {
+                        console.error('切换代理失败:', error);
+                        ElMessage.error('切换代理失败');
+
+                    } finally {
+                        this.proxyToggleLoading = false;
+                        
+                        // 3秒后自动关闭弹窗
+                        setTimeout(() => {
+                            this.proxyLoadingVisible = false;
+                        }, 3000);
+                    }
+                }
+            }
+        });
+
+        // 注册所有Element Plus图标
+        for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+            app.component(key, component);
+        }
+
+        app.use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html> 
