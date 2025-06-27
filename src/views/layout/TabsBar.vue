@@ -96,7 +96,7 @@ function close() {
   align-items: center;
   height: 40px;
   padding: 0 140px 0 8px;
-  background-color: #f5f5f5;
+  background-color: #e8e8e8;
   position: relative;
   box-sizing: border-box;
 }
@@ -125,8 +125,8 @@ function close() {
   height: 32px;
   min-width: 120px;
   max-width: 240px;
+  width: 240px;
   background: #e8e8e8;
-  border: 1px solid #d0d0d0;
   border-bottom: none;
   border-radius: 2px 2px 0 0;
   cursor: pointer;
@@ -136,7 +136,7 @@ function close() {
 }
 
 .tab-item:hover {
-  background: #f0f0f0;
+  background: #dadada;
 }
 
 .tab-item.active {
@@ -150,7 +150,7 @@ function close() {
   align-items: center;
   height: 100%;
   padding: 0 8px;
-  gap: 6px;
+  gap: 10px;
 }
 
 .tab-icon {
@@ -165,7 +165,7 @@ function close() {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
-  color: #333;
+  color: #000000;
   line-height: 1;
 }
 
