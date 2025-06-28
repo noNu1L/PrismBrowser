@@ -335,7 +335,7 @@ function close() { window.api?.sendWindowControl('close') }
   max-width: 240px;
   background: #e8e8e8;
   border-bottom: none;
-  cursor: pointer;
+  cursor: default;
   position: relative;
   transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s, transform 0.2s; /*动画时间调整为 0.2s*/
   box-sizing: border-box;
@@ -436,12 +436,11 @@ function close() { window.api?.sendWindowControl('close') }
   color: #000000;
   background: inherit;
   border-radius: 25%;
-  cursor: pointer;
+  cursor: default;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 0.2s;
   z-index: 2;
 }
 
@@ -450,7 +449,7 @@ function close() { window.api?.sendWindowControl('close') }
 }
 
 .tab-close-btn:hover {
-  background: #d8d8d8 !important;
+  background: #bababa !important;
   color: black !important;
   opacity: 1;
 }
@@ -466,11 +465,11 @@ function close() { window.api?.sendWindowControl('close') }
   width: 32px !important;
   min-width: 32px !important;
   min-height: 32px !important;
-  color: black;
+  color: black !important;
   background: #e8e8e8;
   padding: 0 !important;
   border : none !important;
-  cursor: pointer;
+  cursor: default;
   position: relative;
   transition: all 0.2s;
   box-sizing: border-box;
@@ -504,7 +503,7 @@ function close() { window.api?.sendWindowControl('close') }
   background: transparent;
   color: #444;
   outline: none;
-  cursor: pointer;
+  cursor: default;
   transition: background 0.2s, color 0.2s;
   display: flex;
   align-items: center;
