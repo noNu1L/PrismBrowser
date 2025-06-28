@@ -188,7 +188,7 @@ function updateTab(id, patch) {
 
 function calculateOptimalWidth() {
   const maxWidth = 240
-  const minWidth = 80
+  const minWidth = 26
   if (!tabsAreaRef.value) return maxWidth
   const containerWidth = tabsAreaRef.value.offsetWidth
   const addBtnWidth = 34
@@ -278,8 +278,10 @@ function close() { window.api?.sendWindowControl('close') }
 .tabs-container {
   display: flex;
   align-items: flex-end;
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
-  flex-shrink: 1; /* 允许收缩但不主动扩展 */
+  container-type: inline-size; /* 启用容器查询 */
 }
 
 .tabs-container::-webkit-scrollbar {
@@ -288,14 +290,15 @@ function close() { window.api?.sendWindowControl('close') }
 
 .tab-item {
   height: 32px;
-  min-width: 80px;
+  min-width: 26px;
   max-width: 240px;
   background: #e8e8e8;
   border-bottom: none;
   cursor: pointer;
   position: relative;
-  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s, transform 0.2s; /*动画时间调整为 0.2s*/
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s, transform 0.2s;
   box-sizing: border-box;
+  flex-shrink: 0;
   margin-right: 2px;
 }
 
@@ -355,14 +358,20 @@ function close() { window.api?.sendWindowControl('close') }
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 0 8px;
-  gap: 10px;
+  padding: 0 3px;
+  gap: 3px;
+  overflow: hidden;
+  min-width: 0;
+  position: relative;
 }
 
 .tab-icon {
-  font-size: 14px;
+  font-size: 18px;
   color: #666;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .tab-title {
@@ -374,12 +383,17 @@ function close() { window.api?.sendWindowControl('close') }
   font-weight: 400;
   color: #000000;
   line-height: 1;
+  min-width: 0;
 }
 
 .tab-close-btn {
-  width: 16px !important;
-  height: 16px !important;
-  min-height: 16px !important;
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
   padding: 0 !important;
   border: none;
   background: transparent;
@@ -388,12 +402,35 @@ function close() { window.api?.sendWindowControl('close') }
   flex-shrink: 0;
   opacity: 0.7;
   transition: all 0.2s;
+  z-index: 2;
+}
+
+.tab-item.active .tab-close-btn {
+  opacity: 1;
 }
 
 .tab-close-btn:hover {
   background: #ff4757 !important;
   color: white !important;
   opacity: 1;
+}
+
+.tab-item.active .tab-close-btn {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: auto;
+  opacity: 1;
+  z-index: 2;
+}
+
+@container (max-width: 48px) {
+  .tab-item:not(.active) .tab-close-btn {
+    opacity: 0 !important;
+    pointer-events: none;
+  }
 }
 
 .add-tab-btn {
