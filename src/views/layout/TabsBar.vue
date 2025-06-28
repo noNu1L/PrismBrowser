@@ -300,6 +300,7 @@ function close() { window.api?.sendWindowControl('close') }
   box-sizing: border-box;
   flex-shrink: 0;
   margin-right: 2px;
+  container-type: inline-size; /* 让每个标签成为容器 */
 }
 
 .tab-item:last-child {
@@ -388,7 +389,7 @@ function close() { window.api?.sendWindowControl('close') }
 
 .tab-close-btn {
   position: absolute;
-  right: 5px;
+  right: 4px;
   top: 50%;
   transform: translateY(-50%);
   width: 18px !important;
@@ -406,7 +407,11 @@ function close() { window.api?.sendWindowControl('close') }
 }
 
 .tab-item.active .tab-close-btn {
-  opacity: 1;
+  opacity: 1 !important;
+  right: 4px;
+  left: auto;
+  margin: 0;
+  pointer-events: auto;
 }
 
 .tab-close-btn:hover {
@@ -415,21 +420,17 @@ function close() { window.api?.sendWindowControl('close') }
   opacity: 1;
 }
 
-.tab-item.active .tab-close-btn {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  margin: auto;
-  opacity: 1;
-  z-index: 2;
-}
-
-@container (max-width: 48px) {
-  .tab-item:not(.active) .tab-close-btn {
+@container (max-width: 72px) {
+  .tab-close-btn {
     opacity: 0 !important;
     pointer-events: none;
+  }
+  .tab-item.active .tab-close-btn {
+    opacity: 1 !important;
+    pointer-events: auto;
+    right: 4px;
+    left: auto;
+    margin: 0;
   }
 }
 
