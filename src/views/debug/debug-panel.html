@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrismBrowser 开发调试面板</title>
+</head>
+<body>
+    <h1>🛠️ PrismBrowser 开发调试面板</h1>
+    
+    <!-- 标签栏模块 -->
+    <fieldset>
+        <legend>📑 标签栏调试</legend>
+        
+        <h3>标签操作</h3>
+        <button id="add-1-tab">添加1个标签</button>
+        <button id="add-5-tabs">添加5个标签</button>
+        <button id="close-all-tabs">关闭所有标签</button>
+        <button id="close-last-tab">关闭最后一个</button>
+
+        <h3>状态监控</h3>
+        <table border="1">
+            <tr><td>标签数量:</td><td id="tab-count">0</td></tr>
+            <tr><td>总宽度:</td><td id="total-width">0px</td></tr>
+            <tr><td>窗口宽度:</td><td id="window-width">0px</td></tr>
+            <tr><td>鼠标悬停:</td><td id="hovering-status">否</td></tr>
+        </table>
+        <br>
+        <button id="refresh-status">刷新状态</button>
+        <button id="export-logs">导出日志</button>
+    </fieldset>
+    
+    <!-- 地址栏模块 -->
+    <fieldset>
+        <legend>🔗 地址栏调试</legend>
+        <h3>地址栏功能</h3>
+        <button id="test-url-validation">测试URL验证</button>
+        <button id="test-search-suggest">测试搜索建议</button>
+        <button id="clear-history">清空历史记录</button>
+    </fieldset>
+
+    <!-- 书签模块 -->
+    <fieldset>
+        <legend>🔖 书签调试</legend>
+        <h3>书签功能</h3>
+        <button id="add-test-bookmarks">添加测试书签</button>
+        <button id="clear-bookmarks">清空所有书签</button>
+        <button id="export-bookmarks">导出书签</button>
+    </fieldset>
+
+    <!-- 下载模块 -->
+    <fieldset>
+        <legend>⬇️ 下载调试</legend>
+        <h3>下载功能</h3>
+        <button id="simulate-download">模拟下载</button>
+        <button id="clear-downloads">清空下载列表</button>
+    </fieldset>
+
+    <!-- 系统模块 -->
+    <fieldset>
+        <legend>⚙️ 系统调试</legend>
+        <h3>系统功能</h3>
+        <button id="show-devtools">显示开发者工具</button>
+        <button id="reload-app">重载应用</button>
+        <button id="clear-cache">清空缓存</button>
+    </fieldset>
+
+    <hr>
+    <p><strong>说明:</strong> 这是PrismBrowser的开发调试面板，用于测试各种浏览器功能。</p>
+
+    <script src="debug-panel.js"></script>
+</body>
+</html> 
