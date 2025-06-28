@@ -1,15 +1,481 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PrismBrowser - Pages</title>
-    <link rel="stylesheet" href="../styles/theme.css">
-    <link rel="stylesheet" href="../vendor/vue/element-plus.css">
-    <link rel="stylesheet" href="../styles/page-theme.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrismBrowser - 主界面</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* 调试面板样式 */
+    .debug-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(3px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      animation: fadeIn 0.2s ease-out;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .debug-overlay.show {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .debug-panel {
+      width: 90%;
+      max-width: 1000px;
+      max-height: 90vh;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { 
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .panel-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-header h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .close-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+
+    .panel-content {
+      padding: 20px;
+      max-height: calc(90vh - 120px);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #ddd #f5f5f5;
+    }
+
+    .panel-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .panel-content::-webkit-scrollbar-track {
+      background: #f5f5f5;
+    }
+
+    .panel-content::-webkit-scrollbar-thumb {
+      background: #ddd;
+      border-radius: 3px;
+    }
+
+    .module {
+      margin-bottom: 24px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .module-title {
+      background: #f8f9fa;
+      padding: 12px 16px;
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .section {
+      padding: 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .section:last-child {
+      border-bottom: none;
+    }
+
+    .section h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .button-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #545b62;
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #1e7e34;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    .btn-warning {
+      background: #ffc107;
+      color: #212529;
+    }
+
+    .btn-warning:hover {
+      background: #e0a800;
+    }
+
+    .btn-info {
+      background: #17a2b8;
+      color: white;
+    }
+
+    .btn-info:hover {
+      background: #138496;
+    }
+
+    .status-info {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+    }
+
+    .status-item .label {
+      font-weight: 500;
+      color: #555;
+    }
+
+    .status-item .value {
+      font-family: 'Courier New', monospace;
+      background: #e9ecef;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      color: #495057;
+    }
+
+    .panel-footer {
+      background: #f8f9fa;
+      padding: 12px 20px;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+    }
+
+    .panel-footer p {
+      margin: 0;
+      color: #666;
+      font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+      .debug-panel {
+        width: 95%;
+        max-height: 95vh;
+      }
+      
+      .panel-content {
+        padding: 16px;
+      }
+      
+      .button-group {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div id="app"></div>
-    <script type="module" src="./main.js"></script>
+  <div id="app"></div>
+  
+  <!-- 调试面板 -->
+  <div id="debug-overlay" class="debug-overlay">
+    <div id="debug-panel" class="debug-panel">
+      <!-- 标题栏 -->
+      <div class="panel-header">
+        <h3>🛠️ PrismBrowser 开发调试面板</h3>
+        <button id="close-panel" class="close-btn">✕</button>
+      </div>
+
+      <!-- 主要内容区域 -->
+      <div class="panel-content">
+        <!-- 标签栏模块 -->
+        <div class="module">
+          <h3 class="module-title">📑 标签栏调试</h3>
+          
+          <!-- 标签操作区 -->
+          <div class="section">
+            <h4>标签操作</h4>
+            <div class="button-group">
+              <button id="add-1-tab" class="btn btn-primary">添加1个标签</button>
+              <button id="add-5-tabs" class="btn btn-primary">添加5个标签</button>
+              <button id="add-10-tabs" class="btn btn-primary">添加10个标签</button>
+            </div>
+            <div class="button-group">
+              <button id="close-all-tabs" class="btn btn-danger">关闭所有标签</button>
+              <button id="close-half-tabs" class="btn btn-warning">关闭一半标签</button>
+              <button id="close-last-tab" class="btn btn-warning">关闭最后一个</button>
+            </div>
+          </div>
+
+          <!-- 宽度测试区 -->
+          <div class="section">
+            <h4>宽度控制</h4>
+            <div class="button-group">
+              <button id="set-width-100" class="btn btn-secondary">设置宽度100px</button>
+              <button id="set-width-200" class="btn btn-secondary">设置宽度200px</button>
+              <button id="set-width-300" class="btn btn-secondary">设置宽度300px</button>
+            </div>
+            <div class="button-group">
+              <button id="force-recalc" class="btn btn-info">强制重计算宽度</button>
+              <button id="reset-width" class="btn btn-info">重置为自动宽度</button>
+            </div>
+          </div>
+
+          <!-- 窗口模拟区 -->
+          <div class="section">
+            <h4>窗口模拟</h4>
+            <div class="button-group">
+              <button id="simulate-small" class="btn btn-secondary">模拟小窗口</button>
+              <button id="simulate-medium" class="btn btn-secondary">模拟中等窗口</button>
+              <button id="simulate-large" class="btn btn-secondary">模拟大窗口</button>
+            </div>
+            <div class="button-group">
+              <button id="trigger-resize" class="btn btn-info">触发resize事件</button>
+            </div>
+          </div>
+
+          <!-- 动画控制区 -->
+          <div class="section">
+            <h4>动画控制</h4>
+            <div class="button-group">
+              <button id="disable-animation" class="btn btn-secondary">禁用动画</button>
+              <button id="enable-animation" class="btn btn-secondary">启用动画</button>
+            </div>
+            <div class="button-group">
+              <button id="test-close-animation" class="btn btn-warning">测试关闭动画</button>
+            </div>
+          </div>
+
+          <!-- 状态监控区 -->
+          <div class="section">
+            <h4>状态监控</h4>
+            <div class="status-info">
+              <div class="status-item">
+                <span class="label">标签数量:</span>
+                <span id="tab-count" class="value">0</span>
+              </div>
+              <div class="status-item">
+                <span class="label">总宽度:</span>
+                <span id="total-width" class="value">0px</span>
+              </div>
+              <div class="status-item">
+                <span class="label">窗口宽度:</span>
+                <span id="window-width" class="value">0px</span>
+              </div>
+              <div class="status-item">
+                <span class="label">关闭中标签:</span>
+                <span id="closing-tabs" class="value">0</span>
+              </div>
+              <div class="status-item">
+                <span class="label">鼠标悬停:</span>
+                <span id="hovering-status" class="value">否</span>
+              </div>
+            </div>
+            <div class="button-group">
+              <button id="refresh-status" class="btn btn-info">刷新状态</button>
+              <button id="export-logs" class="btn btn-success">导出日志</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 地址栏模块 -->
+        <div class="module">
+          <h3 class="module-title">🔗 地址栏调试</h3>
+          <div class="section">
+            <h4>地址栏功能</h4>
+            <div class="button-group">
+              <button id="test-url-validation" class="btn btn-secondary">测试URL验证</button>
+              <button id="test-search-suggest" class="btn btn-secondary">测试搜索建议</button>
+              <button id="clear-history" class="btn btn-warning">清空历史记录</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 书签模块 -->
+        <div class="module">
+          <h3 class="module-title">🔖 书签调试</h3>
+          <div class="section">
+            <h4>书签功能</h4>
+            <div class="button-group">
+              <button id="add-test-bookmarks" class="btn btn-primary">添加测试书签</button>
+              <button id="clear-bookmarks" class="btn btn-danger">清空所有书签</button>
+              <button id="export-bookmarks" class="btn btn-info">导出书签</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 下载模块 -->
+        <div class="module">
+          <h3 class="module-title">⬇️ 下载调试</h3>
+          <div class="section">
+            <h4>下载功能</h4>
+            <div class="button-group">
+              <button id="simulate-download" class="btn btn-primary">模拟下载</button>
+              <button id="clear-downloads" class="btn btn-warning">清空下载列表</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 系统模块 -->
+        <div class="module">
+          <h3 class="module-title">⚙️ 系统调试</h3>
+          <div class="section">
+            <h4>系统功能</h4>
+            <div class="button-group">
+              <button id="show-devtools" class="btn btn-info">显示开发者工具</button>
+              <button id="reload-app" class="btn btn-warning">重载应用</button>
+              <button id="clear-cache" class="btn btn-danger">清空缓存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部说明 -->
+      <div class="panel-footer">
+        <p>💡 快捷键: Ctrl+Shift+T 打开/关闭面板</p>
+      </div>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { createApp } from 'vue'
+    import ElementPlus from 'element-plus'
+    import 'element-plus/dist/index.css'
+    import App from './App.vue'
+
+    const app = createApp(App)
+    app.use(ElementPlus)
+    app.mount('#app')
+
+    console.log('主界面应用已启动 (ES 模块)')
+  </script>
+
+  <!-- 调试面板脚本 -->
+  <script src="debug/debug-panel.js"></script>
 </body>
 </html> 

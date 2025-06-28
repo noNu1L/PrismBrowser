@@ -185,11 +185,28 @@ function handleResize() {
 // 组件挂载时添加窗口大小监听
 onMounted(() => {
   window.addEventListener('resize', handleResize)
+  
+  // 暴露组件实例到全局，供调试面板使用
+  window.tabsBarInstance = {
+    tabs,
+    activeTabId,
+    isHoveringTabArea,
+    pendingWidthUpdate,
+    addTab,
+    closeTab,
+    updateAllTabWidths,
+    calculateOptimalWidth,
+    setActiveTab
+  }
 })
 
 // 组件卸载时移除监听
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  // 清理全局引用
+  if (window.tabsBarInstance) {
+    delete window.tabsBarInstance
+  }
 })
 
 

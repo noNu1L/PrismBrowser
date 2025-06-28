@@ -4,7 +4,8 @@
   "description": "An Electron browser with built-in Clash.Meta",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "cross-env NODE_ENV=development electron .",
+    "start:prod": "npm run build:vue && electron .",
     "dev": "vite",
     "build:vue": "vite build",
     "build": "npm run build:vue && electron-builder",
@@ -20,6 +21,7 @@
   "license": "MIT",
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.4",
+    "cross-env": "^7.0.3",
     "electron": "^34.5.8",
     "electron-builder": "^25.1.8",
     "vite": "^6.3.5",
