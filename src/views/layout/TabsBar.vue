@@ -4,18 +4,28 @@
       <!-- 标签区域 -->
       <div class="tabs-area" ref="tabsAreaRef" @mouseenter="onTabAreaMouseEnter" @mouseleave="onTabAreaMouseLeave">
         <!-- 自定义标签页 -->
-        <div class="tabs-container">
+        <div :class="['tabs-container', { 'dragging': dragState.isDragging }]">
           <div
               v-for="tab in localTabs"
               :key="tab.id"
               :class="['tab-item', {
                 'active': tab.id === tabsStore.activeTabId,
                 'closing': closingTabs.has(tab.id),
-                'hide-close-btn': tab.width < 80
+                'hide-close-btn': tab.width < 80,
+                'dragging': dragState.isDragging && dragState.draggedTabId === tab.id,
+                'drag-over-before': dragState.dragOverTabId === tab.id && dragState.insertPosition === 'before',
+                'drag-over-after': dragState.dragOverTabId === tab.id && dragState.insertPosition === 'after'
               }]"
               :style="{ width: `${tabWidths[tab.id] || 240}px` }"
               @click="setActiveTab(tab.id)"
               :id="`tab-${tab.id}`"
+              draggable="true"
+              @dragstart="onDragStart($event, tab.id)"
+              @dragover="onDragOver($event, tab.id)"
+              @dragenter="onDragEnter($event, tab.id)"
+              @dragleave="onDragLeave($event, tab.id)"
+              @drop="onDrop($event, tab.id)"
+              @dragend="onDragEnd($event, tab.id)"
           >
             <div class="tab-content no-drag">
               <el-icon class="tab-icon"><Document /></el-icon>
@@ -60,6 +70,14 @@ const tabWidths = ref({}) // { [tabId]: width }
 const isHoveringTabArea = ref(false)
 const pendingWidthUpdate = ref(false)
 const localTabs = ref([])
+
+// 拖拽相关状态
+const dragState = ref({
+  isDragging: false,
+  draggedTabId: null,
+  dragOverTabId: null,
+  insertPosition: null // 'before' | 'after'
+})
 
 onMounted(() => {
   syncTabsFromStore()
@@ -187,6 +205,9 @@ function closeTab(tabId) {
 }
 
 function setActiveTab(tabId) {
+  // 如果正在拖拽，不执行激活操作
+  if (dragState.value.isDragging) return
+  
   console.log(`[TabsBar][setActiveTab][${now()}] 激活标签: ${tabId}`)
   tabsStore.setActiveTab(tabId)
 }
@@ -285,6 +306,113 @@ function now() {
   return date.toLocaleString('zh-HK', { hour12: false })
 }
 
+// 拖拽事件处理
+function onDragStart(event, tabId) {
+  console.log(`[TabsBar][onDragStart] 开始拖拽标签: ${tabId}`)
+  dragState.value.isDragging = true
+  dragState.value.draggedTabId = tabId
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', tabId)
+  
+  // 创建拖拽图像
+  const draggedElement = event.target.closest('.tab-item')
+  if (draggedElement) {
+    const rect = draggedElement.getBoundingClientRect()
+    event.dataTransfer.setDragImage(draggedElement, rect.width / 2, rect.height / 2)
+  }
+}
+
+function onDragOver(event, tabId) {
+  event.preventDefault()
+  event.dataTransfer.dropEffect = 'move'
+  
+  if (dragState.value.draggedTabId === tabId) return
+  
+  // 计算插入位置
+  const rect = event.currentTarget.getBoundingClientRect()
+  const midpoint = rect.left + rect.width / 2
+  const insertPosition = event.clientX < midpoint ? 'before' : 'after'
+  
+  dragState.value.dragOverTabId = tabId
+  dragState.value.insertPosition = insertPosition
+}
+
+function onDragEnter(event, tabId) {
+  event.preventDefault()
+  if (dragState.value.draggedTabId !== tabId) {
+    dragState.value.dragOverTabId = tabId
+  }
+}
+
+function onDragLeave(event, tabId) {
+  // 检查是否真的离开了元素
+  const rect = event.currentTarget.getBoundingClientRect()
+  const x = event.clientX
+  const y = event.clientY
+  
+  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+    if (dragState.value.dragOverTabId === tabId) {
+      dragState.value.dragOverTabId = null
+      dragState.value.insertPosition = null
+    }
+  }
+}
+
+function onDrop(event, tabId) {
+  event.preventDefault()
+  console.log(`[TabsBar][onDrop] 放置到标签: ${tabId}`)
+  
+  const draggedTabId = dragState.value.draggedTabId
+  const insertPosition = dragState.value.insertPosition
+  
+  if (draggedTabId && draggedTabId !== tabId) {
+    reorderTabs(draggedTabId, tabId, insertPosition)
+  }
+  
+  // 重置拖拽状态
+  resetDragState()
+}
+
+function onDragEnd(event, tabId) {
+  console.log(`[TabsBar][onDragEnd] 结束拖拽标签: ${tabId}`)
+  
+  // 重置拖拽状态
+  resetDragState()
+}
+
+function resetDragState() {
+  dragState.value.isDragging = false
+  dragState.value.draggedTabId = null
+  dragState.value.dragOverTabId = null
+  dragState.value.insertPosition = null
+}
+
+function reorderTabs(draggedTabId, targetTabId, insertPosition) {
+  console.log(`[TabsBar][reorderTabs] 重排序标签: ${draggedTabId} -> ${targetTabId} (${insertPosition})`)
+  
+  const draggedIndex = localTabs.value.findIndex(tab => tab.id === draggedTabId)
+  const targetIndex = localTabs.value.findIndex(tab => tab.id === targetTabId)
+  
+  if (draggedIndex === -1 || targetIndex === -1) return
+  
+  // 移除被拖拽的标签
+  const [draggedTab] = localTabs.value.splice(draggedIndex, 1)
+  
+  // 计算新的插入位置
+  let newIndex = targetIndex
+  if (draggedIndex < targetIndex) {
+    newIndex = insertPosition === 'before' ? targetIndex - 1 : targetIndex
+  } else {
+    newIndex = insertPosition === 'before' ? targetIndex : targetIndex + 1
+  }
+  
+  // 插入到新位置
+  localTabs.value.splice(newIndex, 0, draggedTab)
+  
+  // 同步到store
+  tabsStore.reorderTabs(localTabs.value.map(tab => tab.id))
+}
+
 function minimize() { window.api?.sendWindowControl('minimize') }
 function maximize() { window.api?.sendWindowControl('maximize') }
 function close() { window.api?.sendWindowControl('close') }
@@ -358,6 +486,39 @@ function close() { window.api?.sendWindowControl('close') }
   padding: 0 !important;
   border: none !important;
 }
+
+/* 拖拽样式 */
+.tab-item.dragging {
+  opacity: 0.6;
+  transform: scale(1.05);
+  z-index: 1000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: none;
+}
+
+.tab-item.drag-over-before::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background: #007acc;
+  z-index: 1001;
+}
+
+.tab-item.drag-over-after::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background: #007acc;
+  z-index: 1001;
+}
+
+
 
 /* 未激活标签右侧分割线 */
 .tab-item:not(.active)::after {
