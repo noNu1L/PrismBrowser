@@ -20,12 +20,12 @@
             <div class="tab-content no-drag">
               <el-icon class="tab-icon"><Document /></el-icon>
               <span class="tab-title">{{ tab.title }}</span>
-              <el-button
+              <button
                   class="tab-close-btn"
-                  size="small"
                   @click.stop="closeTab(tab.id)"
-                  :icon="CloseBold"
-              />
+              >
+                <el-icon><Close /></el-icon>
+              </button>
             </div>
           </div>
         </div>
@@ -402,12 +402,13 @@ function close() { window.api?.sendWindowControl('close') }
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 0 8px;
+  padding: 0 12px;
   gap: 10px;
+  background: inherit;
 }
 
 .tab-icon {
-  font-size: 14px;
+  font-size: 18px;
   color: #666;
   flex-shrink: 0;
 }
@@ -425,19 +426,21 @@ function close() { window.api?.sendWindowControl('close') }
 
 .tab-close-btn {
   position: absolute;
-  right: 5px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  width: 18px !important;
-  height: 18px !important;
-  min-height: 18px !important;
-  padding: 0 !important;
+  width: 18px;
+  height: 18px;
+  padding: 0;
   border: none;
-  color: #666;
-  background: white;
-  border-radius: 50%;
+  color: #000000;
+  background: inherit;
+  border-radius: 25%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  opacity: 0.7;
   transition: all 0.2s;
   z-index: 2;
 }
@@ -447,8 +450,8 @@ function close() { window.api?.sendWindowControl('close') }
 }
 
 .tab-close-btn:hover {
-  background: #ff4757 !important;
-  color: white !important;
+  background: #d8d8d8 !important;
+  color: black !important;
   opacity: 1;
 }
 
