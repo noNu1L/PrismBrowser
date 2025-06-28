@@ -242,7 +242,7 @@ onUnmounted(() => {
   border-bottom: none;
   cursor: pointer;
   position: relative;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s, transform 0.3s;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s, transform 0.2s; /*动画时间调整为 0.2s*/
   box-sizing: border-box;
   margin-right: 2px;
 }
