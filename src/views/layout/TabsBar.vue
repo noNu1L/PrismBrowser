@@ -311,12 +311,9 @@ function close() { window.api?.sendWindowControl('close') }
   transform: scaleX(0);
   transform-origin: center;
   overflow: hidden;
-  margin-left: 0 !important;
-  margin-right: 2px !important; /* 保持右边距，避免其他标签移动 */
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  border-left: none !important;
-  border-right: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
 }
 
 /* 未激活标签右侧分割线 */
