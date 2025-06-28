@@ -8,7 +8,11 @@
           <div
               v-for="tab in localTabs"
               :key="tab.id"
-              :class="['tab-item', { 'active': tab.id === tabsStore.activeTabId, 'closing': closingTabs.has(tab.id) }]"
+              :class="['tab-item', {
+                'active': tab.id === tabsStore.activeTabId,
+                'closing': closingTabs.has(tab.id),
+                'hide-close-btn': tab.width < 80
+              }]"
               :style="{ width: `${tabWidths[tab.id] || 240}px` }"
               @click="setActiveTab(tab.id)"
               :id="`tab-${tab.id}`"
@@ -188,7 +192,7 @@ function updateTab(id, patch) {
 
 function calculateOptimalWidth() {
   const maxWidth = 240
-  const minWidth = 26
+  const minWidth = 40
   if (!tabsAreaRef.value) return maxWidth
   const containerWidth = tabsAreaRef.value.offsetWidth
   const addBtnWidth = 34
@@ -278,10 +282,8 @@ function close() { window.api?.sendWindowControl('close') }
 .tabs-container {
   display: flex;
   align-items: flex-end;
-  flex: 1;
-  min-width: 0;
   overflow-x: auto;
-  container-type: inline-size; /* 启用容器查询 */
+  flex-shrink: 1; /* 允许收缩但不主动扩展 */
 }
 
 .tabs-container::-webkit-scrollbar {
@@ -290,15 +292,14 @@ function close() { window.api?.sendWindowControl('close') }
 
 .tab-item {
   height: 32px;
-  min-width: 26px;
+  min-width: 40px;
   max-width: 240px;
   background: #e8e8e8;
   border-bottom: none;
   cursor: pointer;
   position: relative;
-  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s, transform 0.2s;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s, transform 0.2s; /*动画时间调整为 0.2s*/
   box-sizing: border-box;
-  flex-shrink: 0;
   margin-right: 2px;
   container-type: inline-size; /* 让每个标签成为容器 */
 }
@@ -355,24 +356,22 @@ function close() { window.api?.sendWindowControl('close') }
   z-index: 1;
 }
 
+.tab-item.hide-close-btn:not(.active) .tab-close-btn {
+  display: none;
+}
+
 .tab-content {
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 0 3px;
-  gap: 3px;
-  overflow: hidden;
-  min-width: 0;
-  position: relative;
+  padding: 0 8px;
+  gap: 10px;
 }
 
 .tab-icon {
-  font-size: 18px;
+  font-size: 14px;
   color: #666;
-  flex-shrink: 1;
-  overflow: hidden;
-  min-width: 0;
-  max-width: 100%;
+  flex-shrink: 0;
 }
 
 .tab-title {
@@ -384,17 +383,12 @@ function close() { window.api?.sendWindowControl('close') }
   font-weight: 400;
   color: #000000;
   line-height: 1;
-  min-width: 0;
 }
 
 .tab-close-btn {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px !important;
-  height: 18px !important;
-  min-height: 18px !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-height: 16px !important;
   padding: 0 !important;
   border: none;
   background: transparent;
@@ -403,15 +397,6 @@ function close() { window.api?.sendWindowControl('close') }
   flex-shrink: 0;
   opacity: 0.7;
   transition: all 0.2s;
-  z-index: 2;
-}
-
-.tab-item.active .tab-close-btn {
-  opacity: 1 !important;
-  right: 4px;
-  left: auto;
-  margin: 0;
-  pointer-events: auto;
 }
 
 .tab-close-btn:hover {
@@ -422,15 +407,7 @@ function close() { window.api?.sendWindowControl('close') }
 
 @container (max-width: 72px) {
   .tab-close-btn {
-    opacity: 0 !important;
-    pointer-events: none;
-  }
-  .tab-item.active .tab-close-btn {
-    opacity: 1 !important;
-    pointer-events: auto;
-    right: 4px;
-    left: auto;
-    margin: 0;
+    display: none;
   }
 }
 
@@ -454,12 +431,10 @@ function close() { window.api?.sendWindowControl('close') }
 }
 
 .add-tab-btn.active {
-
   background: #ffffff;
   border-color: #c0c0c0;
   z-index: 1;
 }
-
 
 .window-controls {
   position: absolute;
