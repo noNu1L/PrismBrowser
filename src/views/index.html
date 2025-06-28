@@ -302,166 +302,6 @@
 <body>
   <div id="app"></div>
   
-  <!-- 调试面板 -->
-  <div id="debug-overlay" class="debug-overlay">
-    <div id="debug-panel" class="debug-panel">
-      <!-- 标题栏 -->
-      <div class="panel-header">
-        <h3>🛠️ PrismBrowser 开发调试面板</h3>
-        <button id="close-panel" class="close-btn">✕</button>
-      </div>
-
-      <!-- 主要内容区域 -->
-      <div class="panel-content">
-        <!-- 标签栏模块 -->
-        <div class="module">
-          <h3 class="module-title">📑 标签栏调试</h3>
-          
-          <!-- 标签操作区 -->
-          <div class="section">
-            <h4>标签操作</h4>
-            <div class="button-group">
-              <button id="add-1-tab" class="btn btn-primary">添加1个标签</button>
-              <button id="add-5-tabs" class="btn btn-primary">添加5个标签</button>
-              <button id="add-10-tabs" class="btn btn-primary">添加10个标签</button>
-            </div>
-            <div class="button-group">
-              <button id="close-all-tabs" class="btn btn-danger">关闭所有标签</button>
-              <button id="close-half-tabs" class="btn btn-warning">关闭一半标签</button>
-              <button id="close-last-tab" class="btn btn-warning">关闭最后一个</button>
-            </div>
-          </div>
-
-          <!-- 宽度测试区 -->
-          <div class="section">
-            <h4>宽度控制</h4>
-            <div class="button-group">
-              <button id="set-width-100" class="btn btn-secondary">设置宽度100px</button>
-              <button id="set-width-200" class="btn btn-secondary">设置宽度200px</button>
-              <button id="set-width-300" class="btn btn-secondary">设置宽度300px</button>
-            </div>
-            <div class="button-group">
-              <button id="force-recalc" class="btn btn-info">强制重计算宽度</button>
-              <button id="reset-width" class="btn btn-info">重置为自动宽度</button>
-            </div>
-          </div>
-
-          <!-- 窗口模拟区 -->
-          <div class="section">
-            <h4>窗口模拟</h4>
-            <div class="button-group">
-              <button id="simulate-small" class="btn btn-secondary">模拟小窗口</button>
-              <button id="simulate-medium" class="btn btn-secondary">模拟中等窗口</button>
-              <button id="simulate-large" class="btn btn-secondary">模拟大窗口</button>
-            </div>
-            <div class="button-group">
-              <button id="trigger-resize" class="btn btn-info">触发resize事件</button>
-            </div>
-          </div>
-
-          <!-- 动画控制区 -->
-          <div class="section">
-            <h4>动画控制</h4>
-            <div class="button-group">
-              <button id="disable-animation" class="btn btn-secondary">禁用动画</button>
-              <button id="enable-animation" class="btn btn-secondary">启用动画</button>
-            </div>
-            <div class="button-group">
-              <button id="test-close-animation" class="btn btn-warning">测试关闭动画</button>
-            </div>
-          </div>
-
-          <!-- 状态监控区 -->
-          <div class="section">
-            <h4>状态监控</h4>
-            <div class="status-info">
-              <div class="status-item">
-                <span class="label">标签数量:</span>
-                <span id="tab-count" class="value">0</span>
-              </div>
-              <div class="status-item">
-                <span class="label">总宽度:</span>
-                <span id="total-width" class="value">0px</span>
-              </div>
-              <div class="status-item">
-                <span class="label">窗口宽度:</span>
-                <span id="window-width" class="value">0px</span>
-              </div>
-              <div class="status-item">
-                <span class="label">关闭中标签:</span>
-                <span id="closing-tabs" class="value">0</span>
-              </div>
-              <div class="status-item">
-                <span class="label">鼠标悬停:</span>
-                <span id="hovering-status" class="value">否</span>
-              </div>
-            </div>
-            <div class="button-group">
-              <button id="refresh-status" class="btn btn-info">刷新状态</button>
-              <button id="export-logs" class="btn btn-success">导出日志</button>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 地址栏模块 -->
-        <div class="module">
-          <h3 class="module-title">🔗 地址栏调试</h3>
-          <div class="section">
-            <h4>地址栏功能</h4>
-            <div class="button-group">
-              <button id="test-url-validation" class="btn btn-secondary">测试URL验证</button>
-              <button id="test-search-suggest" class="btn btn-secondary">测试搜索建议</button>
-              <button id="clear-history" class="btn btn-warning">清空历史记录</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 书签模块 -->
-        <div class="module">
-          <h3 class="module-title">🔖 书签调试</h3>
-          <div class="section">
-            <h4>书签功能</h4>
-            <div class="button-group">
-              <button id="add-test-bookmarks" class="btn btn-primary">添加测试书签</button>
-              <button id="clear-bookmarks" class="btn btn-danger">清空所有书签</button>
-              <button id="export-bookmarks" class="btn btn-info">导出书签</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 下载模块 -->
-        <div class="module">
-          <h3 class="module-title">⬇️ 下载调试</h3>
-          <div class="section">
-            <h4>下载功能</h4>
-            <div class="button-group">
-              <button id="simulate-download" class="btn btn-primary">模拟下载</button>
-              <button id="clear-downloads" class="btn btn-warning">清空下载列表</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 系统模块 -->
-        <div class="module">
-          <h3 class="module-title">⚙️ 系统调试</h3>
-          <div class="section">
-            <h4>系统功能</h4>
-            <div class="button-group">
-              <button id="show-devtools" class="btn btn-info">显示开发者工具</button>
-              <button id="reload-app" class="btn btn-warning">重载应用</button>
-              <button id="clear-cache" class="btn btn-danger">清空缓存</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 底部说明 -->
-      <div class="panel-footer">
-        <p>💡 快捷键: Ctrl+Shift+T 打开/关闭面板</p>
-      </div>
-    </div>
-  </div>
-  
   <script type="module">
     import { createApp } from 'vue'
     import ElementPlus from 'element-plus'
@@ -473,9 +313,14 @@
     app.mount('#app')
 
     console.log('主界面应用已启动 (ES 模块)')
-  </script>
 
-  <!-- 调试面板脚本 -->
-  <script src="debug/debug-panel.js"></script>
+    // 添加调试面板快捷键
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+            e.preventDefault();
+            window.open('debug/debug-panel.html', 'DebugPanel', 'width=800,height=600,resizable=yes,scrollbars=yes');
+        }
+    });
+  </script>
 </body>
 </html> 
