@@ -2,15 +2,16 @@
   <div class="tabs-bar drag-region">
     <div class="tabs-bar-left">
       <!-- 标签区域 -->
-      <div class="tabs-area" @mouseenter="onTabAreaMouseEnter" @mouseleave="onTabAreaMouseLeave">
+      <div class="tabs-area" ref="tabsAreaRef" @mouseenter="onTabAreaMouseEnter" @mouseleave="onTabAreaMouseLeave">
         <!-- 自定义标签页 -->
         <div class="tabs-container">
           <div
-              v-for="tab in tabs"
+              v-for="tab in localTabs"
               :key="tab.id"
-              :class="['tab-item', { 'active': tab.id === activeTabId, 'closing': tab.closing }]"
-              :style="{ width: `${tab.width}px` }"
+              :class="['tab-item', { 'active': tab.id === tabsStore.activeTabId, 'closing': closingTabs.has(tab.id) }]"
+              :style="{ width: `${tabWidths[tab.id] || 240}px` }"
               @click="setActiveTab(tab.id)"
+              :id="`tab-${tab.id}`"
           >
             <div class="tab-content no-drag">
               <el-icon class="tab-icon"><Document /></el-icon>
@@ -42,174 +43,208 @@
 </template>
 
 <script setup>
-import {ref, watch, onMounted, onUnmounted} from 'vue'
-import {Close, FullScreen, Minus, Plus, Document} from "@element-plus/icons-vue";
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { useTabsStore } from '../../store/tabsStore'
+import { Close, FullScreen, Minus, Plus, Document } from "@element-plus/icons-vue"
 
-const activeTabId = ref('tab1')
-const tabs = ref([
-  { id: 'tab1', title: '新标签页', width: 240 },
-  { id: 'tab2', title: '标签页 2', width: 240 }
-])
+const tabsStore = useTabsStore()
+const tabsAreaRef = ref(null)
 
-let tabCounter = 3
+// [GPT-4, 2024-06-28 19:00:00 Asia/Hong_Kong] 本地UI状态：关闭动画、宽度、悬停
+const closingTabs = ref(new Set()) // 正在关闭的标签id集合
+const tabWidths = ref({}) // { [tabId]: width }
 const isHoveringTabArea = ref(false)
 const pendingWidthUpdate = ref(false)
+const localTabs = ref([])
 
-function setActiveTab(tabId) {
-  activeTabId.value = tabId
+onMounted(() => {
+  syncTabsFromStore()
+  window.addEventListener('resize', handleResize)
+  updateAllTabWidths()
+
+  // 暴露组件实例到全局，供调试面板使用
+  window.tabsBarInstance = {
+    tabsStore,
+    updateAllTabWidths
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
+
+watch(() => tabsStore.tabs, (newStoreTabs) => {
+  const localTabIds = new Set(localTabs.value.map(t => t.id));
+  const storeTabIds = new Set(newStoreTabs.map(t => t.id));
+
+  // [GPT-4, 2024-06-28 20:05:00 Asia/Hong_Kong] 检查ID集合是否一致，避免不必要重渲染
+  if (localTabIds.size !== storeTabIds.size || [...localTabIds].some(id => !storeTabIds.has(id))) {
+    nextTick(() => {
+      syncTabsFromStore()
+    });
+  }
+}, { deep: true });
+
+function diffAndSyncTabs(newTabs, oldTabs) {
+  // 新增标签
+  newTabs.forEach(tab => {
+    if (!localTabs.value.find(t => t.id === tab.id)) {
+      console.log(`[TabsBar][diffAndSyncTabs][${now()}] 新增标签:`, tab)
+      localTabs.value.push({ ...tab })
+    }
+  })
+  // 删除标签（设置closing，动画后移除）
+  localTabs.value.forEach((tab, idx) => {
+    if (!newTabs.find(t => t.id === tab.id)) {
+      console.log(`[TabsBar][diffAndSyncTabs][${now()}] 删除标签:`, tab)
+      closingTabs.value.add(tab.id)
+      setTimeout(() => {
+        const i = localTabs.value.findIndex(t => t.id === tab.id)
+        if (i !== -1) localTabs.value.splice(i, 1)
+        closingTabs.value.delete(tab.id)
+        updateAllTabWidths()
+      }, 300)
+    }
+  })
+  // 更新标签内容
+  newTabs.forEach(tab => {
+    const local = localTabs.value.find(t => t.id === tab.id)
+    if (local) {
+      for (const key in tab) {
+        if (key !== 'id' && local[key] !== tab[key]) {
+          console.log(`[TabsBar][diffAndSyncTabs][${now()}] 更新标签${tab.id}字段${key}: ${local[key]} → ${tab[key]}`)
+          local[key] = tab[key]
+        }
+      }
+    }
+  })
+  updateAllTabWidths()
 }
 
-function closeTab(tabId) {
-  const index = tabs.value.findIndex(tab => tab.id === tabId)
-  if (index > -1) {
-    // 标记需要延迟更新宽度
-    pendingWidthUpdate.value = true
-    
-    // 添加关闭动画类
-    const tab = tabs.value[index]
-    tab.closing = true
-    
-    // 延迟移除标签，让动画完成
-    setTimeout(() => {
-      tabs.value.splice(index, 1)
-      // 如果关闭的是当前激活标签，切换到相邻标签
-      if (tabId === activeTabId.value && tabs.value.length > 0) {
-        const newIndex = Math.max(0, index - 1)
-        activeTabId.value = tabs.value[newIndex].id
-      }
-    }, 300) // 与CSS动画时间匹配
-  }
+function syncTabsFromStore() {
+  console.log(`[TabsBar][syncTabsFromStore][${now()}] 从Pinia同步tabs`)
+  localTabs.value = tabsStore.tabs.map(tab => ({ ...tab }))
+  updateAllTabWidths()
 }
 
 function addTab() {
-  const newTab = {
-    id: `tab${tabCounter++}`,
-    title: `新标签页 ${tabCounter - 1}`,
-    width: calculateOptimalWidth()
+  console.log(`[TabsBar][addTab][${now()}] 新增标签`)
+  tabsStore.addTab({ active: true, loading: true })
+}
+
+function closeTab(tabId) {
+  console.log(`[TabsBar][closeTab][${now()}] 开始关闭标签: ${tabId}`)
+  closingTabs.value.add(tabId)
+  pendingWidthUpdate.value = true
+
+  // 先执行关闭动画
+  const index = localTabs.value.findIndex(tab => tab.id === tabId)
+  if (index !== -1) {
+    const tab = localTabs.value[index]
+    tab.closing = true
   }
-  tabs.value.push(newTab)
-  activeTabId.value = newTab.id
-  
-  // 检查是否有标签正在关闭
-  const hasClosingTabs = tabs.value.some(tab => tab.closing)
-  if (hasClosingTabs) {
-    pendingWidthUpdate.value = true
-  } else {
-    updateAllTabWidths()
+
+  setTimeout(() => {
+    // 动画结束后，再同步到Pinia
+    tabsStore.removeTab(tabId)
+    // 本地也移除
+    const idx = localTabs.value.findIndex(tab => tab.id === tabId)
+    if (idx !== -1) localTabs.value.splice(idx, 1)
+
+    // 如果鼠标已经离开，立即更新宽度
+    if (!isHoveringTabArea.value) {
+      updateAllTabWidths()
+      pendingWidthUpdate.value = false
+    }
+  }, 300)
+}
+
+function setActiveTab(tabId) {
+  console.log(`[TabsBar][setActiveTab][${now()}] 激活标签: ${tabId}`)
+  tabsStore.setActiveTab(tabId)
+}
+
+function updateTab(id, patch) {
+  const tab = localTabs.value.find(t => t.id === id)
+  if (tab) {
+    let changed = false
+    for (const key in patch) {
+      if (key !== 'id' && tab[key] !== patch[key]) {
+        console.log(`[TabsBar][updateTab][${now()}] 更新标签${id}字段${key}: ${tab[key]} → ${patch[key]}`)
+        tab[key] = patch[key]
+        changed = true
+      }
+    }
+    if ('active' in patch && patch.active === true) {
+      localTabs.value.forEach(t => {
+        if (t.id !== id && t.active) t.active = false
+      })
+    }
+    if (changed) {
+      tabsStore.updateTab(id, patch)
+    }
   }
 }
 
-// 计算最佳标签宽度
 function calculateOptimalWidth() {
   const maxWidth = 240
-  const minWidth = 20
-  const containerWidth = window.innerWidth
-  const addBtnWidth = 32
-  
-  // 标签栏的右边距 (考虑窗口控制按钮)
-  const rightPadding = 140
-  // 标签栏的左边距
-  const leftPadding = 8
-  // 预留的空间
-  const reservedSpace = 30
-  
-  const availableWidth = containerWidth - rightPadding - leftPadding - addBtnWidth - reservedSpace
-  
-  // 计算当前所有非关闭标签的数量
-  const activeTabCount = tabs.value.filter(tab => !tab.closing).length
-  
-  const calculatedWidth = Math.max(minWidth, Math.min(maxWidth, availableWidth / activeTabCount))
-  
-  return calculatedWidth
+  const minWidth = 80
+  if (!tabsAreaRef.value) return maxWidth
+  const containerWidth = tabsAreaRef.value.offsetWidth
+  const addBtnWidth = 34
+  const availableWidth = containerWidth - addBtnWidth
+  const tabCount = localTabs.value.filter(t => !closingTabs.value.has(t.id)).length
+  if (tabCount === 0) return maxWidth
+  const width = Math.max(minWidth, Math.min(maxWidth, availableWidth / tabCount))
+  console.log(`[TabsBar][calculateOptimalWidth][${now()}] 计算宽度: ${width}, 标签数: ${tabCount}, 容器宽: ${containerWidth}`)
+  return width
 }
 
-// 更新所有标签宽度
 function updateAllTabWidths() {
-  // 如果有标签正在关闭且鼠标在标签区域，不更新宽度
-  const hasClosingTabs = tabs.value.some(tab => tab.closing)
-  if (hasClosingTabs && isHoveringTabArea.value) {
-    return
-  }
-  
   const newWidth = calculateOptimalWidth()
-  tabs.value.forEach(tab => {
-    if (!tab.closing) {
+  localTabs.value.forEach(tab => {
+    if (!closingTabs.value.has(tab.id)) {
+      if (tabWidths.value[tab.id] !== newWidth) {
+        console.log(`[TabsBar][updateAllTabWidths][${now()}] 标签${tab.id}宽度: ${tabWidths.value[tab.id]} → ${newWidth}`)
+      }
+      tabWidths.value[tab.id] = newWidth
       tab.width = newWidth
     }
   })
 }
 
-// 鼠标进入标签区域
 function onTabAreaMouseEnter() {
   isHoveringTabArea.value = true
+  console.log(`[TabsBar][onTabAreaMouseEnter][${now()}] 鼠标进入标签区域`)
 }
-
-// 鼠标离开标签区域
 function onTabAreaMouseLeave() {
   isHoveringTabArea.value = false
-  
-  // 如果有待处理的宽度更新，延迟执行
+  console.log(`[TabsBar][onTabAreaMouseLeave][${now()}] 鼠标离开标签区域，pending: ${pendingWidthUpdate.value}`)
   if (pendingWidthUpdate.value) {
     setTimeout(() => {
       if (!isHoveringTabArea.value) {
+        console.log(`[TabsBar][onTabAreaMouseLeave][${now()}] 执行延迟的宽度更新`)
         updateAllTabWidths()
         pendingWidthUpdate.value = false
       }
-    }, 150)
+    }, 200)
   }
 }
 
-function minimize() {
-  window.api?.sendWindowControl('minimize')
-}
-
-function maximize() {
-  window.api?.sendWindowControl('maximize')
-}
-
-function close() {
-  window.api?.sendWindowControl('close')
-}
-
-// 窗口大小变化处理
 function handleResize() {
-  // 如果有标签正在关闭，不立即更新
-  const hasClosingTabs = tabs.value.some(tab => tab.closing)
-  if (hasClosingTabs) {
-    pendingWidthUpdate.value = true
-  } else {
-    updateAllTabWidths()
-  }
+  if (pendingWidthUpdate.value) return
+  updateAllTabWidths()
 }
 
-// 组件挂载时添加窗口大小监听
-onMounted(() => {
-  window.addEventListener('resize', handleResize)
-  
-  // 暴露组件实例到全局，供调试面板使用
-  window.tabsBarInstance = {
-    tabs,
-    activeTabId,
-    isHoveringTabArea,
-    pendingWidthUpdate,
-    addTab,
-    closeTab,
-    updateAllTabWidths,
-    calculateOptimalWidth,
-    setActiveTab
-  }
-})
+function now() {
+  // [GPT-4, 2024-06-28 19:00:00 Asia/Hong_Kong] 获取当前时间字符串
+  const date = new Date()
+  return date.toLocaleString('zh-HK', { hour12: false })
+}
 
-// 组件卸载时移除监听
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
-  // 清理全局引用
-  if (window.tabsBarInstance) {
-    delete window.tabsBarInstance
-  }
-})
-
-
+function minimize() { window.api?.sendWindowControl('minimize') }
+function maximize() { window.api?.sendWindowControl('maximize') }
+function close() { window.api?.sendWindowControl('close') }
 </script>
 
 <style scoped>
@@ -235,7 +270,8 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-end;
   margin-top: 8px;
-  max-width: calc(100% - 30px); /* 预留空间给窗口控制按钮 */
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -243,8 +279,7 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-end;
   overflow-x: auto;
-  flex: 1;
-  min-width: 0;
+  flex-shrink: 1; /* 允许收缩但不主动扩展 */
 }
 
 .tabs-container::-webkit-scrollbar {
