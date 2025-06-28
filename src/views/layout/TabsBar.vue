@@ -90,6 +90,13 @@ watch(() => tabsStore.tabs, (newStoreTabs) => {
 }, { deep: true });
 
 function diffAndSyncTabs(newTabs, oldTabs) {
+  console.log('[TabsBar][diffAndSyncTabs] 比较并同步tabs', {
+    newTabs: newTabs.map(t => ({ id: t.id, width: t.width })),
+    oldTabs: oldTabs.map(t => ({ id: t.id, width: t.width })),
+    localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
+    isHoveringTabArea: isHoveringTabArea.value,
+    pendingWidthUpdate: pendingWidthUpdate.value
+  })
   // 新增标签
   newTabs.forEach(tab => {
     if (!localTabs.value.find(t => t.id === tab.id)) {
@@ -126,7 +133,12 @@ function diffAndSyncTabs(newTabs, oldTabs) {
 }
 
 function syncTabsFromStore() {
-  console.log(`[TabsBar][syncTabsFromStore][${now()}] 从Pinia同步tabs`)
+  console.log('[TabsBar][syncTabsFromStore] 从Pinia同步tabs', {
+    tabsStoreTabs: tabsStore.tabs.map(t => ({ id: t.id, width: t.width })),
+    localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
+    isHoveringTabArea: isHoveringTabArea.value,
+    pendingWidthUpdate: pendingWidthUpdate.value
+  })
   localTabs.value = tabsStore.tabs.map(tab => ({ ...tab }))
   updateAllTabWidths()
 }
@@ -137,7 +149,12 @@ function addTab() {
 }
 
 function closeTab(tabId) {
-  console.log(`[TabsBar][closeTab][${now()}] 开始关闭标签: ${tabId}`)
+  console.log(`[TabsBar][closeTab] 开始关闭标签: ${tabId}`, {
+    localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
+    tabWidths: { ...tabWidths.value },
+    isHoveringTabArea: isHoveringTabArea.value,
+    pendingWidthUpdate: pendingWidthUpdate.value
+  })
   closingTabs.value.add(tabId)
   pendingWidthUpdate.value = true
 
@@ -160,6 +177,12 @@ function closeTab(tabId) {
       updateAllTabWidths()
       pendingWidthUpdate.value = false
     }
+    console.log(`[TabsBar][closeTab] 动画结束，移除标签: ${tabId}`, {
+      localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
+      tabWidths: { ...tabWidths.value },
+      isHoveringTabArea: isHoveringTabArea.value,
+      pendingWidthUpdate: pendingWidthUpdate.value
+    })
   }, 300)
 }
 
@@ -205,11 +228,17 @@ function calculateOptimalWidth() {
 }
 
 function updateAllTabWidths() {
+  console.log('[TabsBar][updateAllTabWidths] 调整所有标签宽度', {
+    localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width, closing: closingTabs.value.has(t.id) })),
+    tabWidths: { ...tabWidths.value },
+    isHoveringTabArea: isHoveringTabArea.value,
+    pendingWidthUpdate: pendingWidthUpdate.value
+  })
   const newWidth = calculateOptimalWidth()
   localTabs.value.forEach(tab => {
     if (!closingTabs.value.has(tab.id)) {
       if (tabWidths.value[tab.id] !== newWidth) {
-        console.log(`[TabsBar][updateAllTabWidths][${now()}] 标签${tab.id}宽度: ${tabWidths.value[tab.id]} → ${newWidth}`)
+        console.log(`[TabsBar][updateAllTabWidths] 标签${tab.id}宽度: ${tabWidths.value[tab.id]} → ${newWidth}`)
       }
       tabWidths.value[tab.id] = newWidth
       tab.width = newWidth
@@ -223,11 +252,21 @@ function onTabAreaMouseEnter() {
 }
 function onTabAreaMouseLeave() {
   isHoveringTabArea.value = false
-  console.log(`[TabsBar][onTabAreaMouseLeave][${now()}] 鼠标离开标签区域，pending: ${pendingWidthUpdate.value}`)
+  console.log('[TabsBar][onTabAreaMouseLeave] 鼠标离开标签区域', {
+    localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
+    tabWidths: { ...tabWidths.value },
+    isHoveringTabArea: isHoveringTabArea.value,
+    pendingWidthUpdate: pendingWidthUpdate.value
+  })
   if (pendingWidthUpdate.value) {
     setTimeout(() => {
       if (!isHoveringTabArea.value) {
-        console.log(`[TabsBar][onTabAreaMouseLeave][${now()}] 执行延迟的宽度更新`)
+        console.log('[TabsBar][onTabAreaMouseLeave] 执行延迟的宽度更新', {
+          localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
+          tabWidths: { ...tabWidths.value },
+          isHoveringTabArea: isHoveringTabArea.value,
+          pendingWidthUpdate: pendingWidthUpdate.value
+        })
         updateAllTabWidths()
         pendingWidthUpdate.value = false
       }
