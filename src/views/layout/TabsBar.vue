@@ -24,7 +24,7 @@
                   class="tab-close-btn"
                   size="small"
                   @click.stop="closeTab(tab.id)"
-                  :icon="Close"
+                  :icon="CloseBold"
               />
             </div>
           </div>
@@ -49,7 +49,7 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useTabsStore } from '../../store/tabsStore'
-import { Close, FullScreen, Minus, Plus, Document } from "@element-plus/icons-vue"
+import {Close, FullScreen, Minus, Plus, Document, CloseBold} from "@element-plus/icons-vue"
 
 const tabsStore = useTabsStore()
 const tabsAreaRef = ref(null)
@@ -149,12 +149,12 @@ function addTab() {
 }
 
 function closeTab(tabId) {
-  console.log(`[TabsBar][closeTab] 开始关闭标签: ${tabId}`, {
-    localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
-    tabWidths: { ...tabWidths.value },
-    isHoveringTabArea: isHoveringTabArea.value,
-    pendingWidthUpdate: pendingWidthUpdate.value
-  })
+  console.log(`[TabsBar][closeTab] 开始关闭标签: ${tabId}`)
+  console.log(`[TabsBar][closeTab] localTabs:`)
+  localTabs.value.forEach(t => console.log(`  - 标签${t.id}: width=${t.width}`))
+  console.log(`[TabsBar][closeTab] tabWidths:`, { ...tabWidths.value })
+  console.log(`[TabsBar][closeTab] isHoveringTabArea:`, isHoveringTabArea.value)
+  console.log(`[TabsBar][closeTab] pendingWidthUpdate:`, pendingWidthUpdate.value)
   closingTabs.value.add(tabId)
   pendingWidthUpdate.value = true
 
@@ -177,12 +177,12 @@ function closeTab(tabId) {
       updateAllTabWidths()
       pendingWidthUpdate.value = false
     }
-    console.log(`[TabsBar][closeTab] 动画结束，移除标签: ${tabId}`, {
-      localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
-      tabWidths: { ...tabWidths.value },
-      isHoveringTabArea: isHoveringTabArea.value,
-      pendingWidthUpdate: pendingWidthUpdate.value
-    })
+    console.log(`[TabsBar][closeTab] 动画结束，移除标签: ${tabId}`)
+    console.log(`[TabsBar][closeTab] localTabs:`)
+    localTabs.value.forEach(t => console.log(`  - 标签${t.id}: width=${t.width}`))
+    console.log(`[TabsBar][closeTab] tabWidths:`, { ...tabWidths.value })
+    console.log(`[TabsBar][closeTab] isHoveringTabArea:`, isHoveringTabArea.value)
+    console.log(`[TabsBar][closeTab] pendingWidthUpdate:`, pendingWidthUpdate.value)
   }, 300)
 }
 
@@ -339,7 +339,6 @@ function close() { window.api?.sendWindowControl('close') }
   position: relative;
   transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s, transform 0.2s; /*动画时间调整为 0.2s*/
   box-sizing: border-box;
-  margin-right: 2px;
   container-type: inline-size; /* 让每个标签成为容器 */
 }
 
@@ -425,17 +424,26 @@ function close() { window.api?.sendWindowControl('close') }
 }
 
 .tab-close-btn {
-  width: 16px !important;
-  height: 16px !important;
-  min-height: 16px !important;
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
   padding: 0 !important;
   border: none;
-  background: transparent;
   color: #666;
+  background: white;
   border-radius: 50%;
   flex-shrink: 0;
   opacity: 0.7;
   transition: all 0.2s;
+  z-index: 2;
+}
+
+.tab-item.active .tab-close-btn {
+  opacity: 1;
 }
 
 .tab-close-btn:hover {
@@ -444,7 +452,7 @@ function close() { window.api?.sendWindowControl('close') }
   opacity: 1;
 }
 
-@container (max-width: 72px) {
+@container (max-width: 18px) {
   .tab-close-btn {
     display: none;
   }
