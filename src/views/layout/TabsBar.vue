@@ -328,8 +328,9 @@ function close() { window.api?.sendWindowControl('close') }
   opacity: 0.6;
 }
 
-/* 如果右侧相邻的是激活标签，则不显示分割线 */
+/* 如果右侧相邻的是激活/关闭中的标签，则不显示分割线 */
 .tab-item:not(.active):has(+ .tab-item.active)::after,
+.tab-item:not(.active):has(+ .tab-item.closing)::after,
 .tab-item:not(.active):last-child::after {
   display: none;
 }
