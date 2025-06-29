@@ -246,19 +246,18 @@ function getTabLeftOffset(tab) {
 // ==================== 宽度计算 ====================
 function calculateOptimalWidth() {
   if (!tabsAreaRef.value) return CONFIG.maxTabWidth
-
+  
   const containerWidth = tabsAreaRef.value.offsetWidth - CONFIG.newTabButtonWidth - CONFIG.windowControlsSpacing
-
-  // 计算时排除正在进入和关闭动画的标签
-  const stableTabCount = localTabs.value.filter(tab =>
-    !animationState.enteringTabs.has(tab.id) &&
+  
+  // 计算时只排除正在关闭动画的标签，包含正在进入的标签
+  const activeTabCount = localTabs.value.filter(tab => 
     !animationState.closingTabs.has(tab.id) &&
     !shouldHideTab(tab)
   ).length
-
-  if (stableTabCount === 0) return CONFIG.maxTabWidth
-
-  const calculatedWidth = containerWidth / stableTabCount
+  
+  if (activeTabCount === 0) return CONFIG.maxTabWidth
+  
+  const calculatedWidth = containerWidth / activeTabCount
   return Math.max(CONFIG.minTabWidth, Math.min(CONFIG.maxTabWidth, calculatedWidth))
 }
 
@@ -336,26 +335,38 @@ function updateTabProperties(newTabs) {
 
 function addTabWithAnimation(tab) {
   console.log(`[TabsBar] 添加标签动画: ${tab.id}`)
-
-  localTabs.value.push({ ...tab })
-  animationState.enteringTabs.add(tab.id)
-
-  // 为新标签计算目标宽度：假设动画完成后的最优宽度
+  
+  // 先计算新的最优宽度（包含新标签）
   const containerWidth = tabsAreaRef.value?.offsetWidth || 0
   const availableWidth = containerWidth - CONFIG.newTabButtonWidth - CONFIG.windowControlsSpacing
-  const totalTabCount = localTabs.value.filter(t => !animationState.closingTabs.has(t.id)).length
-  const targetWidth = Math.max(CONFIG.minTabWidth, Math.min(CONFIG.maxTabWidth, availableWidth / totalTabCount))
-
-  widthState.tabWidths[tab.id] = targetWidth
-
-  // setTimeout(() => {
+  const totalTabCount = localTabs.value.length + 1 // +1是新增的标签
+  const newOptimalWidth = Math.max(CONFIG.minTabWidth, Math.min(CONFIG.maxTabWidth, availableWidth / totalTabCount))
+  
+  // 立即更新现有标签的宽度，触发缩小动画
+  localTabs.value.forEach(existingTab => {
+    if (!animationState.closingTabs.has(existingTab.id)) {
+      widthState.tabWidths[existingTab.id] = newOptimalWidth
+      console.log(existingTab.id + "-shrink to:" + newOptimalWidth)
+    }
+  })
+  
+  // 添加新标签并开始展开动画
+  localTabs.value.push({ ...tab })
+  animationState.enteringTabs.add(tab.id)
+  
+  // 为新标签设置目标宽度
+  widthState.tabWidths[tab.id] = newOptimalWidth
+  console.log(tab.id + "-expand to:" + newOptimalWidth)
+  
+  setTimeout(() => {
     animationState.enteringTabs.delete(tab.id)
-
-    // 动画结束后重新计算所有标签宽度
-    // if (!mouseState.isHoveringTabArea) {
+    console.log(`[TabsBar] 新标签 ${tab.id} 动画完成`)
+    
+    // 动画完成后确保宽度一致性
+    if (!mouseState.isHoveringTabArea) {
       updateAllTabWidths()
-    // }
-  // }, CONFIG.openAnimationDuration)
+    }
+  }, CONFIG.openAnimationDuration)
 }
 
 function removeTabWithAnimation(tabId) {
@@ -849,7 +860,7 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
 
 .tab-item:not(.dragging) {
   transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1),
-              width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+              width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tab-item.active {
@@ -940,7 +951,7 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   justify-content: center;
   z-index: 10;
   color: #000000;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+ /* box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); */
   transition: background-color 0.15s ease;
 }
 
