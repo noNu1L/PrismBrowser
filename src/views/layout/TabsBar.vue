@@ -52,16 +52,16 @@
             <el-icon><Close /></el-icon>
           </button>
         </div>
+        
+        <!-- 新增标签按钮 -->
+        <el-button
+          class="add-tab-btn"
+          size="small"
+          :icon="Plus"
+          @click="addTab"
+          @mousedown.stop
+        />
       </div>
-      
-      <!-- 新增标签按钮 -->
-      <el-button
-        class="add-tab-btn"
-        size="small"
-        :icon="Plus"
-        @click="addTab"
-        @mousedown.stop
-      />
     </div>
     
     <!-- 窗口控制按钮 -->
@@ -323,7 +323,11 @@ function addTabWithAnimation(tab) {
   
   setTimeout(() => {
     animationState.enteringTabs.delete(tab.id)
-    updateAllTabWidths()
+    
+    // 只有在鼠标不在标签区域时才重新计算宽度
+    // if (!mouseState.isHoveringTabArea) {
+      updateAllTabWidths()
+    // }
   }, CONFIG.openAnimationDuration)
 }
 
@@ -338,7 +342,11 @@ function removeTabWithAnimation(tabId) {
       localTabs.value.splice(index, 1)
     }
     animationState.closingTabs.delete(tabId)
-    updateAllTabWidths()
+    
+    // 只有在鼠标不在标签区域时才重新计算宽度
+    if (!mouseState.isHoveringTabArea) {
+      updateAllTabWidths()
+    }
   }, CONFIG.closeAnimationDuration)
 }
 
@@ -652,6 +660,7 @@ function handleAreaMouseLeave() {
   // 延迟200ms后重新计算宽度
   mouseState.hoverTimer = setTimeout(() => {
     if (!mouseState.isHoveringTabArea && !dragState.isDragging) {
+      // 强制重新计算宽度，处理可能积压的计算需求
       updateAllTabWidths()
     }
     mouseState.hoverTimer = null
@@ -782,7 +791,7 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   min-width: 0;
   height: 100%;
   margin-top: 8px;
-  -webkit-app-region: no-drag;
+  -webkit-app-region: drag;
   overflow: hidden;
 }
 
@@ -794,6 +803,7 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   height: 32px;
   overflow: hidden;
   position: relative;
+  -webkit-app-region: no-drag;
 }
 
 /* ==================== 标签样式 ==================== */
