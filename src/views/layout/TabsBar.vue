@@ -836,7 +836,6 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   flex: 1;
   min-width: 0;
   height: 100%;
-  margin-top: 8px;
   -webkit-app-region: drag;
   overflow: hidden;
 }
