@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 let mainWindow = null;
@@ -24,10 +24,17 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/layout/index.html'));
   }
   
-  // 开发者工具快捷键
-  mainWindow.webContents.on('before-input-event', (event, input) => {
-    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+  // 监听主程序开发者工具事件
+  ipcMain.on('toggle-main-devtools', () => {
+    if (mainWindow && mainWindow.webContents) {
       mainWindow.webContents.toggleDevTools();
+    }
+  });
+
+  // 转发前端开发者工具事件
+  ipcMain.on('toggle-renderer-devtools', () => {
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('toggle-webview-devtools');
     }
   });
 

@@ -13,8 +13,23 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import TabsBar from './TabsBar.vue'
 import AddressBar from './AddressBar.vue'
+
+// [GPT-4, 2024-06-28 19:30:00 Asia/Hong_Kong] 监听并打开webview开发者工具
+onMounted(() => {
+  window.api?.onToggleWebViewDevTools?.(() => {
+    const webview = document.getElementById('main-webview')
+    if (webview) {
+      if (webview.isDevToolsOpened()) {
+        webview.closeDevTools()
+      } else {
+        webview.openDevTools()
+      }
+    }
+  })
+})
 </script>
 
 <style scoped>

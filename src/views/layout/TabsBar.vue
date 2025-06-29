@@ -4,28 +4,19 @@
       <!-- 标签区域 -->
       <div class="tabs-area" ref="tabsAreaRef" @mouseenter="onTabAreaMouseEnter" @mouseleave="onTabAreaMouseLeave">
         <!-- 自定义标签页 -->
-        <div :class="['tabs-container', { 'dragging': dragState.isDragging }]">
+        <div class="tabs-container" ref="sortableContainer">
           <div
               v-for="tab in localTabs"
               :key="tab.id"
               :class="['tab-item', {
                 'active': tab.id === tabsStore.activeTabId,
                 'closing': closingTabs.has(tab.id),
-                'hide-close-btn': tab.width < 80,
-                'dragging': dragState.isDragging && dragState.draggedTabId === tab.id,
-                'drag-over-before': dragState.dragOverTabId === tab.id && dragState.insertPosition === 'before',
-                'drag-over-after': dragState.dragOverTabId === tab.id && dragState.insertPosition === 'after'
+                'hide-close-btn': tab.width < 80
               }]"
               :style="{ width: `${tabWidths[tab.id] || 240}px` }"
               @click="setActiveTab(tab.id)"
               :id="`tab-${tab.id}`"
-              draggable="true"
-              @dragstart="onDragStart($event, tab.id)"
-              @dragover="onDragOver($event, tab.id)"
-              @dragenter="onDragEnter($event, tab.id)"
-              @dragleave="onDragLeave($event, tab.id)"
-              @drop="onDrop($event, tab.id)"
-              @dragend="onDragEnd($event, tab.id)"
+              :data-tab-id="tab.id"
           >
             <div class="tab-content no-drag">
               <el-icon class="tab-icon"><Document /></el-icon>
@@ -60,11 +51,13 @@
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useTabsStore } from '../../store/tabsStore'
 import {Close, FullScreen, Minus, Plus, Document, CloseBold} from "@element-plus/icons-vue"
+import Sortable from 'sortablejs'
 
 const tabsStore = useTabsStore()
 const tabsAreaRef = ref(null)
+const sortableContainer = ref(null)
 
-// [GPT-4, 2024-06-28 19:00:00 Asia/Hong_Kong] 本地UI状态：关闭动画、宽度、悬停
+// [GPT-4, 2024-06-28 19:00:00 Asia/Hong_Kong] 本地UI状态：关闭动画、宽度、悬停、拖拽
 const closingTabs = ref(new Set()) // 正在关闭的标签id集合
 const tabWidths = ref({}) // { [tabId]: width }
 const isHoveringTabArea = ref(false)
@@ -72,27 +65,64 @@ const pendingWidthUpdate = ref(false)
 const localTabs = ref([])
 
 // 拖拽相关状态
-const dragState = ref({
-  isDragging: false,
-  draggedTabId: null,
-  dragOverTabId: null,
-  insertPosition: null // 'before' | 'after'
-})
+const isDragging = ref(false)
+const draggedTabId = ref(null)
+let sortableInstance = null
 
 onMounted(() => {
   syncTabsFromStore()
   window.addEventListener('resize', handleResize)
   updateAllTabWidths()
+  
+  // 初始化SortableJS
+  initSortable()
 
   // 暴露组件实例到全局，供调试面板使用
   window.tabsBarInstance = {
     tabsStore,
-    updateAllTabWidths
+    updateAllTabWidths,
+    // 调试面板需要的方法和属性
+    addTab,
+    closeTab,
+    setActiveTab,
+    updateTab,
+    // 暴露响应式数据
+    localTabs,
+    tabWidths,
+    isHoveringTabArea,
+    closingTabs,
+    isDragging,
+    draggedTabId,
+    // 暴露 tabsStore 的方法
+    closeAllTabs: () => tabsStore.closeAllTabs(),
+    closeHalfTabs: () => tabsStore.closeHalfTabs(),
+    addMultipleTabs: (count) => {
+      for (let i = 0; i < count; i++) {
+        tabsStore.addTab({ active: i === count - 1, loading: true })
+      }
+    },
+    // 在指定位置插入标签的方法
+    insertTabAt: (position, tabOptions) => {
+      return tabsStore.insertTabAt(position, tabOptions)
+    },
+    // 便捷方法：在第2个位置插入标签
+    insertTabAtSecond: () => {
+      return tabsStore.insertTabAt(1, { active: true, loading: true, title: '新标签(位置2)' })
+    },
+    // 便捷方法：在第5个位置插入标签
+    insertTabAtFifth: () => {
+      return tabsStore.insertTabAt(4, { active: true, loading: true, title: '新标签(位置5)' })
+    }
   }
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  // 清理SortableJS实例
+  if (sortableInstance) {
+    sortableInstance.destroy()
+    sortableInstance = null
+  }
 })
 
 watch(() => tabsStore.tabs, (newStoreTabs) => {
@@ -205,9 +235,6 @@ function closeTab(tabId) {
 }
 
 function setActiveTab(tabId) {
-  // 如果正在拖拽，不执行激活操作
-  if (dragState.value.isDragging) return
-  
   console.log(`[TabsBar][setActiveTab][${now()}] 激活标签: ${tabId}`)
   tabsStore.setActiveTab(tabId)
 }
@@ -306,111 +333,119 @@ function now() {
   return date.toLocaleString('zh-HK', { hour12: false })
 }
 
-// 拖拽事件处理
-function onDragStart(event, tabId) {
+// 初始化SortableJS拖拽功能
+function initSortable() {
+  if (!sortableContainer.value) return
+  
+  sortableInstance = new Sortable(sortableContainer.value, {
+    // 基础配置
+    group: 'tabs',
+    animation: 200,
+    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+    
+    // 拖拽句柄 - 整个标签内容区域都可拖拽，但排除关闭按钮
+    handle: '.tab-content',
+    filter: '.tab-close-btn',
+    preventOnFilter: false,
+    
+    // 拖拽阈值和延迟
+    delay: 100,
+    delayOnTouchStart: true,
+    touchStartThreshold: 10,
+    
+    // 样式类名
+    ghostClass: 'tab-ghost',        // 拖拽占位符样式
+    chosenClass: 'tab-chosen',      // 被选中时的样式
+    dragClass: 'tab-dragging',      // 拖拽中的样式
+    
+    // 强制回退机制，确保在所有浏览器中一致
+    forceFallback: true,
+    fallbackClass: 'tab-fallback',
+    fallbackOnBody: true,
+    
+    // 事件处理
+    onStart: onDragStart,
+    onMove: onDragMove,
+    onEnd: onDragEnd,
+    onClone: onDragClone
+  })
+  
+  console.log('[TabsBar][initSortable] SortableJS已初始化')
+}
+
+// 拖拽开始事件
+function onDragStart(evt) {
+  const tabId = evt.item.dataset.tabId
+  if (!tabId) return
+  
+  isDragging.value = true
+  draggedTabId.value = tabId
+  
   console.log(`[TabsBar][onDragStart] 开始拖拽标签: ${tabId}`)
-  dragState.value.isDragging = true
-  dragState.value.draggedTabId = tabId
-  event.dataTransfer.effectAllowed = 'move'
-  event.dataTransfer.setData('text/plain', tabId)
+  console.log(`[TabsBar][onDragStart] 原始位置: ${evt.oldIndex}`)
   
-  // 创建拖拽图像
-  const draggedElement = event.target.closest('.tab-item')
-  if (draggedElement) {
-    const rect = draggedElement.getBoundingClientRect()
-    event.dataTransfer.setDragImage(draggedElement, rect.width / 2, rect.height / 2)
-  }
+  // 给被拖拽的标签添加特殊样式
+  evt.item.classList.add('tab-being-dragged')
+  
+  // 暂停鼠标悬停检测，避免干扰拖拽
+  isHoveringTabArea.value = false
 }
 
-function onDragOver(event, tabId) {
-  event.preventDefault()
-  event.dataTransfer.dropEffect = 'move'
-  
-  if (dragState.value.draggedTabId === tabId) return
-  
-  // 计算插入位置
-  const rect = event.currentTarget.getBoundingClientRect()
-  const midpoint = rect.left + rect.width / 2
-  const insertPosition = event.clientX < midpoint ? 'before' : 'after'
-  
-  dragState.value.dragOverTabId = tabId
-  dragState.value.insertPosition = insertPosition
+// 拖拽移动事件（用于自定义交换逻辑）
+function onDragMove(evt) {
+  // 这里可以添加自定义的交换逻辑
+  // 比如基于鼠标位置和标签中心点的距离来决定是否交换
+  return true // 返回true允许移动，false阻止移动
 }
 
-function onDragEnter(event, tabId) {
-  event.preventDefault()
-  if (dragState.value.draggedTabId !== tabId) {
-    dragState.value.dragOverTabId = tabId
-  }
-}
-
-function onDragLeave(event, tabId) {
-  // 检查是否真的离开了元素
-  const rect = event.currentTarget.getBoundingClientRect()
-  const x = event.clientX
-  const y = event.clientY
+// 拖拽结束事件
+function onDragEnd(evt) {
+  const tabId = evt.item.dataset.tabId
+  if (!tabId) return
   
-  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-    if (dragState.value.dragOverTabId === tabId) {
-      dragState.value.dragOverTabId = null
-      dragState.value.insertPosition = null
-    }
-  }
-}
-
-function onDrop(event, tabId) {
-  event.preventDefault()
-  console.log(`[TabsBar][onDrop] 放置到标签: ${tabId}`)
+  console.log(`[TabsBar][onDragEnd] 拖拽结束: ${tabId}`)
+  console.log(`[TabsBar][onDragEnd] 原始位置: ${evt.oldIndex}, 新位置: ${evt.newIndex}`)
   
-  const draggedTabId = dragState.value.draggedTabId
-  const insertPosition = dragState.value.insertPosition
+  // 移除拖拽样式
+  evt.item.classList.remove('tab-being-dragged')
   
-  if (draggedTabId && draggedTabId !== tabId) {
-    reorderTabs(draggedTabId, tabId, insertPosition)
+  // 如果位置发生了变化，更新数据
+  if (evt.oldIndex !== evt.newIndex) {
+    reorderTabs(evt.oldIndex, evt.newIndex)
   }
   
   // 重置拖拽状态
-  resetDragState()
+  isDragging.value = false
+  draggedTabId.value = null
+  
+  // 重新计算宽度
+  nextTick(() => {
+    updateAllTabWidths()
+  })
+  
+  console.log(`[TabsBar][onDragEnd] 标签重排完成`)
 }
 
-function onDragEnd(event, tabId) {
-  console.log(`[TabsBar][onDragEnd] 结束拖拽标签: ${tabId}`)
-  
-  // 重置拖拽状态
-  resetDragState()
+// 拖拽克隆事件（如果需要的话）
+function onDragClone(evt) {
+  console.log(`[TabsBar][onDragClone] 克隆标签:`, evt.item.dataset.tabId)
 }
 
-function resetDragState() {
-  dragState.value.isDragging = false
-  dragState.value.draggedTabId = null
-  dragState.value.dragOverTabId = null
-  dragState.value.insertPosition = null
-}
-
-function reorderTabs(draggedTabId, targetTabId, insertPosition) {
-  console.log(`[TabsBar][reorderTabs] 重排序标签: ${draggedTabId} -> ${targetTabId} (${insertPosition})`)
+// 重排序标签
+function reorderTabs(oldIndex, newIndex) {
+  if (oldIndex === newIndex) return
   
-  const draggedIndex = localTabs.value.findIndex(tab => tab.id === draggedTabId)
-  const targetIndex = localTabs.value.findIndex(tab => tab.id === targetTabId)
+  console.log(`[TabsBar][reorderTabs] 重排序: ${oldIndex} → ${newIndex}`)
   
-  if (draggedIndex === -1 || targetIndex === -1) return
+  // 更新本地标签数组
+  const movedTab = localTabs.value.splice(oldIndex, 1)[0]
+  localTabs.value.splice(newIndex, 0, movedTab)
   
-  // 移除被拖拽的标签
-  const [draggedTab] = localTabs.value.splice(draggedIndex, 1)
+  // 更新Pinia store中的顺序
+  const newOrder = localTabs.value.map(tab => tab.id)
+  tabsStore.reorderTabs(newOrder)
   
-  // 计算新的插入位置
-  let newIndex = targetIndex
-  if (draggedIndex < targetIndex) {
-    newIndex = insertPosition === 'before' ? targetIndex - 1 : targetIndex
-  } else {
-    newIndex = insertPosition === 'before' ? targetIndex : targetIndex + 1
-  }
-  
-  // 插入到新位置
-  localTabs.value.splice(newIndex, 0, draggedTab)
-  
-  // 同步到store
-  tabsStore.reorderTabs(localTabs.value.map(tab => tab.id))
+  console.log(`[TabsBar][reorderTabs] 新顺序:`, newOrder)
 }
 
 function minimize() { window.api?.sendWindowControl('minimize') }
@@ -486,39 +521,6 @@ function close() { window.api?.sendWindowControl('close') }
   padding: 0 !important;
   border: none !important;
 }
-
-/* 拖拽样式 */
-.tab-item.dragging {
-  opacity: 0.6;
-  transform: scale(1.05);
-  z-index: 1000;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  transition: none;
-}
-
-.tab-item.drag-over-before::before {
-  content: '';
-  position: absolute;
-  left: -2px;
-  top: 0;
-  width: 3px;
-  height: 100%;
-  background: #007acc;
-  z-index: 1001;
-}
-
-.tab-item.drag-over-after::after {
-  content: '';
-  position: absolute;
-  right: -2px;
-  top: 0;
-  width: 3px;
-  height: 100%;
-  background: #007acc;
-  z-index: 1001;
-}
-
-
 
 /* 未激活标签右侧分割线 */
 .tab-item:not(.active)::after {
@@ -687,4 +689,125 @@ function close() { window.api?.sendWindowControl('close') }
 .no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* ===== SortableJS 拖拽样式 - Edge浏览器风格 ===== */
+
+/* 拖拽占位符样式 - 显示标签将要插入的位置 */
+.tab-ghost {
+  opacity: 0.4;
+  background: #d0d0d0 !important;
+  border: 2px dashed #999 !important;
+  transform: none !important;
+}
+
+.tab-ghost .tab-content {
+  opacity: 0.6;
+}
+
+/* 被选中准备拖拽的标签样式 */
+.tab-chosen {
+  cursor: grabbing !important;
+}
+
+/* 正在被拖拽的标签样式 */
+.tab-dragging {
+  opacity: 1 !important;
+  transform: rotate(0deg) !important; /* 确保没有旋转 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  z-index: 1000 !important;
+}
+
+/* SortableJS回退拖拽样式 */
+.tab-fallback {
+  opacity: 1 !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+  transform: rotate(0deg) !important;
+  z-index: 1000 !important;
+  cursor: grabbing !important;
+}
+
+/* 自定义被拖拽标签样式 - Edge风格 */
+.tab-being-dragged {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  z-index: 999 !important;
+  cursor: grabbing !important;
+  transition: box-shadow 0.1s ease !important;
+}
+
+/* 拖拽过程中的容器样式 */
+.tabs-container.sortable-drag {
+  cursor: grabbing;
+}
+
+/* 确保拖拽时标签内容不被选中 */
+.tabs-container * {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* 拖拽时禁用标签的hover效果 */
+.tabs-container.sortable-drag .tab-item:hover {
+  background: inherit !important;
+}
+
+/* 拖拽时标签的平滑移动效果 */
+.tab-item {
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 拖拽状态下禁用标签自身的过渡效果，避免冲突 */
+.tab-item.sortable-chosen,
+.tab-item.sortable-ghost,
+.tab-item.tab-being-dragged {
+  transition: none !important;
+}
+
+/* 确保关闭按钮在拖拽时不可点击 */
+.tab-being-dragged .tab-close-btn {
+  pointer-events: none !important;
+}
+
+/* 拖拽时的标签内容样式 */
+.tab-being-dragged .tab-content {
+  pointer-events: none !important;
+}
+
+/* Edge风格：拖拽时标签栏的整体效果 */
+.tabs-container {
+  position: relative;
+}
+
+/* 确保拖拽占位符与其他标签一致 */
+.tab-ghost .tab-icon,
+.tab-ghost .tab-title,
+.tab-ghost .tab-close-btn {
+  opacity: 0.5;
+}
+
+/* 拖拽时禁用标签点击事件，避免意外激活 */
+.tab-item.sortable-chosen,
+.tab-item.tab-being-dragged {
+  pointer-events: none !important;
+}
+
+.tab-item.sortable-chosen .tab-content,
+.tab-item.tab-being-dragged .tab-content {
+  pointer-events: none !important;
+}
+
+/*
+原有的拖拽设计想法（已由SortableJS实现）：
+- 检测拖拽行为后提取标签DOM，创建虚拟标签替换
+- 被拖拽标签脱离DOM跟随鼠标移动
+- 虚拟标签与其他标签交换位置
+- 拖拽结束时删除虚拟标签，用实际标签替换
+
+Edge浏览器风格实现：
+- 标签只做左右移动，无旋转描边特效
+- 交换位置的标签简单滑动
+- 移动半个标签距离即可交换位置
+- 使用SortableJS的幽灵标签方案
+*/
 </style>

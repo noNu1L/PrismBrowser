@@ -22,11 +22,14 @@ function createDefaultTab(): TabEntity {
 }
 
 export const useTabsStore = defineStore('tabs', {
-  state: (): TabState => ({
-    tabs: [createDefaultTab()],
-    activeTabId: '',
-    lastActiveTabId: ''
-  }),
+  state: (): TabState => {
+    const defaultTab = createDefaultTab()
+    return {
+      tabs: [defaultTab],
+      activeTabId: defaultTab.id,
+      lastActiveTabId: ''
+    }
+  },
   actions: {
     // [GPT-4, 2024-06-28 18:20:00 Asia/Hong_Kong] 初始化标签栏
     resetTabs() {
@@ -55,15 +58,60 @@ export const useTabsStore = defineStore('tabs', {
       }
       return newTab
     },
+    // 在指定位置插入标签
+    insertTabAt(position: number, tab?: Partial<TabEntity>) {
+      // 确保位置在有效范围内
+      const insertPosition = Math.max(0, Math.min(position, this.tabs.length))
+      
+      // 如果传入active: true，先取消其他标签激活
+      const isActive = tab?.active ?? false
+      if (isActive) {
+        this.tabs.forEach(t => t.active = false)
+      }
+      
+      const newTab: TabEntity = {
+        ...createDefaultTab(),
+        ...tab,
+        id: uuidv4(),
+        index: insertPosition,
+        active: isActive,
+        loading: tab?.loading ?? false
+      }
+      
+      // 在指定位置插入标签
+      this.tabs.splice(insertPosition, 0, newTab)
+      
+      // 更新后续标签的index
+      this.updateTabIndices()
+      
+      if (isActive) {
+        this.activeTabId = newTab.id
+      }
+      
+      return newTab
+    },
+    // 更新所有标签的index，确保连续性
+    updateTabIndices() {
+      this.tabs.forEach((tab, index) => {
+        tab.index = index
+      })
+    },
     // [GPT-4, 2024-06-28 18:20:00 Asia/Hong_Kong] 关闭标签
     removeTab(id: string) {
       const idx = this.tabs.findIndex(t => t.id === id)
       if (idx === -1) return
-      const wasActive = this.tabs[idx].id === this.activeTabId
+      const wasActive = this.tabs[idx].active
       this.tabs.splice(idx, 1)
+      
+      // 更新标签索引
+      this.updateTabIndices()
+      
       if (wasActive && this.tabs.length > 0) {
-        const newIdx = Math.max(0, idx - 1)
-        this.setActiveTab(this.tabs[newIdx].id)
+        // Activate the next tab (the one on the right), or the new last one if the closed tab was the last one.
+        const newActiveIndex = Math.min(idx, this.tabs.length - 1)
+        this.setActiveTab(this.tabs[newActiveIndex].id)
+      } else if (this.tabs.length === 0) {
+        this.addTab({ active: true })
       }
     },
     // [GPT-4, 2024-06-28 18:20:00 Asia/Hong_Kong] 更新标签
@@ -106,6 +154,18 @@ export const useTabsStore = defineStore('tabs', {
       const half = Math.floor(this.tabs.length / 2)
       const ids = this.tabs.slice(0, half).map(t => t.id)
       this.closeTabs(ids)
+    },
+    // [GPT-4, 2024-06-28 20:30:00 Asia/Hong_Kong] 重排序标签
+    reorderTabs(newOrder: string[]) {
+      const reorderedTabs: TabEntity[] = []
+      newOrder.forEach(id => {
+        const tab = this.tabs.find(t => t.id === id)
+        if (tab) {
+          tab.index = reorderedTabs.length
+          reorderedTabs.push(tab)
+        }
+      })
+      this.tabs = reorderedTabs
     }
   }
 }) 

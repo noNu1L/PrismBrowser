@@ -15,7 +15,20 @@
         <h3>标签操作</h3>
         <button id="add-1-tab">添加1个标签</button>
         <button id="add-5-tabs">添加5个标签</button>
+        <button id="add-10-tabs">添加10个标签</button>
+        <br><br>
+        <button id="insert-tab-second">在第2位置插入标签</button>
+        <button id="insert-tab-fifth">在第5位置插入标签</button>
+        <button id="insert-tab-custom">在指定位置插入标签</button>
+        <br><br>
+        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px;">
+            <strong>指定位置插入:</strong>
+            <input type="number" id="insert-position" min="1" value="3" style="width: 60px; margin: 0 5px;">
+            <button id="insert-at-position">插入标签</button>
+            <span id="position-hint" style="margin-left: 10px; color: #666;">(当前标签数: 加载中...)</span>
+        </div>
         <button id="close-all-tabs">关闭所有标签</button>
+        <button id="close-half-tabs">关闭一半标签</button>
         <button id="close-last-tab">关闭最后一个</button>
 
         <h3>状态监控</h3>
@@ -24,10 +37,24 @@
             <tr><td>总宽度:</td><td id="total-width">0px</td></tr>
             <tr><td>窗口宽度:</td><td id="window-width">0px</td></tr>
             <tr><td>鼠标悬停:</td><td id="hovering-status">否</td></tr>
+            <tr><td>关闭动画(◀️):</td><td id="closing-tabs">0</td></tr>
+            <tr><td>进入动画(▶️):</td><td id="entering-tabs">0</td></tr>
+            <tr><td>拖拽状态(🔄):</td><td id="dragging-status">未拖拽</td></tr>
         </table>
+        
+        <h3>当前标签列表</h3>
+        <div id="tabs-list" style="max-height: 150px; overflow-y: auto; border: 1px solid #ccc; padding: 5px; font-family: monospace; font-size: 12px; background: #fafafa;">
+            <div>加载中...</div>
+        </div>
         <br>
         <button id="refresh-status">刷新状态</button>
         <button id="export-logs">导出日志</button>
+        <button id="clear-logs">清空日志</button>
+        
+        <h3>实时日志</h3>
+        <div id="log-display" style="height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; font-family: monospace; font-size: 12px; background: #f9f9f9;">
+            <div>等待日志...</div>
+        </div>
     </fieldset>
     
     <!-- 地址栏模块 -->
@@ -60,7 +87,8 @@
     <fieldset>
         <legend>⚙️ 系统调试</legend>
         <h3>系统功能</h3>
-        <button id="show-devtools">显示开发者工具</button>
+        <button id="open-renderer-devtools">前端开发者工具</button>
+        <button id="open-main-devtools">主程序开发者工具</button>
         <button id="reload-app">重载应用</button>
         <button id="clear-cache">清空缓存</button>
     </fieldset>

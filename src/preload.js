@@ -100,7 +100,11 @@ contextBridge.exposeInMainWorld('api', {
   onAppBeforeQuit: (callback) => ipcRenderer.on('app-before-quit', () => callback()),
   
   // --- 协议路由 ---
-  onProtocolNavigate: (callback) => ipcRenderer.on('protocol-navigate', (_event, protocolUrl) => callback(protocolUrl))
+  onProtocolNavigate: (callback) => ipcRenderer.on('protocol-navigate', (_event, protocolUrl) => callback(protocolUrl)),
+
+  // [GPT-4, 2024-06-28 19:30:00 Asia/Hong_Kong] 添加前端开发者工具API
+  toggleRendererDevTools: () => ipcRenderer.send('toggle-renderer-devtools'),
+  onToggleWebViewDevTools: (callback) => ipcRenderer.on('toggle-webview-devtools', callback)
 });
 
 window.addEventListener('DOMContentLoaded', () => {
