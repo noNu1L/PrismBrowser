@@ -221,7 +221,8 @@ function getTabStyle(tab) {
   // 拖拽时的位置
   if (dragState.isDragging && dragState.draggedTabId === tab.id) {
     const position = dragState.currentPosition.x - dragState.startPosition.relativeX
-    style.transform = `translateX(${position - getTabLeftOffset(tab)}px)`
+    // 使用translate3d强制开启硬件加速
+    style.transform = `translate3d(${position - getTabLeftOffset(tab)}px, 0, 0)`
     style.zIndex = 1000
   }
 
@@ -246,25 +247,23 @@ function getTabLeftOffset(tab) {
 // ==================== 宽度计算 ====================
 function calculateOptimalWidth() {
   if (!tabsAreaRef.value) return CONFIG.maxTabWidth
-  
+
   const containerWidth = tabsAreaRef.value.offsetWidth - CONFIG.newTabButtonWidth - CONFIG.windowControlsSpacing
-  
+
   // 计算时只排除正在关闭动画的标签，包含正在进入的标签
-  const activeTabCount = localTabs.value.filter(tab => 
+  const activeTabCount = localTabs.value.filter(tab =>
     !animationState.closingTabs.has(tab.id) &&
     !shouldHideTab(tab)
   ).length
-  
+
   if (activeTabCount === 0) return CONFIG.maxTabWidth
-  
+
   const calculatedWidth = containerWidth / activeTabCount
   return Math.max(CONFIG.minTabWidth, Math.min(CONFIG.maxTabWidth, calculatedWidth))
 }
 
 function updateAllTabWidths() {
   if (widthState.frozen) return
-
-  console.log('[TabsBar] 更新所有标签宽度')
 
   const newWidth = calculateOptimalWidth()
 
@@ -273,7 +272,6 @@ function updateAllTabWidths() {
     if (!animationState.closingTabs.has(tab.id)) {
     // if (!animationState.closingTabs.has(tab.id) && !animationState.enteringTabs.has(tab.id)) {
       widthState.tabWidths[tab.id] = newWidth
-      console.log(tab.id+"-newWidth:"+newWidth)
     }
   })
 
@@ -334,30 +332,26 @@ function updateTabProperties(newTabs) {
 }
 
 function addTabWithAnimation(tab) {
-  console.log(`[TabsBar] 添加标签动画: ${tab.id}`)
-  
   // 先计算新的最优宽度（包含新标签）
   const containerWidth = tabsAreaRef.value?.offsetWidth || 0
   const availableWidth = containerWidth - CONFIG.newTabButtonWidth - CONFIG.windowControlsSpacing
   const totalTabCount = localTabs.value.length + 1 // +1是新增的标签
   const newOptimalWidth = Math.max(CONFIG.minTabWidth, Math.min(CONFIG.maxTabWidth, availableWidth / totalTabCount))
-  
+
   // 立即更新现有标签的宽度，触发缩小动画
   localTabs.value.forEach(existingTab => {
     if (!animationState.closingTabs.has(existingTab.id)) {
       widthState.tabWidths[existingTab.id] = newOptimalWidth
-      console.log(existingTab.id + "-shrink to:" + newOptimalWidth)
     }
   })
-  
+
   // 添加新标签并开始展开动画
   localTabs.value.push({ ...tab })
   animationState.enteringTabs.add(tab.id)
-  
+
   // 为新标签设置目标宽度
   widthState.tabWidths[tab.id] = newOptimalWidth
-  console.log(tab.id + "-expand to:" + newOptimalWidth)
-  
+
   // 使用nextTick确保DOM更新后再设置CSS自定义属性
   nextTick(() => {
     const tabElement = document.getElementById(`tab-${tab.id}`)
@@ -365,11 +359,10 @@ function addTabWithAnimation(tab) {
       tabElement.style.setProperty('--final-width', `${newOptimalWidth}px`)
     }
   })
-  
+
   setTimeout(() => {
     animationState.enteringTabs.delete(tab.id)
-    console.log(`[TabsBar] 新标签 ${tab.id} 动画完成`)
-    
+
     // 动画完成后确保宽度一致性
     if (!mouseState.isHoveringTabArea) {
       updateAllTabWidths()
@@ -378,17 +371,15 @@ function addTabWithAnimation(tab) {
 }
 
 function removeTabWithAnimation(tabId) {
-  console.log(`[TabsBar] 移除标签动画: ${tabId}`)
-  
   animationState.closingTabs.add(tabId)
-  
+
   setTimeout(() => {
     const index = localTabs.value.findIndex(t => t.id === tabId)
     if (index !== -1) {
       localTabs.value.splice(index, 1)
     }
     animationState.closingTabs.delete(tabId)
-    
+
     // 只有在鼠标不在标签区域时才重新计算宽度
     if (!mouseState.isHoveringTabArea) {
       updateAllTabWidths()
@@ -491,6 +482,11 @@ function startDrag(tabId, startPosition) {
   document.removeEventListener('mousemove', checkDragStart)
 }
 
+// 缓存容器边界，避免频繁查询
+let cachedContainerRect = null
+let lastContainerRectTime = 0
+let rafId = null
+
 function handleDragMove(event) {
   if (!dragState.isDragging) return
 
@@ -499,65 +495,107 @@ function handleDragMove(event) {
 
   if (!tabsContainerRef.value) return
 
-  const containerRect = tabsContainerRef.value.getBoundingClientRect()
-  const draggedTabWidth = widthState.tabWidths[dragState.draggedTabId] || CONFIG.minTabWidth
+  // 只在位置变化较大时才进行处理
+  const deltaX = Math.abs(currentX - dragState.currentPosition.x)
+  if (deltaX < 3) return
 
-  // 计算标签应该的位置
-  const tabPosition = currentX - dragState.startPosition.relativeX
-  const leftBoundary = containerRect.left
-  const rightBoundary = containerRect.right - draggedTabWidth
+  // 取消之前的RAF，确保只有最新的更新被执行
+  if (rafId) {
+    cancelAnimationFrame(rafId)
+  }
 
-  // 边界检测
-  if (tabPosition < leftBoundary) {
-    dragState.boundaryReached = 'left'
-  } else if (tabPosition > rightBoundary) {
-    dragState.boundaryReached = 'right'
-  } else {
-    // 检查是否从边界重连
-    if (dragState.boundaryReached) {
-      const yDelta = Math.abs(currentY - dragState.startPosition.y)
-      if (yDelta <= CONFIG.boundaryReattachTolerance) {
-        dragState.boundaryReached = false
-        console.log('[TabsBar] 边界重连成功')
+  // 使用RAF确保与屏幕刷新同步，在Electron中性能更好
+  rafId = requestAnimationFrame(() => {
+    if (!dragState.isDragging) return
+
+    // 缓存容器边界，减少DOM查询
+    const now = Date.now()
+    if (!cachedContainerRect || now - lastContainerRectTime > 100) {
+      cachedContainerRect = tabsContainerRef.value.getBoundingClientRect()
+      lastContainerRectTime = now
+    }
+
+    const draggedTabWidth = widthState.tabWidths[dragState.draggedTabId] || CONFIG.minTabWidth
+
+    // 计算标签应该的位置
+    const tabPosition = currentX - dragState.startPosition.relativeX
+    const leftBoundary = cachedContainerRect.left
+    const rightBoundary = cachedContainerRect.right - draggedTabWidth
+
+    // 边界检测
+    if (tabPosition < leftBoundary) {
+      dragState.boundaryReached = 'left'
+    } else if (tabPosition > rightBoundary) {
+      dragState.boundaryReached = 'right'
+    } else {
+      // 检查是否从边界重连
+      if (dragState.boundaryReached) {
+        const yDelta = Math.abs(currentY - dragState.startPosition.y)
+        if (yDelta <= CONFIG.boundaryReattachTolerance) {
+          dragState.boundaryReached = false
+        }
+      }
+
+      if (!dragState.boundaryReached) {
+        // 更新拖拽位置
+        dragState.currentPosition = { x: currentX, y: currentY }
+
+        // 检查标签交换
+        checkTabExchange(currentX)
       }
     }
 
-    if (!dragState.boundaryReached) {
-      // 更新拖拽位置
-      dragState.currentPosition = { x: currentX, y: currentY }
-
-      // 检查标签交换
-      checkTabExchange(currentX)
-    }
-  }
+    rafId = null
+  })
 }
 
-function checkTabExchange(mouseX) {
-  const draggedTab = localTabs.value.find(tab => tab.id === dragState.draggedTabId)
-  const draggedIndex = localTabs.value.indexOf(draggedTab)
+// 缓存标签位置信息
+let cachedTabPositions = new Map()
+let lastTabPositionCacheTime = 0
 
+function checkTabExchange(mouseX) {
+  const draggedIndex = localTabs.value.findIndex(tab => tab.id === dragState.draggedTabId)
+  if (draggedIndex === -1) return
+
+  // 缓存标签位置，减少DOM查询
+  const now = Date.now()
+  if (cachedTabPositions.size === 0 || now - lastTabPositionCacheTime > 150) {
+    cachedTabPositions.clear()
+    localTabs.value.forEach((tab, index) => {
+      if (index !== draggedIndex) {
+        const tabElement = document.getElementById(`tab-${tab.id}`)
+        if (tabElement) {
+          const rect = tabElement.getBoundingClientRect()
+          cachedTabPositions.set(index, {
+            left: rect.left,
+            center: rect.left + rect.width / 2,
+            right: rect.right
+          })
+        }
+      }
+    })
+    lastTabPositionCacheTime = now
+  }
+
+  // 查找需要交换的标签
   for (let i = 0; i < localTabs.value.length; i++) {
     if (i === draggedIndex) continue
 
-    const tab = localTabs.value[i]
-    const tabElement = document.getElementById(`tab-${tab.id}`)
-    if (!tabElement) continue
-
-    const tabRect = tabElement.getBoundingClientRect()
-    const tabCenter = tabRect.left + tabRect.width / 2
+    const tabPos = cachedTabPositions.get(i)
+    if (!tabPos) continue
 
     // 检查是否越过中心点
-    if ((i < draggedIndex && mouseX < tabCenter) ||
-        (i > draggedIndex && mouseX > tabCenter)) {
+    if ((i < draggedIndex && mouseX < tabPos.center) ||
+        (i > draggedIndex && mouseX > tabPos.center)) {
       exchangeTabs(draggedIndex, i)
+      // 交换后立即清理缓存，强制重新计算
+      cachedTabPositions.clear()
       break
     }
   }
 }
 
 function exchangeTabs(fromIndex, toIndex) {
-  console.log(`[TabsBar] 交换标签: ${fromIndex} → ${toIndex}`)
-
   // 中断当前交换动画
   animationState.exchangingTabs.clear()
 
@@ -574,20 +612,32 @@ function playExchangeAnimation(fromIndex, toIndex) {
   const start = Math.min(fromIndex, toIndex)
   const end = Math.max(fromIndex, toIndex)
 
-  for (let i = start; i <= end; i++) {
-    if (localTabs.value[i] && localTabs.value[i].id !== dragState.draggedTabId) {
-      animationState.exchangingTabs.add(localTabs.value[i].id)
-    }
-  }
-
-  // 动画结束后清理状态
-  setTimeout(() => {
+  // 先强制重排，确保DOM位置更新
+  nextTick(() => {
     for (let i = start; i <= end; i++) {
-      if (localTabs.value[i]) {
-        animationState.exchangingTabs.delete(localTabs.value[i].id)
+      if (localTabs.value[i] && localTabs.value[i].id !== dragState.draggedTabId) {
+        const tabId = localTabs.value[i].id
+        animationState.exchangingTabs.add(tabId)
+
+        // 确保DOM元素存在并强制重排
+        const tabElement = document.getElementById(`tab-${tabId}`)
+        if (tabElement) {
+          // 强制触发重排
+          tabElement.offsetHeight
+        }
       }
     }
-  }, CONFIG.exchangeAnimationDuration)
+
+    // 动画结束后清理状态
+    setTimeout(() => {
+      for (let i = start; i <= end; i++) {
+        if (localTabs.value[i]) {
+          const tabId = localTabs.value[i].id
+          animationState.exchangingTabs.delete(tabId)
+        }
+      }
+    }, CONFIG.exchangeAnimationDuration)
+  })
 }
 
 // 拖拽结束相关事件处理
@@ -619,6 +669,16 @@ function handleWindowBlur() {
 
 function endDrag(cancelled = false) {
   if (!dragState.isDragging) return
+
+  // 清理RAF
+  if (rafId) {
+    cancelAnimationFrame(rafId)
+    rafId = null
+  }
+
+  // 清理缓存
+  cachedContainerRect = null
+  cachedTabPositions.clear()
 
   // 清理事件监听器
   if (dragMoveThrottled) {
@@ -668,18 +728,14 @@ function handleBarMouseDown(event) {
 }
 
 function setActiveTab(tabId) {
-  console.log(`[TabsBar] 激活标签: ${tabId}`)
   tabsStore.setActiveTab(tabId)
 }
 
 function addTab() {
-  console.log('[TabsBar] 新增标签')
   tabsStore.addTab({ active: true, loading: true })
 }
 
 function closeTab(tabId) {
-  console.log(`[TabsBar] 关闭标签: ${tabId}`)
-
   if (dragState.isDragging) {
     addPendingOperation('close', tabId)
     return
@@ -696,8 +752,6 @@ function handleAreaMouseEnter() {
     clearTimeout(mouseState.hoverTimer)
     mouseState.hoverTimer = null
   }
-
-  console.log('[TabsBar] 鼠标进入标签区域')
 }
 
 function handleAreaMouseLeave() {
@@ -711,8 +765,6 @@ function handleAreaMouseLeave() {
     }
     mouseState.hoverTimer = null
   }, 200)
-
-  console.log('[TabsBar] 鼠标离开标签区域')
 }
 
 // ==================== 窗口控制 ====================
@@ -740,8 +792,6 @@ function handleResize() {
 
 // ==================== 生命周期 ====================
 onMounted(() => {
-  console.log('[TabsBar] 组件挂载')
-
   // 初始化数据
   syncFromStore()
   updateAllTabWidths()
@@ -777,8 +827,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  console.log('[TabsBar] 组件卸载')
-
   // 清理事件监听器
   window.removeEventListener('resize', handleResize)
 
@@ -812,7 +860,7 @@ watch(() => tabsStore.tabs, (newTabs) => {
 
 // 监听激活标签变化
 watch(() => tabsStore.activeTabId, (newActiveId) => {
-  console.log(`[TabsBar] 激活标签变化: ${newActiveId}`)
+  // 可以在这里添加激活标签变化的处理逻辑
 })
 </script>
 
@@ -884,6 +932,19 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   z-index: 1000;
   pointer-events: none;
   transition: none;
+  /* 拖拽时强制硬件加速 */
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+}
+
+.tab-item.exchanging {
+  transition: transform 500ms cubic-bezier(0.23, 1, 0.32, 1) !important;
+  z-index: 5 !important;
+  /* 交换动画硬件加速 */
+  will-change: transform !important;
+  transform: translate3d(0, 0, 0) !important;
+  -webkit-transform: translate3d(0, 0, 0) !important;
 }
 
 .tab-item:hover:not(.dragging):not(.active) {
@@ -924,7 +985,7 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   position: absolute;
   right: 8px;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateZ(0);
   width: 18px;
   height: 18px;
   padding: 0;
@@ -939,6 +1000,9 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   z-index: 2;
   color: #000000;
   transition: background-color 0.15s ease;
+  /* 确保独立的渲染层，避免父元素transform影响 */
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .tab-close-btn:hover {
@@ -950,7 +1014,7 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   position: absolute;
   right: 4px;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateZ(0);
   width: 18px;
   height: 18px;
   padding: 0;
@@ -965,6 +1029,9 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   color: #000000;
  /* box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); */
   transition: background-color 0.15s ease;
+  /* 确保独立的渲染层，避免父元素transform影响 */
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .tab-overlay-close-btn:hover {
@@ -1014,9 +1081,7 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   overflow: hidden;
 }
 
-.tab-item.exchanging {
-  transition: transform 500ms cubic-bezier(0.23, 1, 0.32, 1) !important;
-}
+
 
 @keyframes tab-enter {
   0% {
@@ -1146,18 +1211,26 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   }
 }
 
-/* ==================== 性能优化 ==================== */
-.tab-item,
-.tab-content,
-.tab-close-btn,
-.tab-overlay-close-btn {
-  will-change: transform, opacity;
+/* ==================== Electron性能优化 ==================== */
+.tab-item.dragging {
+  /* 拖拽时启用硬件加速 */
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-.tab-item.dragging,
 .tab-item.entering,
 .tab-item.closing,
 .tab-item.exchanging {
+  /* 动画时启用硬件加速 */
   will-change: transform, width, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 容器优化 */
+.tabs-container {
+  /* 启用CSS Containment减少重排范围 */
+  contain: layout style;
 }
 </style> 
