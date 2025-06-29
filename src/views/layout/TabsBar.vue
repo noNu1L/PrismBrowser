@@ -358,6 +358,14 @@ function addTabWithAnimation(tab) {
   widthState.tabWidths[tab.id] = newOptimalWidth
   console.log(tab.id + "-expand to:" + newOptimalWidth)
   
+  // 使用nextTick确保DOM更新后再设置CSS自定义属性
+  nextTick(() => {
+    const tabElement = document.getElementById(`tab-${tab.id}`)
+    if (tabElement) {
+      tabElement.style.setProperty('--final-width', `${newOptimalWidth}px`)
+    }
+  })
+  
   setTimeout(() => {
     animationState.enteringTabs.delete(tab.id)
     console.log(`[TabsBar] 新标签 ${tab.id} 动画完成`)
@@ -371,16 +379,16 @@ function addTabWithAnimation(tab) {
 
 function removeTabWithAnimation(tabId) {
   console.log(`[TabsBar] 移除标签动画: ${tabId}`)
-
+  
   animationState.closingTabs.add(tabId)
-
+  
   setTimeout(() => {
     const index = localTabs.value.findIndex(t => t.id === tabId)
     if (index !== -1) {
       localTabs.value.splice(index, 1)
     }
     animationState.closingTabs.delete(tabId)
-
+    
     // 只有在鼠标不在标签区域时才重新计算宽度
     if (!mouseState.isHoveringTabArea) {
       updateAllTabWidths()
@@ -841,7 +849,7 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   height: 32px;
   overflow: hidden;
   position: relative;
-  -webkit-app-region: no-drag;
+  -webkit-app-region: drag;
 }
 
 /* ==================== 标签样式 ==================== */
@@ -855,12 +863,17 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   position: relative;
   flex-shrink: 0;
   box-sizing: border-box;
-  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-app-region: no-drag;
 }
 
 .tab-item:not(.dragging) {
   transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1),
-              width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+              width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tab-item.active {
@@ -985,8 +998,10 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
 
 /* ==================== 动画 ==================== */
 .tab-item.entering {
-  animation: tab-enter 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
   overflow: hidden;
+  animation: tab-enter 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  /* 强制从左边开始展开 */
+  transform-origin: left center !important;
 }
 
 /* 进入动画期间隐藏关闭按钮 */
@@ -1005,19 +1020,25 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
 }
 
 @keyframes tab-enter {
-  from {
-    width: 0;
-    min-width: 0;
+  0% {
+    width: 0px;
+    min-width: 0px;
+    max-width: 0px;
     opacity: 0;
-    transform: scaleX(0);
-    transform-origin: left center;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: 0;
+    margin-right: 0;
   }
-  to {
-    width: var(--tab-width);
-    min-width: var(--tab-width);
+  100% {
+    width: var(--final-width, var(--tab-width));
+    min-width: var(--final-width, var(--tab-width));
+    max-width: var(--final-width, var(--tab-width));
     opacity: 1;
-    transform: scaleX(1);
-    transform-origin: left center;
+    padding-left: inherit;
+    padding-right: inherit;
+    margin-left: inherit;
+    margin-right: inherit;
   }
 }
 
@@ -1025,16 +1046,22 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   from {
     width: var(--tab-width);
     min-width: var(--tab-width);
+    max-width: var(--tab-width);
     opacity: 1;
-    transform: scaleX(1);
-    transform-origin: center;
+    padding-left: inherit;
+    padding-right: inherit;
+    margin-left: inherit;
+    margin-right: inherit;
   }
   to {
-    width: 0;
-    min-width: 0;
+    width: 0px;
+    min-width: 0px;
+    max-width: 0px;
     opacity: 0;
-    transform: scaleX(0);
-    transform-origin: center;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: 0;
+    margin-right: 0;
   }
 }
 
@@ -1051,6 +1078,7 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   cursor: default;
   flex-shrink: 0;
   transition: background-color 0.15s ease;
+  -webkit-app-region: no-drag;
 }
 
 .add-tab-btn:hover {
