@@ -599,44 +599,87 @@ function exchangeTabs(fromIndex, toIndex) {
   // 中断当前交换动画
   animationState.exchangingTabs.clear()
 
-  // 移动标签
-  const movedTab = localTabs.value.splice(fromIndex, 1)[0]
-  localTabs.value.splice(toIndex, 0, movedTab)
-
-  // 播放交换动画
+  // 播放交换动画（使用FLIP技术）
   playExchangeAnimation(fromIndex, toIndex)
 }
 
 function playExchangeAnimation(fromIndex, toIndex) {
-  // 标记相关标签为交换动画状态
+  // FLIP动画：First, Last, Invert, Play
   const start = Math.min(fromIndex, toIndex)
   const end = Math.max(fromIndex, toIndex)
+  
+  // First: 记录交换前的位置
+  const beforePositions = new Map()
+  for (let i = start; i <= end; i++) {
+    if (localTabs.value[i] && localTabs.value[i].id !== dragState.draggedTabId) {
+      const tabId = localTabs.value[i].id
+      const tabElement = document.getElementById(`tab-${tabId}`)
+      if (tabElement) {
+        const rect = tabElement.getBoundingClientRect()
+        beforePositions.set(tabId, rect.left)
+      }
+    }
+  }
 
-  // 先强制重排，确保DOM位置更新
+  // 移动标签（数据层面的交换）
+  const movedTab = localTabs.value.splice(fromIndex, 1)[0]
+  localTabs.value.splice(toIndex, 0, movedTab)
+
+  // Last & Invert & Play: 下一帧执行动画
   nextTick(() => {
+    // Last: 记录交换后的位置
+    const afterPositions = new Map()
     for (let i = start; i <= end; i++) {
       if (localTabs.value[i] && localTabs.value[i].id !== dragState.draggedTabId) {
         const tabId = localTabs.value[i].id
-        animationState.exchangingTabs.add(tabId)
-
-        // 确保DOM元素存在并强制重排
         const tabElement = document.getElementById(`tab-${tabId}`)
         if (tabElement) {
-          // 强制触发重排
-          tabElement.offsetHeight
+          const rect = tabElement.getBoundingClientRect()
+          afterPositions.set(tabId, rect.left)
         }
       }
     }
 
-    // 动画结束后清理状态
-    setTimeout(() => {
-      for (let i = start; i <= end; i++) {
-        if (localTabs.value[i]) {
-          const tabId = localTabs.value[i].id
-          animationState.exchangingTabs.delete(tabId)
+    // Invert: 计算并应用逆向位移
+    const animatingTabs = []
+    beforePositions.forEach((beforeLeft, tabId) => {
+      const afterLeft = afterPositions.get(tabId)
+      if (afterLeft !== undefined) {
+        const deltaX = beforeLeft - afterLeft
+        if (Math.abs(deltaX) > 1) { // 只对有明显位移的标签执行动画
+          const tabElement = document.getElementById(`tab-${tabId}`)
+          if (tabElement) {
+            // 立即设置到原位置（无动画）
+            tabElement.style.transition = 'none'
+            tabElement.style.transform = `translateX(${deltaX}px)`
+            
+            // 标记为动画状态
+            animationState.exchangingTabs.add(tabId)
+            animatingTabs.push({ tabId, element: tabElement })
+          }
         }
       }
-    }, CONFIG.exchangeAnimationDuration)
+    })
+
+    // Play: 下一帧启动动画到最终位置
+    if (animatingTabs.length > 0) {
+      requestAnimationFrame(() => {
+        animatingTabs.forEach(({ tabId, element }) => {
+          // 启用动画并移动到最终位置
+          element.style.transition = 'transform 500ms cubic-bezier(0.23, 1, 0.32, 1)'
+          element.style.transform = 'translateX(0px)'
+        })
+
+        // 动画结束后清理
+        setTimeout(() => {
+          animatingTabs.forEach(({ tabId, element }) => {
+            element.style.transition = ''
+            element.style.transform = ''
+            animationState.exchangingTabs.delete(tabId)
+          })
+        }, CONFIG.exchangeAnimationDuration)
+      })
+    }
   })
 }
 
@@ -939,12 +982,11 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
 }
 
 .tab-item.exchanging {
-  transition: transform 500ms cubic-bezier(0.23, 1, 0.32, 1) !important;
   z-index: 5 !important;
   /* 交换动画硬件加速 */
   will-change: transform !important;
-  transform: translate3d(0, 0, 0) !important;
-  -webkit-transform: translate3d(0, 0, 0) !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
 }
 
 .tab-item:hover:not(.dragging):not(.active) {
