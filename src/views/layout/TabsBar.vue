@@ -1,99 +1,713 @@
 <template>
-  <div class="tabs-bar drag-region">
-    <div class="tabs-bar-left">
-      <!-- 标签区域 -->
-      <div class="tabs-area" ref="tabsAreaRef" @mouseenter="onTabAreaMouseEnter" @mouseleave="onTabAreaMouseLeave">
-        <!-- 自定义标签页 -->
-        <div class="tabs-container" ref="sortableContainer">
-          <div
-              v-for="tab in localTabs"
-              :key="tab.id"
-              :class="['tab-item', {
-                'active': tab.id === tabsStore.activeTabId,
-                'closing': closingTabs.has(tab.id),
-                'hide-close-btn': tab.width < 80
-              }]"
-              :style="{ width: `${tabWidths[tab.id] || 240}px` }"
-              @click="setActiveTab(tab.id)"
-              :id="`tab-${tab.id}`"
-              :data-tab-id="tab.id"
-          >
-            <div class="tab-content no-drag">
-              <el-icon class="tab-icon"><Document /></el-icon>
-              <span class="tab-title">{{ tab.title }}</span>
-              <button
-                  class="tab-close-btn"
-                  @click.stop="closeTab(tab.id)"
-              >
-                <el-icon><Close /></el-icon>
-              </button>
-            </div>
+  <div class="tabs-bar" @mousedown="handleBarMouseDown">
+    <!-- 标签区域 -->
+    <div 
+      class="tabs-area" 
+      ref="tabsAreaRef"
+      @mouseenter="handleAreaMouseEnter"
+      @mouseleave="handleAreaMouseLeave"
+    >
+      <!-- 标签容器 -->
+      <div class="tabs-container" ref="tabsContainerRef">
+        <div
+          v-for="tab in visibleTabs"
+          :key="tab.id"
+          :class="getTabClasses(tab)"
+          :style="getTabStyle(tab)"
+          @mousedown="handleTabMouseDown($event, tab.id)"
+          @click="handleTabClick($event, tab.id)"
+          :id="`tab-${tab.id}`"
+          :data-tab-id="tab.id"
+        >
+          <!-- 标签内容 -->
+          <div class="tab-content">
+            <!-- 图标 -->
+            <el-icon v-if="shouldShowIcon(tab)" class="tab-icon">
+              <Document />
+            </el-icon>
+            
+            <!-- 标题 -->
+            <span v-if="shouldShowTitle(tab)" class="tab-title">
+              {{ tab.title }}
+            </span>
+            
+            <!-- 常规关闭按钮（宽度≥80px时显示） -->
+            <button
+              v-if="shouldShowNormalCloseBtn(tab)"
+              class="tab-close-btn"
+              @click.stop="closeTab(tab.id)"
+              @mousedown.stop
+            >
+              <el-icon><Close /></el-icon>
+            </button>
           </div>
+          
+          <!-- 浮层关闭按钮（激活且宽度<80px时显示） -->
+          <button
+            v-if="shouldShowOverlayCloseBtn(tab)"
+            class="tab-overlay-close-btn"
+            @click.stop="closeTab(tab.id)"
+            @mousedown.stop
+          >
+            <el-icon><Close /></el-icon>
+          </button>
         </div>
-        <!-- 新增标签按钮 -->
-        <el-button
-            class="no-drag add-tab-btn"
-            size="small"
-            :icon="Plus"
-            @click="addTab"
-        />
       </div>
+      
+      <!-- 新增标签按钮 -->
+      <el-button
+        class="add-tab-btn"
+        size="small"
+        :icon="Plus"
+        @click="addTab"
+        @mousedown.stop
+      />
     </div>
-    <el-button-group class="window-controls">
-      <el-button class="window-btn" @click.stop="minimize" title="最小化" size="small" :icon="Minus"/>
-      <el-button class="window-btn" @click.stop="maximize" title="最大化/还原" size="small" :icon="FullScreen"/>
-      <el-button class="window-btn close" @click.stop="close" title="关闭" size="small" :icon="Close"/>
-    </el-button-group>
+    
+    <!-- 窗口控制按钮 -->
+    <div class="window-controls">
+      <el-button class="window-btn" @click="minimize" title="最小化" size="small" :icon="Minus" />
+      <el-button class="window-btn" @click="maximize" title="最大化/还原" size="small" :icon="FullScreen" />
+      <el-button class="window-btn close" @click="close" title="关闭" size="small" :icon="Close" />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useTabsStore } from '../../store/tabsStore'
-import {Close, FullScreen, Minus, Plus, Document, CloseBold} from "@element-plus/icons-vue"
-import Sortable from 'sortablejs'
+import { Close, FullScreen, Minus, Plus, Document } from "@element-plus/icons-vue"
 
+// ==================== 配置参数 ====================
+const CONFIG = {
+  minTabWidth: 26,
+  maxTabWidth: 240,
+  closeButtonThreshold: 80,
+  dragThreshold: 5,
+  boundaryReattachTolerance: 5,
+  openAnimationDuration: 250,
+  closeAnimationDuration: 250,
+  exchangeAnimationDuration: 500,
+  mouseMoveThrottle: 16, // 60fps
+  newTabButtonWidth: 32,
+  windowControlsSpacing: 30
+}
+
+// ==================== 状态管理 ====================
 const tabsStore = useTabsStore()
 const tabsAreaRef = ref(null)
-const sortableContainer = ref(null)
+const tabsContainerRef = ref(null)
 
-// [GPT-4, 2024-06-28 19:00:00 Asia/Hong_Kong] 本地UI状态：关闭动画、宽度、悬停、拖拽
-const closingTabs = ref(new Set()) // 正在关闭的标签id集合
-const tabWidths = ref({}) // { [tabId]: width }
-const isHoveringTabArea = ref(false)
-const pendingWidthUpdate = ref(false)
+// UI渲染数据
 const localTabs = ref([])
 
-// 拖拽相关状态
-const isDragging = ref(false)
-const draggedTabId = ref(null)
-let sortableInstance = null
+// 拖拽状态
+const dragState = reactive({
+  isDragging: false,
+  draggedTabId: null,
+  startPosition: { x: 0, y: 0, relativeX: 0 },
+  currentPosition: { x: 0, y: 0 },
+  boundaryReached: false,
+  originalIndex: -1
+})
 
+// 宽度状态
+const widthState = reactive({
+  frozen: false,
+  tabWidths: {},
+  containerWidth: 0
+})
+
+// 动画状态
+const animationState = reactive({
+  closingTabs: new Set(),
+  enteringTabs: new Set(),
+  exchangingTabs: new Set()
+})
+
+// 鼠标状态
+const mouseState = reactive({
+  isHoveringTabArea: false,
+  hoverTimer: null
+})
+
+// 积压操作
+const pendingOperations = ref([])
+
+// ==================== 计算属性 ====================
+const visibleTabs = computed(() => {
+  return localTabs.value.filter(tab => !shouldHideTab(tab))
+})
+
+// ==================== 工具函数 ====================
+function throttle(fn, delay) {
+  let lastCall = 0
+  return function (...args) {
+    const now = Date.now()
+    if (now - lastCall >= delay) {
+      lastCall = now
+      return fn.apply(this, args)
+    }
+  }
+}
+
+function shouldHideTab(tab) {
+  // 检查标签是否应该溢出隐藏
+  if (!tabsAreaRef.value) return false
+  
+  const containerWidth = tabsAreaRef.value.offsetWidth - CONFIG.newTabButtonWidth - CONFIG.windowControlsSpacing
+  const theoreticalMinWidth = CONFIG.minTabWidth * localTabs.value.length
+  
+  if (theoreticalMinWidth <= containerWidth) return false
+  
+  // 计算当前标签的位置，如果超出容器宽度则隐藏
+  const tabIndex = localTabs.value.indexOf(tab)
+  const visibleCount = Math.floor(containerWidth / CONFIG.minTabWidth)
+  
+  return tabIndex >= visibleCount
+}
+
+function shouldShowIcon(tab) {
+  const width = widthState.tabWidths[tab.id] || CONFIG.minTabWidth
+  return width >= 60 // 图标需要至少60px宽度
+}
+
+function shouldShowTitle(tab) {
+  const width = widthState.tabWidths[tab.id] || CONFIG.minTabWidth
+  return width >= 40 // 标题需要至少40px宽度
+}
+
+function shouldShowNormalCloseBtn(tab) {
+  const width = widthState.tabWidths[tab.id] || CONFIG.minTabWidth
+  return width >= CONFIG.closeButtonThreshold
+}
+
+function shouldShowOverlayCloseBtn(tab) {
+  const width = widthState.tabWidths[tab.id] || CONFIG.minTabWidth
+  const isActive = tab.id === tabsStore.activeTabId
+  return isActive && width < CONFIG.closeButtonThreshold
+}
+
+function getTabClasses(tab) {
+  return [
+    'tab-item',
+    {
+      'active': tab.id === tabsStore.activeTabId,
+      'dragging': dragState.isDragging && dragState.draggedTabId === tab.id,
+      'closing': animationState.closingTabs.has(tab.id),
+      'entering': animationState.enteringTabs.has(tab.id),
+      'exchanging': animationState.exchangingTabs.has(tab.id)
+    }
+  ]
+}
+
+function getTabStyle(tab) {
+  const width = widthState.tabWidths[tab.id] || CONFIG.minTabWidth
+  const style = {
+    width: `${width}px`,
+    '--tab-width': `${width}px`
+  }
+  
+  // 拖拽时的位置
+  if (dragState.isDragging && dragState.draggedTabId === tab.id) {
+    const position = dragState.currentPosition.x - dragState.startPosition.relativeX
+    style.transform = `translateX(${position - getTabLeftOffset(tab)}px)`
+    style.zIndex = 1000
+  }
+  
+  return style
+}
+
+function getTabLeftOffset(tab) {
+  // 计算标签在容器中的左偏移量
+  const tabIndex = localTabs.value.indexOf(tab)
+  let offset = 0
+  
+  for (let i = 0; i < tabIndex; i++) {
+    const prevTab = localTabs.value[i]
+    if (!animationState.closingTabs.has(prevTab.id)) {
+      offset += widthState.tabWidths[prevTab.id] || CONFIG.minTabWidth
+    }
+  }
+  
+  return offset
+}
+
+// ==================== 宽度计算 ====================
+function calculateOptimalWidth() {
+  if (!tabsAreaRef.value) return CONFIG.maxTabWidth
+  
+  const containerWidth = tabsAreaRef.value.offsetWidth - CONFIG.newTabButtonWidth - CONFIG.windowControlsSpacing
+  const visibleTabCount = visibleTabs.value.length
+  
+  if (visibleTabCount === 0) return CONFIG.maxTabWidth
+  
+  const calculatedWidth = containerWidth / visibleTabCount
+  return Math.max(CONFIG.minTabWidth, Math.min(CONFIG.maxTabWidth, calculatedWidth))
+}
+
+function updateAllTabWidths() {
+  if (widthState.frozen) return
+  
+  console.log('[TabsBar] 更新所有标签宽度')
+  
+  const newWidth = calculateOptimalWidth()
+  
+  localTabs.value.forEach(tab => {
+    if (!animationState.closingTabs.has(tab.id)) {
+      widthState.tabWidths[tab.id] = newWidth
+    }
+  })
+  
+  widthState.containerWidth = tabsAreaRef.value?.offsetWidth || 0
+}
+
+function freezeTabWidths() {
+  widthState.frozen = true
+  console.log('[TabsBar] 冻结标签宽度')
+}
+
+function unfreezeTabWidths() {
+  widthState.frozen = false
+  console.log('[TabsBar] 解冻标签宽度')
+  nextTick(() => {
+    updateAllTabWidths()
+  })
+}
+
+// ==================== 数据同步 ====================
+function syncFromStore() {
+  console.log('[TabsBar] 从Store同步数据')
+  
+  if (dragState.isDragging) {
+    addPendingOperation('sync', tabsStore.tabs)
+    return
+  }
+  
+  const newTabs = tabsStore.tabs.map(tab => ({ ...tab }))
+  const currentIds = new Set(localTabs.value.map(t => t.id))
+  const newIds = new Set(newTabs.map(t => t.id))
+  
+  // 处理新增标签
+  newTabs.forEach(tab => {
+    if (!currentIds.has(tab.id)) {
+      addTabWithAnimation(tab)
+    }
+  })
+  
+  // 处理删除标签
+  localTabs.value.forEach(tab => {
+    if (!newIds.has(tab.id)) {
+      removeTabWithAnimation(tab.id)
+    }
+  })
+  
+  // 更新现有标签属性
+  updateTabProperties(newTabs)
+}
+
+function updateTabProperties(newTabs) {
+  newTabs.forEach(newTab => {
+    const localTab = localTabs.value.find(t => t.id === newTab.id)
+    if (localTab) {
+      Object.assign(localTab, newTab)
+    }
+  })
+}
+
+function addTabWithAnimation(tab) {
+  console.log(`[TabsBar] 添加标签动画: ${tab.id}`)
+  
+  localTabs.value.push({ ...tab })
+  animationState.enteringTabs.add(tab.id)
+  
+  setTimeout(() => {
+    animationState.enteringTabs.delete(tab.id)
+    updateAllTabWidths()
+  }, CONFIG.openAnimationDuration)
+}
+
+function removeTabWithAnimation(tabId) {
+  console.log(`[TabsBar] 移除标签动画: ${tabId}`)
+  
+  animationState.closingTabs.add(tabId)
+  
+  setTimeout(() => {
+    const index = localTabs.value.findIndex(t => t.id === tabId)
+    if (index !== -1) {
+      localTabs.value.splice(index, 1)
+    }
+    animationState.closingTabs.delete(tabId)
+    updateAllTabWidths()
+  }, CONFIG.closeAnimationDuration)
+}
+
+function addPendingOperation(type, data) {
+  pendingOperations.value.push({ type, data, timestamp: Date.now() })
+}
+
+function processPendingOperations() {
+  console.log(`[TabsBar] 处理积压操作: ${pendingOperations.value.length}个`)
+  
+  // 按类型排序：先关闭，后打开
+  const sortedOperations = pendingOperations.value.sort((a, b) => {
+    const priority = { 'close': 1, 'open': 2, 'sync': 3 }
+    return priority[a.type] - priority[b.type]
+  })
+  
+  sortedOperations.forEach(operation => {
+    switch (operation.type) {
+      case 'sync':
+        syncFromStore()
+        break
+      case 'close':
+        removeTabWithAnimation(operation.data)
+        break
+      case 'open':
+        addTabWithAnimation(operation.data)
+        break
+    }
+  })
+  
+  pendingOperations.value = []
+}
+
+// ==================== 拖拽系统 ====================
+let dragMoveThrottled = null
+
+function handleTabMouseDown(event, tabId) {
+  // 激活标签
+  setActiveTab(tabId)
+  
+  // 单标签不允许拖拽
+  if (localTabs.value.length <= 1) return
+  
+  const startPosition = {
+    x: event.clientX,
+    y: event.clientY,
+    relativeX: event.offsetX
+  }
+  
+  // 添加临时监听器检测拖拽
+  const handleMouseMove = (e) => checkDragStart(e, tabId, startPosition)
+  const handleMouseUp = () => {
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+  }
+  
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', handleMouseUp)
+}
+
+function checkDragStart(event, tabId, startPosition) {
+  const deltaX = Math.abs(event.clientX - startPosition.x)
+  const deltaY = Math.abs(event.clientY - startPosition.y)
+  
+  if (deltaX > CONFIG.dragThreshold || deltaY > CONFIG.dragThreshold) {
+    startDrag(tabId, startPosition)
+  }
+}
+
+function startDrag(tabId, startPosition) {
+  console.log(`[TabsBar] 开始拖拽: ${tabId}`)
+  
+  Object.assign(dragState, {
+    isDragging: true,
+    draggedTabId: tabId,
+    startPosition,
+    currentPosition: startPosition,
+    boundaryReached: false,
+    originalIndex: localTabs.value.findIndex(tab => tab.id === tabId)
+  })
+  
+  // 冻结宽度
+  freezeTabWidths()
+  
+  // 创建节流的mousemove处理器
+  dragMoveThrottled = throttle(handleDragMove, CONFIG.mouseMoveThrottle)
+  
+  // 添加全局事件监听器
+  document.addEventListener('mousemove', dragMoveThrottled)
+  document.addEventListener('mouseup', handleDragEnd)
+  document.addEventListener('keydown', handleDragKeyDown)
+  document.addEventListener('contextmenu', handleDragRightClick)
+  document.addEventListener('blur', handleWindowBlur)
+  
+  // 清理临时监听器
+  document.removeEventListener('mousemove', checkDragStart)
+}
+
+function handleDragMove(event) {
+  if (!dragState.isDragging) return
+  
+  const currentX = event.clientX
+  const currentY = event.clientY
+  
+  if (!tabsContainerRef.value) return
+  
+  const containerRect = tabsContainerRef.value.getBoundingClientRect()
+  const draggedTabWidth = widthState.tabWidths[dragState.draggedTabId] || CONFIG.minTabWidth
+  
+  // 计算标签应该的位置
+  const tabPosition = currentX - dragState.startPosition.relativeX
+  const leftBoundary = containerRect.left
+  const rightBoundary = containerRect.right - draggedTabWidth
+  
+  // 边界检测
+  if (tabPosition < leftBoundary) {
+    dragState.boundaryReached = 'left'
+  } else if (tabPosition > rightBoundary) {
+    dragState.boundaryReached = 'right'
+  } else {
+    // 检查是否从边界重连
+    if (dragState.boundaryReached) {
+      const yDelta = Math.abs(currentY - dragState.startPosition.y)
+      if (yDelta <= CONFIG.boundaryReattachTolerance) {
+        dragState.boundaryReached = false
+        console.log('[TabsBar] 边界重连成功')
+      }
+    }
+    
+    if (!dragState.boundaryReached) {
+      // 更新拖拽位置
+      dragState.currentPosition = { x: currentX, y: currentY }
+      
+      // 检查标签交换
+      checkTabExchange(currentX)
+    }
+  }
+}
+
+function checkTabExchange(mouseX) {
+  const draggedTab = localTabs.value.find(tab => tab.id === dragState.draggedTabId)
+  const draggedIndex = localTabs.value.indexOf(draggedTab)
+  
+  for (let i = 0; i < localTabs.value.length; i++) {
+    if (i === draggedIndex) continue
+    
+    const tab = localTabs.value[i]
+    const tabElement = document.getElementById(`tab-${tab.id}`)
+    if (!tabElement) continue
+    
+    const tabRect = tabElement.getBoundingClientRect()
+    const tabCenter = tabRect.left + tabRect.width / 2
+    
+    // 检查是否越过中心点
+    if ((i < draggedIndex && mouseX < tabCenter) || 
+        (i > draggedIndex && mouseX > tabCenter)) {
+      exchangeTabs(draggedIndex, i)
+      break
+    }
+  }
+}
+
+function exchangeTabs(fromIndex, toIndex) {
+  console.log(`[TabsBar] 交换标签: ${fromIndex} → ${toIndex}`)
+  
+  // 中断当前交换动画
+  animationState.exchangingTabs.clear()
+  
+  // 移动标签
+  const movedTab = localTabs.value.splice(fromIndex, 1)[0]
+  localTabs.value.splice(toIndex, 0, movedTab)
+  
+  // 播放交换动画
+  playExchangeAnimation(fromIndex, toIndex)
+}
+
+function playExchangeAnimation(fromIndex, toIndex) {
+  // 标记相关标签为交换动画状态
+  const start = Math.min(fromIndex, toIndex)
+  const end = Math.max(fromIndex, toIndex)
+  
+  for (let i = start; i <= end; i++) {
+    if (localTabs.value[i] && localTabs.value[i].id !== dragState.draggedTabId) {
+      animationState.exchangingTabs.add(localTabs.value[i].id)
+    }
+  }
+  
+  // 动画结束后清理状态
+  setTimeout(() => {
+    for (let i = start; i <= end; i++) {
+      if (localTabs.value[i]) {
+        animationState.exchangingTabs.delete(localTabs.value[i].id)
+      }
+    }
+  }, CONFIG.exchangeAnimationDuration)
+}
+
+// 拖拽结束相关事件处理
+function handleDragEnd(event) {
+  if (!dragState.isDragging) return
+  
+  console.log('[TabsBar] 拖拽结束')
+  
+  endDrag(false)
+}
+
+function handleDragKeyDown(event) {
+  if (event.key === 'Escape') {
+    console.log('[TabsBar] ESC取消拖拽')
+    endDrag(true)
+  }
+}
+
+function handleDragRightClick(event) {
+  event.preventDefault()
+  console.log('[TabsBar] 右键取消拖拽')
+  endDrag(true)
+}
+
+function handleWindowBlur() {
+  console.log('[TabsBar] 失焦取消拖拽')
+  endDrag(true)
+}
+
+function endDrag(cancelled = false) {
+  if (!dragState.isDragging) return
+  
+  // 清理事件监听器
+  if (dragMoveThrottled) {
+    document.removeEventListener('mousemove', dragMoveThrottled)
+    dragMoveThrottled = null
+  }
+  document.removeEventListener('mouseup', handleDragEnd)
+  document.removeEventListener('keydown', handleDragKeyDown)
+  document.removeEventListener('contextmenu', handleDragRightClick)
+  document.removeEventListener('blur', handleWindowBlur)
+  
+  if (!cancelled) {
+    // 同步到Store
+    const newOrder = localTabs.value.map(tab => tab.id)
+    tabsStore.reorderTabs(newOrder)
+    
+    // 处理积压操作
+    processPendingOperations()
+  }
+  
+  // 解冻宽度
+  unfreezeTabWidths()
+  
+  // 重置拖拽状态
+  Object.assign(dragState, {
+    isDragging: false,
+    draggedTabId: null,
+    startPosition: { x: 0, y: 0, relativeX: 0 },
+    currentPosition: { x: 0, y: 0 },
+    boundaryReached: false,
+    originalIndex: -1
+  })
+  
+  // 清理交换动画状态
+  animationState.exchangingTabs.clear()
+}
+
+// ==================== 基础交互 ====================
+function handleTabClick(event, tabId) {
+  if (!dragState.isDragging) {
+    setActiveTab(tabId)
+  }
+}
+
+function handleBarMouseDown(event) {
+  // 空白区域点击不做处理，保持窗口拖拽功能
+}
+
+function setActiveTab(tabId) {
+  console.log(`[TabsBar] 激活标签: ${tabId}`)
+  tabsStore.setActiveTab(tabId)
+}
+
+function addTab() {
+  console.log('[TabsBar] 新增标签')
+  tabsStore.addTab({ active: true, loading: true })
+}
+
+function closeTab(tabId) {
+  console.log(`[TabsBar] 关闭标签: ${tabId}`)
+  
+  if (dragState.isDragging) {
+    addPendingOperation('close', tabId)
+    return
+  }
+  
+  tabsStore.removeTab(tabId)
+}
+
+// ==================== 鼠标悬停处理 ====================
+function handleAreaMouseEnter() {
+  mouseState.isHoveringTabArea = true
+  
+  if (mouseState.hoverTimer) {
+    clearTimeout(mouseState.hoverTimer)
+    mouseState.hoverTimer = null
+  }
+  
+  console.log('[TabsBar] 鼠标进入标签区域')
+}
+
+function handleAreaMouseLeave() {
+  mouseState.isHoveringTabArea = false
+  
+  // 延迟200ms后重新计算宽度
+  mouseState.hoverTimer = setTimeout(() => {
+    if (!mouseState.isHoveringTabArea && !dragState.isDragging) {
+      updateAllTabWidths()
+    }
+    mouseState.hoverTimer = null
+  }, 200)
+  
+  console.log('[TabsBar] 鼠标离开标签区域')
+}
+
+// ==================== 窗口控制 ====================
+function minimize() {
+  window.api?.sendWindowControl('minimize')
+}
+
+function maximize() {
+  window.api?.sendWindowControl('maximize')
+}
+
+function close() {
+  window.api?.sendWindowControl('close')
+}
+
+// ==================== 窗口大小变化 ====================
+function handleResize() {
+  if (dragState.isDragging) {
+    endDrag(true) // 窗口大小变化时取消拖拽
+    return
+  }
+  
+  updateAllTabWidths()
+}
+
+// ==================== 生命周期 ====================
 onMounted(() => {
-  syncTabsFromStore()
-  window.addEventListener('resize', handleResize)
+  console.log('[TabsBar] 组件挂载')
+  
+  // 初始化数据
+  syncFromStore()
   updateAllTabWidths()
   
-  // 初始化SortableJS
-  initSortable()
-
-  // 暴露组件实例到全局，供调试面板使用
+  // 监听窗口大小变化
+  window.addEventListener('resize', handleResize)
+  
+  // 暴露组件实例供调试使用
   window.tabsBarInstance = {
     tabsStore,
+    localTabs,
+    dragState,
+    widthState,
+    animationState,
+    mouseState,
+    pendingOperations,
     updateAllTabWidths,
-    // 调试面板需要的方法和属性
     addTab,
     closeTab,
     setActiveTab,
-    updateTab,
-    // 暴露响应式数据
-    localTabs,
-    tabWidths,
-    isHoveringTabArea,
-    closingTabs,
-    isDragging,
-    draggedTabId,
-    // 暴露 tabsStore 的方法
+    // 调试方法
     closeAllTabs: () => tabsStore.closeAllTabs(),
     closeHalfTabs: () => tabsStore.closeHalfTabs(),
     addMultipleTabs: (count) => {
@@ -101,359 +715,54 @@ onMounted(() => {
         tabsStore.addTab({ active: i === count - 1, loading: true })
       }
     },
-    // 在指定位置插入标签的方法
     insertTabAt: (position, tabOptions) => {
       return tabsStore.insertTabAt(position, tabOptions)
-    },
-    // 便捷方法：在第2个位置插入标签
-    insertTabAtSecond: () => {
-      return tabsStore.insertTabAt(1, { active: true, loading: true, title: '新标签(位置2)' })
-    },
-    // 便捷方法：在第5个位置插入标签
-    insertTabAtFifth: () => {
-      return tabsStore.insertTabAt(4, { active: true, loading: true, title: '新标签(位置5)' })
     }
   }
 })
 
 onUnmounted(() => {
+  console.log('[TabsBar] 组件卸载')
+  
+  // 清理事件监听器
   window.removeEventListener('resize', handleResize)
-  // 清理SortableJS实例
-  if (sortableInstance) {
-    sortableInstance.destroy()
-    sortableInstance = null
+  
+  if (mouseState.hoverTimer) {
+    clearTimeout(mouseState.hoverTimer)
   }
+  
+  // 清理拖拽相关监听器
+  if (dragState.isDragging) {
+    endDrag(true)
+  }
+  
+  // 清理全局暴露
+  delete window.tabsBarInstance
 })
 
-watch(() => tabsStore.tabs, (newStoreTabs) => {
-  const localTabIds = new Set(localTabs.value.map(t => t.id));
-  const storeTabIds = new Set(newStoreTabs.map(t => t.id));
-
-  // [GPT-4, 2024-06-28 20:05:00 Asia/Hong_Kong] 检查ID集合是否一致，避免不必要重渲染
-  if (localTabIds.size !== storeTabIds.size || [...localTabIds].some(id => !storeTabIds.has(id))) {
-    nextTick(() => {
-      syncTabsFromStore()
-    });
+// ==================== Store监听 ====================
+watch(() => tabsStore.tabs, (newTabs) => {
+  const localTabIds = new Set(localTabs.value.map(t => t.id))
+  const storeTabIds = new Set(newTabs.map(t => t.id))
+  
+  // 检查是否需要重新渲染
+  if (localTabIds.size !== storeTabIds.size || 
+      [...localTabIds].some(id => !storeTabIds.has(id))) {
+    syncFromStore()
+  } else {
+    // 只更新属性
+    updateTabProperties(newTabs)
   }
-}, { deep: true });
+}, { deep: true })
 
-function diffAndSyncTabs(newTabs, oldTabs) {
-  console.log('[TabsBar][diffAndSyncTabs] 比较并同步tabs', {
-    newTabs: newTabs.map(t => ({ id: t.id, width: t.width })),
-    oldTabs: oldTabs.map(t => ({ id: t.id, width: t.width })),
-    localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
-    isHoveringTabArea: isHoveringTabArea.value,
-    pendingWidthUpdate: pendingWidthUpdate.value
-  })
-  // 新增标签
-  newTabs.forEach(tab => {
-    if (!localTabs.value.find(t => t.id === tab.id)) {
-      console.log(`[TabsBar][diffAndSyncTabs][${now()}] 新增标签:`, tab)
-      localTabs.value.push({ ...tab })
-    }
-  })
-  // 删除标签（设置closing，动画后移除）
-  localTabs.value.forEach((tab, idx) => {
-    if (!newTabs.find(t => t.id === tab.id)) {
-      console.log(`[TabsBar][diffAndSyncTabs][${now()}] 删除标签:`, tab)
-      closingTabs.value.add(tab.id)
-      setTimeout(() => {
-        const i = localTabs.value.findIndex(t => t.id === tab.id)
-        if (i !== -1) localTabs.value.splice(i, 1)
-        closingTabs.value.delete(tab.id)
-        updateAllTabWidths()
-      }, 300)
-    }
-  })
-  // 更新标签内容
-  newTabs.forEach(tab => {
-    const local = localTabs.value.find(t => t.id === tab.id)
-    if (local) {
-      for (const key in tab) {
-        if (key !== 'id' && local[key] !== tab[key]) {
-          console.log(`[TabsBar][diffAndSyncTabs][${now()}] 更新标签${tab.id}字段${key}: ${local[key]} → ${tab[key]}`)
-          local[key] = tab[key]
-        }
-      }
-    }
-  })
-  updateAllTabWidths()
-}
-
-function syncTabsFromStore() {
-  console.log('[TabsBar][syncTabsFromStore] 从Pinia同步tabs', {
-    tabsStoreTabs: tabsStore.tabs.map(t => ({ id: t.id, width: t.width })),
-    localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
-    isHoveringTabArea: isHoveringTabArea.value,
-    pendingWidthUpdate: pendingWidthUpdate.value
-  })
-  localTabs.value = tabsStore.tabs.map(tab => ({ ...tab }))
-  updateAllTabWidths()
-}
-
-function addTab() {
-  console.log(`[TabsBar][addTab][${now()}] 新增标签`)
-  tabsStore.addTab({ active: true, loading: true })
-}
-
-function closeTab(tabId) {
-  console.log(`[TabsBar][closeTab] 开始关闭标签: ${tabId}`)
-  console.log(`[TabsBar][closeTab] localTabs:`)
-  localTabs.value.forEach(t => console.log(`  - 标签${t.id}: width=${t.width}`))
-  console.log(`[TabsBar][closeTab] tabWidths:`, { ...tabWidths.value })
-  console.log(`[TabsBar][closeTab] isHoveringTabArea:`, isHoveringTabArea.value)
-  console.log(`[TabsBar][closeTab] pendingWidthUpdate:`, pendingWidthUpdate.value)
-  closingTabs.value.add(tabId)
-  pendingWidthUpdate.value = true
-
-  // 先执行关闭动画
-  const index = localTabs.value.findIndex(tab => tab.id === tabId)
-  if (index !== -1) {
-    const tab = localTabs.value[index]
-    tab.closing = true
-  }
-
-  setTimeout(() => {
-    // 动画结束后，再同步到Pinia
-    tabsStore.removeTab(tabId)
-    // 本地也移除
-    const idx = localTabs.value.findIndex(tab => tab.id === tabId)
-    if (idx !== -1) localTabs.value.splice(idx, 1)
-
-    // 如果鼠标已经离开，立即更新宽度
-    if (!isHoveringTabArea.value) {
-      updateAllTabWidths()
-      pendingWidthUpdate.value = false
-    }
-    console.log(`[TabsBar][closeTab] 动画结束，移除标签: ${tabId}`)
-    console.log(`[TabsBar][closeTab] localTabs:`)
-    localTabs.value.forEach(t => console.log(`  - 标签${t.id}: width=${t.width}`))
-    console.log(`[TabsBar][closeTab] tabWidths:`, { ...tabWidths.value })
-    console.log(`[TabsBar][closeTab] isHoveringTabArea:`, isHoveringTabArea.value)
-    console.log(`[TabsBar][closeTab] pendingWidthUpdate:`, pendingWidthUpdate.value)
-  }, 300)
-}
-
-function setActiveTab(tabId) {
-  console.log(`[TabsBar][setActiveTab][${now()}] 激活标签: ${tabId}`)
-  tabsStore.setActiveTab(tabId)
-}
-
-function updateTab(id, patch) {
-  const tab = localTabs.value.find(t => t.id === id)
-  if (tab) {
-    let changed = false
-    for (const key in patch) {
-      if (key !== 'id' && tab[key] !== patch[key]) {
-        console.log(`[TabsBar][updateTab][${now()}] 更新标签${id}字段${key}: ${tab[key]} → ${patch[key]}`)
-        tab[key] = patch[key]
-        changed = true
-      }
-    }
-    if ('active' in patch && patch.active === true) {
-      localTabs.value.forEach(t => {
-        if (t.id !== id && t.active) t.active = false
-      })
-    }
-    if (changed) {
-      tabsStore.updateTab(id, patch)
-    }
-  }
-}
-
-function calculateOptimalWidth() {
-  const maxWidth = 240
-  const minWidth = 40
-  if (!tabsAreaRef.value) return maxWidth
-  const containerWidth = tabsAreaRef.value.offsetWidth
-  const addBtnWidth = 34
-  const availableWidth = containerWidth - addBtnWidth
-  const tabCount = localTabs.value.filter(t => !closingTabs.value.has(t.id)).length
-  if (tabCount === 0) return maxWidth
-  const width = Math.max(minWidth, Math.min(maxWidth, availableWidth / tabCount))
-  console.log(`[TabsBar][calculateOptimalWidth][${now()}] 计算宽度: ${width}, 标签数: ${tabCount}, 容器宽: ${containerWidth}`)
-  return width
-}
-
-function updateAllTabWidths() {
-  console.log('[TabsBar][updateAllTabWidths] 调整所有标签宽度', {
-    localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width, closing: closingTabs.value.has(t.id) })),
-    tabWidths: { ...tabWidths.value },
-    isHoveringTabArea: isHoveringTabArea.value,
-    pendingWidthUpdate: pendingWidthUpdate.value
-  })
-  const newWidth = calculateOptimalWidth()
-  localTabs.value.forEach(tab => {
-    if (!closingTabs.value.has(tab.id)) {
-      if (tabWidths.value[tab.id] !== newWidth) {
-        console.log(`[TabsBar][updateAllTabWidths] 标签${tab.id}宽度: ${tabWidths.value[tab.id]} → ${newWidth}`)
-      }
-      tabWidths.value[tab.id] = newWidth
-      tab.width = newWidth
-    }
-  })
-}
-
-function onTabAreaMouseEnter() {
-  isHoveringTabArea.value = true
-  console.log(`[TabsBar][onTabAreaMouseEnter][${now()}] 鼠标进入标签区域`)
-}
-function onTabAreaMouseLeave() {
-  isHoveringTabArea.value = false
-  console.log('[TabsBar][onTabAreaMouseLeave] 鼠标离开标签区域', {
-    localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
-    tabWidths: { ...tabWidths.value },
-    isHoveringTabArea: isHoveringTabArea.value,
-    pendingWidthUpdate: pendingWidthUpdate.value
-  })
-  if (pendingWidthUpdate.value) {
-    setTimeout(() => {
-      if (!isHoveringTabArea.value) {
-        console.log('[TabsBar][onTabAreaMouseLeave] 执行延迟的宽度更新', {
-          localTabs: localTabs.value.map(t => ({ id: t.id, width: t.width })),
-          tabWidths: { ...tabWidths.value },
-          isHoveringTabArea: isHoveringTabArea.value,
-          pendingWidthUpdate: pendingWidthUpdate.value
-        })
-        updateAllTabWidths()
-        pendingWidthUpdate.value = false
-      }
-    }, 200)
-  }
-}
-
-function handleResize() {
-  if (pendingWidthUpdate.value) return
-  updateAllTabWidths()
-}
-
-function now() {
-  // [GPT-4, 2024-06-28 19:00:00 Asia/Hong_Kong] 获取当前时间字符串
-  const date = new Date()
-  return date.toLocaleString('zh-HK', { hour12: false })
-}
-
-// 初始化SortableJS拖拽功能
-function initSortable() {
-  if (!sortableContainer.value) return
-  
-  sortableInstance = new Sortable(sortableContainer.value, {
-    // 基础配置
-    group: 'tabs',
-    animation: 200,
-    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-    
-    // 拖拽句柄 - 整个标签内容区域都可拖拽，但排除关闭按钮
-    handle: '.tab-content',
-    filter: '.tab-close-btn',
-    preventOnFilter: false,
-    
-    // 拖拽阈值和延迟
-    delay: 100,
-    delayOnTouchStart: true,
-    touchStartThreshold: 10,
-    
-    // 样式类名
-    ghostClass: 'tab-ghost',        // 拖拽占位符样式
-    chosenClass: 'tab-chosen',      // 被选中时的样式
-    dragClass: 'tab-dragging',      // 拖拽中的样式
-    
-    // 强制回退机制，确保在所有浏览器中一致
-    forceFallback: true,
-    fallbackClass: 'tab-fallback',
-    fallbackOnBody: true,
-    
-    // 事件处理
-    onStart: onDragStart,
-    onMove: onDragMove,
-    onEnd: onDragEnd,
-    onClone: onDragClone
-  })
-  
-  console.log('[TabsBar][initSortable] SortableJS已初始化')
-}
-
-// 拖拽开始事件
-function onDragStart(evt) {
-  const tabId = evt.item.dataset.tabId
-  if (!tabId) return
-  
-  isDragging.value = true
-  draggedTabId.value = tabId
-  
-  console.log(`[TabsBar][onDragStart] 开始拖拽标签: ${tabId}`)
-  console.log(`[TabsBar][onDragStart] 原始位置: ${evt.oldIndex}`)
-  
-  // 给被拖拽的标签添加特殊样式
-  evt.item.classList.add('tab-being-dragged')
-  
-  // 暂停鼠标悬停检测，避免干扰拖拽
-  isHoveringTabArea.value = false
-}
-
-// 拖拽移动事件（用于自定义交换逻辑）
-function onDragMove(evt) {
-  // 这里可以添加自定义的交换逻辑
-  // 比如基于鼠标位置和标签中心点的距离来决定是否交换
-  return true // 返回true允许移动，false阻止移动
-}
-
-// 拖拽结束事件
-function onDragEnd(evt) {
-  const tabId = evt.item.dataset.tabId
-  if (!tabId) return
-  
-  console.log(`[TabsBar][onDragEnd] 拖拽结束: ${tabId}`)
-  console.log(`[TabsBar][onDragEnd] 原始位置: ${evt.oldIndex}, 新位置: ${evt.newIndex}`)
-  
-  // 移除拖拽样式
-  evt.item.classList.remove('tab-being-dragged')
-  
-  // 如果位置发生了变化，更新数据
-  if (evt.oldIndex !== evt.newIndex) {
-    reorderTabs(evt.oldIndex, evt.newIndex)
-  }
-  
-  // 重置拖拽状态
-  isDragging.value = false
-  draggedTabId.value = null
-  
-  // 重新计算宽度
-  nextTick(() => {
-    updateAllTabWidths()
-  })
-  
-  console.log(`[TabsBar][onDragEnd] 标签重排完成`)
-}
-
-// 拖拽克隆事件（如果需要的话）
-function onDragClone(evt) {
-  console.log(`[TabsBar][onDragClone] 克隆标签:`, evt.item.dataset.tabId)
-}
-
-// 重排序标签
-function reorderTabs(oldIndex, newIndex) {
-  if (oldIndex === newIndex) return
-  
-  console.log(`[TabsBar][reorderTabs] 重排序: ${oldIndex} → ${newIndex}`)
-  
-  // 更新本地标签数组
-  const movedTab = localTabs.value.splice(oldIndex, 1)[0]
-  localTabs.value.splice(newIndex, 0, movedTab)
-  
-  // 更新Pinia store中的顺序
-  const newOrder = localTabs.value.map(tab => tab.id)
-  tabsStore.reorderTabs(newOrder)
-  
-  console.log(`[TabsBar][reorderTabs] 新顺序:`, newOrder)
-}
-
-function minimize() { window.api?.sendWindowControl('minimize') }
-function maximize() { window.api?.sendWindowControl('maximize') }
-function close() { window.api?.sendWindowControl('close') }
+// 监听激活标签变化
+watch(() => tabsStore.activeTabId, (newActiveId) => {
+  console.log(`[TabsBar] 激活标签变化: ${newActiveId}`)
+})
 </script>
 
 <style scoped>
+/* ==================== 基础布局 ==================== */
 .tabs-bar {
   display: flex;
   align-items: center;
@@ -462,116 +771,78 @@ function close() { window.api?.sendWindowControl('close') }
   background-color: #e8e8e8;
   position: relative;
   box-sizing: border-box;
-}
-
-.tabs-bar-left {
-  display: flex;
-  align-items: flex-end;
-  flex: 1;
-  min-width: 0;
-  height: 100%;
+  -webkit-app-region: drag;
+  user-select: none;
 }
 
 .tabs-area {
   display: flex;
   align-items: flex-end;
-  margin-top: 8px;
   flex: 1;
   min-width: 0;
+  height: 100%;
+  margin-top: 8px;
+  -webkit-app-region: no-drag;
   overflow: hidden;
 }
 
 .tabs-container {
   display: flex;
   align-items: flex-end;
-  overflow-x: auto;
-  flex-shrink: 1; /* 允许收缩但不主动扩展 */
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  overflow: hidden;
+  position: relative;
 }
 
-.tabs-container::-webkit-scrollbar {
-  display: none;
-}
-
+/* ==================== 标签样式 ==================== */
 .tab-item {
   height: 32px;
-  min-width: 40px;
-  max-width: 240px;
+  min-width: var(--tab-width, 26px);
+  width: var(--tab-width, 26px);
   background: #e8e8e8;
   border-bottom: none;
   cursor: default;
   position: relative;
-  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s, transform 0.2s; /*动画时间调整为 0.2s*/
+  flex-shrink: 0;
   box-sizing: border-box;
-  container-type: inline-size; /* 让每个标签成为容器 */
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.tab-item:last-child {
-  margin-right: 0;
-}
-
-/* 标签关闭动画 */
-.tab-item.closing {
-  width: 0 !important;
-  min-width: 0 !important;
-  opacity: 0;
-  transform: scaleX(0);
-  transform-origin: center;
-  overflow: hidden;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-}
-
-/* 未激活标签右侧分割线 */
-.tab-item:not(.active)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 25%;
-  height: 50%;
-  width: 1px;
-  background: #2d2d2d;
-  opacity: 0.6;
-}
-
-/* 如果右侧相邻的是激活/关闭中的标签，则不显示分割线 */
-.tab-item:not(.active):has(+ .tab-item.active)::after,
-.tab-item:not(.active):has(+ .tab-item.closing)::after,
-.tab-item:not(.active):last-child::after {
-  display: none;
-}
-
-/* 鼠标悬停时隐藏分割线 */
-.tab-item:not(.active):hover::after,
-.tab-item:not(.active):has(+ .tab-item:hover)::after {
-  display: none;
-}
-
-.tab-item:hover {
-  background: #dadada;
+.tab-item:not(.dragging) {
+  transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1),
+              width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tab-item.active {
   background: #ffffff;
-  border-color: #c0c0c0;
-  z-index: 1;
+  z-index: 2;
 }
 
-.tab-item.hide-close-btn:not(.active) .tab-close-btn {
-  display: none;
+.tab-item.dragging {
+  z-index: 1000;
+  pointer-events: none;
+  transition: none;
 }
 
+.tab-item:hover:not(.dragging):not(.active) {
+  background: #dadada;
+}
+
+/* ==================== 标签内容 ==================== */
 .tab-content {
   display: flex;
   align-items: center;
   height: 100%;
   padding: 0 12px;
-  gap: 10px;
-  background: inherit;
+  gap: 6px;
+  overflow: hidden;
+  position: relative;
 }
 
 .tab-icon {
-  font-size: 18px;
+  font-size: 16px;
   color: #666;
   flex-shrink: 0;
 }
@@ -585,69 +856,155 @@ function close() { window.api?.sendWindowControl('close') }
   font-weight: 400;
   color: #000000;
   line-height: 1;
+  min-width: 0;
 }
 
+/* ==================== 关闭按钮 ==================== */
 .tab-close-btn {
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   width: 18px;
   height: 18px;
   padding: 0;
   border: none;
-  color: #000000;
-  background: inherit;
-  border-radius: 25%;
+  background: transparent;
+  border-radius: 2px;
   cursor: default;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   z-index: 2;
-}
-
-.tab-item.active .tab-close-btn {
-  opacity: 1;
+  color: #000000;
+  transition: background-color 0.15s ease;
 }
 
 .tab-close-btn:hover {
   background: #bababa !important;
   color: black !important;
-  opacity: 1;
 }
 
-@container (max-width: 18px) {
-  .tab-close-btn {
-    display: none;
+.tab-overlay-close-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 2px;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  color: #000000;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.15s ease;
+}
+
+.tab-overlay-close-btn:hover {
+  background: #bababa !important;
+  color: black !important;
+}
+
+/* ==================== 分割线 ==================== */
+.tab-item:not(.active):not(.dragging)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background: #2d2d2d;
+  opacity: 0.6;
+}
+
+.tab-item:not(.active):last-child::after,
+.tab-item:not(.active):has(+ .tab-item.active)::after,
+.tab-item:not(.active).closing::after {
+  display: none;
+}
+
+.tab-item:not(.active):hover::after,
+.tab-item:not(.active):has(+ .tab-item:hover)::after {
+  display: none;
+}
+
+/* ==================== 动画 ==================== */
+.tab-item.entering {
+  animation: tab-enter 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow: hidden;
+}
+
+.tab-item.closing {
+  animation: tab-close 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow: hidden;
+}
+
+.tab-item.exchanging {
+  transition: transform 500ms cubic-bezier(0.23, 1, 0.32, 1) !important;
+}
+
+@keyframes tab-enter {
+  from {
+    width: 0;
+    min-width: 0;
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+  to {
+    width: var(--tab-width);
+    min-width: var(--tab-width);
+    opacity: 1;
+    transform: scaleX(1);
+    transform-origin: left center;
   }
 }
 
+@keyframes tab-close {
+  from {
+    width: var(--tab-width);
+    min-width: var(--tab-width);
+    opacity: 1;
+    transform: scaleX(1);
+    transform-origin: center;
+  }
+  to {
+    width: 0;
+    min-width: 0;
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: center;
+  }
+}
+
+/* ==================== 新增按钮 ==================== */
 .add-tab-btn {
   height: 32px !important;
   width: 32px !important;
   min-width: 32px !important;
   min-height: 32px !important;
-  color: black !important;
-  background: #e8e8e8;
   padding: 0 !important;
-  border : none !important;
+  border: none !important;
+  background: #e8e8e8;
+  color: black !important;
   cursor: default;
-  position: relative;
-  transition: all 0.2s;
-  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
 }
 
 .add-tab-btn:hover {
-  background: #dadada;
+  background: #dadada !important;
+  color: black !important;
 }
 
-.add-tab-btn.active {
-  background: #ffffff;
-  border-color: #c0c0c0;
-  z-index: 1;
-}
-
+/* ==================== 窗口控制 ==================== */
 .window-controls {
   position: absolute;
   top: 0;
@@ -659,155 +1016,67 @@ function close() { window.api?.sendWindowControl('close') }
 }
 
 .window-btn {
-  width: 46px;
-  height: 100%;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  color: #444;
-  outline: none;
+  width: 46px !important;
+  height: 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #444 !important;
+  outline: none !important;
   cursor: default;
-  transition: background 0.2s, color 0.2s;
+  transition: background-color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .window-btn:hover {
-  background: #e0e0e0;
+  background: #e0e0e0 !important;
+  color: #444 !important;
 }
 
 .window-btn.close:hover {
-  background: #e57373;
-  color: #fff;
+  background: #e57373 !important;
+  color: #fff !important;
 }
 
-.drag-region {
-  -webkit-app-region: drag;
+/* ==================== 响应式和容器查询 ==================== */
+@container (max-width: 30px) {
+  .tab-content {
+    padding: 0 4px;
+    gap: 2px;
+  }
+  
+  .tab-icon,
+  .tab-title {
+    display: none;
+  }
 }
 
-.no-drag {
-  -webkit-app-region: no-drag;
+@container (max-width: 50px) {
+  .tab-title {
+    font-size: 11px;
+  }
 }
 
-/* ===== SortableJS 拖拽样式 - Edge浏览器风格 ===== */
-
-/* 拖拽占位符样式 - 显示标签将要插入的位置 */
-.tab-ghost {
-  opacity: 0.4;
-  background: #d0d0d0 !important;
-  border: 2px dashed #999 !important;
-  transform: none !important;
+@container (max-width: 70px) {
+  .tab-content {
+    gap: 4px;
+  }
 }
 
-.tab-ghost .tab-content {
-  opacity: 0.6;
+/* ==================== 性能优化 ==================== */
+.tab-item,
+.tab-content,
+.tab-close-btn,
+.tab-overlay-close-btn {
+  will-change: transform, opacity;
 }
 
-/* 被选中准备拖拽的标签样式 */
-.tab-chosen {
-  cursor: grabbing !important;
+.tab-item.dragging,
+.tab-item.entering,
+.tab-item.closing,
+.tab-item.exchanging {
+  will-change: transform, width, opacity;
 }
-
-/* 正在被拖拽的标签样式 */
-.tab-dragging {
-  opacity: 1 !important;
-  transform: rotate(0deg) !important; /* 确保没有旋转 */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  z-index: 1000 !important;
-}
-
-/* SortableJS回退拖拽样式 */
-.tab-fallback {
-  opacity: 1 !important;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
-  transform: rotate(0deg) !important;
-  z-index: 1000 !important;
-  cursor: grabbing !important;
-}
-
-/* 自定义被拖拽标签样式 - Edge风格 */
-.tab-being-dragged {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  z-index: 999 !important;
-  cursor: grabbing !important;
-  transition: box-shadow 0.1s ease !important;
-}
-
-/* 拖拽过程中的容器样式 */
-.tabs-container.sortable-drag {
-  cursor: grabbing;
-}
-
-/* 确保拖拽时标签内容不被选中 */
-.tabs-container * {
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
-/* 拖拽时禁用标签的hover效果 */
-.tabs-container.sortable-drag .tab-item:hover {
-  background: inherit !important;
-}
-
-/* 拖拽时标签的平滑移动效果 */
-.tab-item {
-  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-/* 拖拽状态下禁用标签自身的过渡效果，避免冲突 */
-.tab-item.sortable-chosen,
-.tab-item.sortable-ghost,
-.tab-item.tab-being-dragged {
-  transition: none !important;
-}
-
-/* 确保关闭按钮在拖拽时不可点击 */
-.tab-being-dragged .tab-close-btn {
-  pointer-events: none !important;
-}
-
-/* 拖拽时的标签内容样式 */
-.tab-being-dragged .tab-content {
-  pointer-events: none !important;
-}
-
-/* Edge风格：拖拽时标签栏的整体效果 */
-.tabs-container {
-  position: relative;
-}
-
-/* 确保拖拽占位符与其他标签一致 */
-.tab-ghost .tab-icon,
-.tab-ghost .tab-title,
-.tab-ghost .tab-close-btn {
-  opacity: 0.5;
-}
-
-/* 拖拽时禁用标签点击事件，避免意外激活 */
-.tab-item.sortable-chosen,
-.tab-item.tab-being-dragged {
-  pointer-events: none !important;
-}
-
-.tab-item.sortable-chosen .tab-content,
-.tab-item.tab-being-dragged .tab-content {
-  pointer-events: none !important;
-}
-
-/*
-原有的拖拽设计想法（已由SortableJS实现）：
-- 检测拖拽行为后提取标签DOM，创建虚拟标签替换
-- 被拖拽标签脱离DOM跟随鼠标移动
-- 虚拟标签与其他标签交换位置
-- 拖拽结束时删除虚拟标签，用实际标签替换
-
-Edge浏览器风格实现：
-- 标签只做左右移动，无旋转描边特效
-- 交换位置的标签简单滑动
-- 移动半个标签距离即可交换位置
-- 使用SortableJS的幽灵标签方案
-*/
-</style>
+</style> 

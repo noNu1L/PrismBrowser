@@ -57,6 +57,10 @@ class DebugPanel {
         this.bindEvent('refresh-status', () => this.refreshStatus());
         this.bindEvent('export-logs', () => this.exportLogs());
         this.bindEvent('clear-logs', () => this.clearLogs());
+        
+        // 拖拽测试按钮
+        this.bindEvent('test-drag-performance', () => this.testDragPerformance());
+        this.bindEvent('show-drag-info', () => this.showDragInfo());
 
         // 其他模块按钮
         this.bindEvent('test-url-validation', () => this.log('功能未实现'));
@@ -321,6 +325,19 @@ class DebugPanel {
                 } else {
                     this.updateStatusValue('entering-tabs', '无法获取');
                 }
+
+                // 获取拖拽状态
+                if (tabsBar.isDragging && tabsBar.draggedTabId) {
+                    const isDragging = tabsBar.isDragging.value;
+                    const draggedId = tabsBar.draggedTabId.value;
+                    if (isDragging && draggedId) {
+                        this.updateStatusValue('dragging-status', `拖拽中: ${draggedId.substring(0, 8)}`);
+                    } else {
+                        this.updateStatusValue('dragging-status', '未拖拽');
+                    }
+                } else {
+                    this.updateStatusValue('dragging-status', '无法获取');
+                }
             } catch (error) {
                 console.error('[DebugPanel] 获取状态时出错:', error);
                 this.updateStatusValue('tab-count', '错误');
@@ -411,13 +428,17 @@ class DebugPanel {
                 const statusIcon = isActive ? '🟢' : '⚪';
                 const loadingIcon = tab.loading ? '⏳' : '';
                 
-                // 检查动画状态
+                // 检查动画和拖拽状态
                 const isClosing = tabsBar.closingTabs && tabsBar.closingTabs.value && tabsBar.closingTabs.value.has(tab.id);
                 const isEntering = tabsBar.enteringTabs && tabsBar.enteringTabs.value && tabsBar.enteringTabs.value.has(tab.id);
+                const isDragging = tabsBar.isDragging && tabsBar.isDragging.value && tabsBar.draggedTabId && tabsBar.draggedTabId.value === tab.id;
                 
                 let animationIcon = '';
                 let bgColor = '';
-                if (isClosing) {
+                if (isDragging) {
+                    animationIcon = '🔄'; // 表示正在拖拽
+                    bgColor = '#fff3cd';
+                } else if (isClosing) {
                     animationIcon = '◀️'; // 表示从右到左收缩
                     bgColor = '#ffe6e6';
                 } else if (isEntering) {
@@ -498,6 +519,70 @@ class DebugPanel {
         }
         console.clear();
         this.log('日志已清空');
+    }
+
+    // 测试拖拽性能
+    testDragPerformance() {
+        const tabsBar = this.getTabsBarComponent();
+        if (!tabsBar) {
+            this.log('无法访问标签栏组件', 'error');
+            return;
+        }
+
+        this.log('=== 拖拽功能性能测试 ===');
+        this.log(`SortableJS实例状态: ${tabsBar.sortableInstance ? '已初始化' : '未初始化'}`);
+        this.log(`当前标签数量: ${tabsBar.localTabs ? tabsBar.localTabs.value.length : '未知'}`);
+        this.log(`拖拽状态: ${tabsBar.isDragging ? (tabsBar.isDragging.value ? '拖拽中' : '未拖拽') : '未知'}`);
+        
+        if (tabsBar.localTabs && tabsBar.localTabs.value.length > 1) {
+            this.log('💡 现在可以尝试拖拽标签来测试功能');
+            this.log('📝 拖拽操作会在控制台输出详细日志');
+        } else {
+            this.log('⚠️ 需要至少2个标签才能测试拖拽功能');
+            this.log('建议先添加几个标签再测试拖拽');
+        }
+    }
+
+    // 显示拖拽信息
+    showDragInfo() {
+        const tabsBar = this.getTabsBarComponent();
+        if (!tabsBar) {
+            this.log('无法访问标签栏组件', 'error');
+            return;
+        }
+
+        this.log('=== 拖拽功能详细信息 ===');
+        
+        // SortableJS配置信息
+        this.log('SortableJS配置:');
+        this.log('- 动画时长: 200ms');
+        this.log('- 缓动函数: cubic-bezier(0.25, 0.46, 0.45, 0.94)');
+        this.log('- 拖拽句柄: .tab-content');
+        this.log('- 过滤器: .tab-close-btn (关闭按钮不可拖拽)');
+        this.log('- 延迟启动: 100ms');
+        
+        // 当前状态
+        if (tabsBar.isDragging && tabsBar.draggedTabId) {
+            const isDragging = tabsBar.isDragging.value;
+            const draggedId = tabsBar.draggedTabId.value;
+            this.log(`当前拖拽状态: ${isDragging ? '拖拽中' : '未拖拽'}`);
+            if (draggedId) {
+                this.log(`被拖拽的标签ID: ${draggedId}`);
+            }
+        }
+        
+        // 标签顺序
+        if (tabsBar.localTabs && tabsBar.localTabs.value) {
+            const tabOrder = tabsBar.localTabs.value.map((tab, index) => `${index + 1}. ${tab.title} (${tab.id.substring(0, 8)})`);
+            this.log('当前标签顺序:');
+            tabOrder.forEach(info => this.log(`  ${info}`));
+        }
+        
+        this.log('🎯 Edge风格拖拽特性:');
+        this.log('- 轻微阴影提升效果');
+        this.log('- 无旋转或过度视觉效果');
+        this.log('- 平滑的标签交换动画');
+        this.log('- 基于中心点的交换逻辑');
     }
 
     exportLogs() {
