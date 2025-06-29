@@ -1,8 +1,8 @@
 <template>
   <div class="tabs-bar" @mousedown="handleBarMouseDown">
     <!-- 标签区域 -->
-    <div 
-      class="tabs-area" 
+    <div
+      class="tabs-area"
       ref="tabsAreaRef"
       @mouseenter="handleAreaMouseEnter"
       @mouseleave="handleAreaMouseLeave"
@@ -25,12 +25,12 @@
             <el-icon v-if="shouldShowIcon(tab)" class="tab-icon">
               <Document />
             </el-icon>
-            
+
             <!-- 标题 -->
             <span v-if="shouldShowTitle(tab)" class="tab-title">
               {{ tab.title }}
             </span>
-            
+
             <!-- 常规关闭按钮（宽度≥80px时显示） -->
             <button
               v-if="shouldShowNormalCloseBtn(tab)"
@@ -41,7 +41,7 @@
               <el-icon><Close /></el-icon>
             </button>
           </div>
-          
+
           <!-- 浮层关闭按钮（激活且宽度<80px时显示） -->
           <button
             v-if="shouldShowOverlayCloseBtn(tab)"
@@ -52,7 +52,7 @@
             <el-icon><Close /></el-icon>
           </button>
         </div>
-        
+
         <!-- 新增标签按钮 -->
         <el-button
           class="add-tab-btn"
@@ -63,7 +63,7 @@
         />
       </div>
     </div>
-    
+
     <!-- 窗口控制按钮 -->
     <div class="window-controls">
       <el-button class="window-btn" @click="minimize" title="最小化" size="small" :icon="Minus" />
@@ -154,16 +154,16 @@ function throttle(fn, delay) {
 function shouldHideTab(tab) {
   // 检查标签是否应该溢出隐藏
   if (!tabsAreaRef.value) return false
-  
+
   const containerWidth = tabsAreaRef.value.offsetWidth - CONFIG.newTabButtonWidth - CONFIG.windowControlsSpacing
   const theoreticalMinWidth = CONFIG.minTabWidth * localTabs.value.length
-  
+
   if (theoreticalMinWidth <= containerWidth) return false
-  
+
   // 计算当前标签的位置，如果超出容器宽度则隐藏
   const tabIndex = localTabs.value.indexOf(tab)
   const visibleCount = Math.floor(containerWidth / CONFIG.minTabWidth)
-  
+
   return tabIndex >= visibleCount
 }
 
@@ -178,11 +178,21 @@ function shouldShowTitle(tab) {
 }
 
 function shouldShowNormalCloseBtn(tab) {
+  // 在进入动画期间不显示关闭按钮
+  if (animationState.enteringTabs.has(tab.id)) {
+    return false
+  }
+
   const width = widthState.tabWidths[tab.id] || CONFIG.minTabWidth
   return width >= CONFIG.closeButtonThreshold
 }
 
 function shouldShowOverlayCloseBtn(tab) {
+  // 在进入动画期间不显示浮层关闭按钮
+  if (animationState.enteringTabs.has(tab.id)) {
+    return false
+  }
+
   const width = widthState.tabWidths[tab.id] || CONFIG.minTabWidth
   const isActive = tab.id === tabsStore.activeTabId
   return isActive && width < CONFIG.closeButtonThreshold
@@ -207,14 +217,14 @@ function getTabStyle(tab) {
     width: `${width}px`,
     '--tab-width': `${width}px`
   }
-  
+
   // 拖拽时的位置
   if (dragState.isDragging && dragState.draggedTabId === tab.id) {
     const position = dragState.currentPosition.x - dragState.startPosition.relativeX
     style.transform = `translateX(${position - getTabLeftOffset(tab)}px)`
     style.zIndex = 1000
   }
-  
+
   return style
 }
 
@@ -222,43 +232,52 @@ function getTabLeftOffset(tab) {
   // 计算标签在容器中的左偏移量
   const tabIndex = localTabs.value.indexOf(tab)
   let offset = 0
-  
+
   for (let i = 0; i < tabIndex; i++) {
     const prevTab = localTabs.value[i]
     if (!animationState.closingTabs.has(prevTab.id)) {
       offset += widthState.tabWidths[prevTab.id] || CONFIG.minTabWidth
     }
   }
-  
+
   return offset
 }
 
 // ==================== 宽度计算 ====================
 function calculateOptimalWidth() {
   if (!tabsAreaRef.value) return CONFIG.maxTabWidth
-  
+
   const containerWidth = tabsAreaRef.value.offsetWidth - CONFIG.newTabButtonWidth - CONFIG.windowControlsSpacing
-  const visibleTabCount = visibleTabs.value.length
-  
-  if (visibleTabCount === 0) return CONFIG.maxTabWidth
-  
-  const calculatedWidth = containerWidth / visibleTabCount
+
+  // 计算时排除正在进入和关闭动画的标签
+  const stableTabCount = localTabs.value.filter(tab =>
+    !animationState.enteringTabs.has(tab.id) &&
+    !animationState.closingTabs.has(tab.id) &&
+    !shouldHideTab(tab)
+  ).length
+
+  if (stableTabCount === 0) return CONFIG.maxTabWidth
+
+  const calculatedWidth = containerWidth / stableTabCount
   return Math.max(CONFIG.minTabWidth, Math.min(CONFIG.maxTabWidth, calculatedWidth))
 }
 
 function updateAllTabWidths() {
   if (widthState.frozen) return
-  
+
   console.log('[TabsBar] 更新所有标签宽度')
-  
+
   const newWidth = calculateOptimalWidth()
-  
+
   localTabs.value.forEach(tab => {
+    // 不更新正在关闭或正在进入动画的标签宽度
     if (!animationState.closingTabs.has(tab.id)) {
+    // if (!animationState.closingTabs.has(tab.id) && !animationState.enteringTabs.has(tab.id)) {
       widthState.tabWidths[tab.id] = newWidth
+      console.log(tab.id+"-newWidth:"+newWidth)
     }
   })
-  
+
   widthState.containerWidth = tabsAreaRef.value?.offsetWidth || 0
 }
 
@@ -278,30 +297,30 @@ function unfreezeTabWidths() {
 // ==================== 数据同步 ====================
 function syncFromStore() {
   console.log('[TabsBar] 从Store同步数据')
-  
+
   if (dragState.isDragging) {
     addPendingOperation('sync', tabsStore.tabs)
     return
   }
-  
+
   const newTabs = tabsStore.tabs.map(tab => ({ ...tab }))
   const currentIds = new Set(localTabs.value.map(t => t.id))
   const newIds = new Set(newTabs.map(t => t.id))
-  
+
   // 处理新增标签
   newTabs.forEach(tab => {
     if (!currentIds.has(tab.id)) {
       addTabWithAnimation(tab)
     }
   })
-  
+
   // 处理删除标签
   localTabs.value.forEach(tab => {
     if (!newIds.has(tab.id)) {
       removeTabWithAnimation(tab.id)
     }
   })
-  
+
   // 更新现有标签属性
   updateTabProperties(newTabs)
 }
@@ -317,32 +336,40 @@ function updateTabProperties(newTabs) {
 
 function addTabWithAnimation(tab) {
   console.log(`[TabsBar] 添加标签动画: ${tab.id}`)
-  
+
   localTabs.value.push({ ...tab })
   animationState.enteringTabs.add(tab.id)
-  
-  setTimeout(() => {
+
+  // 为新标签计算目标宽度：假设动画完成后的最优宽度
+  const containerWidth = tabsAreaRef.value?.offsetWidth || 0
+  const availableWidth = containerWidth - CONFIG.newTabButtonWidth - CONFIG.windowControlsSpacing
+  const totalTabCount = localTabs.value.filter(t => !animationState.closingTabs.has(t.id)).length
+  const targetWidth = Math.max(CONFIG.minTabWidth, Math.min(CONFIG.maxTabWidth, availableWidth / totalTabCount))
+
+  widthState.tabWidths[tab.id] = targetWidth
+
+  // setTimeout(() => {
     animationState.enteringTabs.delete(tab.id)
-    
-    // 只有在鼠标不在标签区域时才重新计算宽度
+
+    // 动画结束后重新计算所有标签宽度
     // if (!mouseState.isHoveringTabArea) {
       updateAllTabWidths()
     // }
-  }, CONFIG.openAnimationDuration)
+  // }, CONFIG.openAnimationDuration)
 }
 
 function removeTabWithAnimation(tabId) {
   console.log(`[TabsBar] 移除标签动画: ${tabId}`)
-  
+
   animationState.closingTabs.add(tabId)
-  
+
   setTimeout(() => {
     const index = localTabs.value.findIndex(t => t.id === tabId)
     if (index !== -1) {
       localTabs.value.splice(index, 1)
     }
     animationState.closingTabs.delete(tabId)
-    
+
     // 只有在鼠标不在标签区域时才重新计算宽度
     if (!mouseState.isHoveringTabArea) {
       updateAllTabWidths()
@@ -356,13 +383,13 @@ function addPendingOperation(type, data) {
 
 function processPendingOperations() {
   console.log(`[TabsBar] 处理积压操作: ${pendingOperations.value.length}个`)
-  
+
   // 按类型排序：先关闭，后打开
   const sortedOperations = pendingOperations.value.sort((a, b) => {
     const priority = { 'close': 1, 'open': 2, 'sync': 3 }
     return priority[a.type] - priority[b.type]
   })
-  
+
   sortedOperations.forEach(operation => {
     switch (operation.type) {
       case 'sync':
@@ -376,7 +403,7 @@ function processPendingOperations() {
         break
     }
   })
-  
+
   pendingOperations.value = []
 }
 
@@ -386,23 +413,23 @@ let dragMoveThrottled = null
 function handleTabMouseDown(event, tabId) {
   // 激活标签
   setActiveTab(tabId)
-  
+
   // 单标签不允许拖拽
   if (localTabs.value.length <= 1) return
-  
+
   const startPosition = {
     x: event.clientX,
     y: event.clientY,
     relativeX: event.offsetX
   }
-  
+
   // 添加临时监听器检测拖拽
   const handleMouseMove = (e) => checkDragStart(e, tabId, startPosition)
   const handleMouseUp = () => {
     document.removeEventListener('mousemove', handleMouseMove)
     document.removeEventListener('mouseup', handleMouseUp)
   }
-  
+
   document.addEventListener('mousemove', handleMouseMove)
   document.addEventListener('mouseup', handleMouseUp)
 }
@@ -410,7 +437,7 @@ function handleTabMouseDown(event, tabId) {
 function checkDragStart(event, tabId, startPosition) {
   const deltaX = Math.abs(event.clientX - startPosition.x)
   const deltaY = Math.abs(event.clientY - startPosition.y)
-  
+
   if (deltaX > CONFIG.dragThreshold || deltaY > CONFIG.dragThreshold) {
     startDrag(tabId, startPosition)
   }
@@ -418,7 +445,7 @@ function checkDragStart(event, tabId, startPosition) {
 
 function startDrag(tabId, startPosition) {
   console.log(`[TabsBar] 开始拖拽: ${tabId}`)
-  
+
   Object.assign(dragState, {
     isDragging: true,
     draggedTabId: tabId,
@@ -427,40 +454,40 @@ function startDrag(tabId, startPosition) {
     boundaryReached: false,
     originalIndex: localTabs.value.findIndex(tab => tab.id === tabId)
   })
-  
+
   // 冻结宽度
   freezeTabWidths()
-  
+
   // 创建节流的mousemove处理器
   dragMoveThrottled = throttle(handleDragMove, CONFIG.mouseMoveThrottle)
-  
+
   // 添加全局事件监听器
   document.addEventListener('mousemove', dragMoveThrottled)
   document.addEventListener('mouseup', handleDragEnd)
   document.addEventListener('keydown', handleDragKeyDown)
   document.addEventListener('contextmenu', handleDragRightClick)
   document.addEventListener('blur', handleWindowBlur)
-  
+
   // 清理临时监听器
   document.removeEventListener('mousemove', checkDragStart)
 }
 
 function handleDragMove(event) {
   if (!dragState.isDragging) return
-  
+
   const currentX = event.clientX
   const currentY = event.clientY
-  
+
   if (!tabsContainerRef.value) return
-  
+
   const containerRect = tabsContainerRef.value.getBoundingClientRect()
   const draggedTabWidth = widthState.tabWidths[dragState.draggedTabId] || CONFIG.minTabWidth
-  
+
   // 计算标签应该的位置
   const tabPosition = currentX - dragState.startPosition.relativeX
   const leftBoundary = containerRect.left
   const rightBoundary = containerRect.right - draggedTabWidth
-  
+
   // 边界检测
   if (tabPosition < leftBoundary) {
     dragState.boundaryReached = 'left'
@@ -475,11 +502,11 @@ function handleDragMove(event) {
         console.log('[TabsBar] 边界重连成功')
       }
     }
-    
+
     if (!dragState.boundaryReached) {
       // 更新拖拽位置
       dragState.currentPosition = { x: currentX, y: currentY }
-      
+
       // 检查标签交换
       checkTabExchange(currentX)
     }
@@ -489,19 +516,19 @@ function handleDragMove(event) {
 function checkTabExchange(mouseX) {
   const draggedTab = localTabs.value.find(tab => tab.id === dragState.draggedTabId)
   const draggedIndex = localTabs.value.indexOf(draggedTab)
-  
+
   for (let i = 0; i < localTabs.value.length; i++) {
     if (i === draggedIndex) continue
-    
+
     const tab = localTabs.value[i]
     const tabElement = document.getElementById(`tab-${tab.id}`)
     if (!tabElement) continue
-    
+
     const tabRect = tabElement.getBoundingClientRect()
     const tabCenter = tabRect.left + tabRect.width / 2
-    
+
     // 检查是否越过中心点
-    if ((i < draggedIndex && mouseX < tabCenter) || 
+    if ((i < draggedIndex && mouseX < tabCenter) ||
         (i > draggedIndex && mouseX > tabCenter)) {
       exchangeTabs(draggedIndex, i)
       break
@@ -511,14 +538,14 @@ function checkTabExchange(mouseX) {
 
 function exchangeTabs(fromIndex, toIndex) {
   console.log(`[TabsBar] 交换标签: ${fromIndex} → ${toIndex}`)
-  
+
   // 中断当前交换动画
   animationState.exchangingTabs.clear()
-  
+
   // 移动标签
   const movedTab = localTabs.value.splice(fromIndex, 1)[0]
   localTabs.value.splice(toIndex, 0, movedTab)
-  
+
   // 播放交换动画
   playExchangeAnimation(fromIndex, toIndex)
 }
@@ -527,13 +554,13 @@ function playExchangeAnimation(fromIndex, toIndex) {
   // 标记相关标签为交换动画状态
   const start = Math.min(fromIndex, toIndex)
   const end = Math.max(fromIndex, toIndex)
-  
+
   for (let i = start; i <= end; i++) {
     if (localTabs.value[i] && localTabs.value[i].id !== dragState.draggedTabId) {
       animationState.exchangingTabs.add(localTabs.value[i].id)
     }
   }
-  
+
   // 动画结束后清理状态
   setTimeout(() => {
     for (let i = start; i <= end; i++) {
@@ -547,9 +574,9 @@ function playExchangeAnimation(fromIndex, toIndex) {
 // 拖拽结束相关事件处理
 function handleDragEnd(event) {
   if (!dragState.isDragging) return
-  
+
   console.log('[TabsBar] 拖拽结束')
-  
+
   endDrag(false)
 }
 
@@ -573,7 +600,7 @@ function handleWindowBlur() {
 
 function endDrag(cancelled = false) {
   if (!dragState.isDragging) return
-  
+
   // 清理事件监听器
   if (dragMoveThrottled) {
     document.removeEventListener('mousemove', dragMoveThrottled)
@@ -583,19 +610,19 @@ function endDrag(cancelled = false) {
   document.removeEventListener('keydown', handleDragKeyDown)
   document.removeEventListener('contextmenu', handleDragRightClick)
   document.removeEventListener('blur', handleWindowBlur)
-  
+
   if (!cancelled) {
     // 同步到Store
     const newOrder = localTabs.value.map(tab => tab.id)
     tabsStore.reorderTabs(newOrder)
-    
+
     // 处理积压操作
     processPendingOperations()
   }
-  
+
   // 解冻宽度
   unfreezeTabWidths()
-  
+
   // 重置拖拽状态
   Object.assign(dragState, {
     isDragging: false,
@@ -605,7 +632,7 @@ function endDrag(cancelled = false) {
     boundaryReached: false,
     originalIndex: -1
   })
-  
+
   // 清理交换动画状态
   animationState.exchangingTabs.clear()
 }
@@ -633,30 +660,30 @@ function addTab() {
 
 function closeTab(tabId) {
   console.log(`[TabsBar] 关闭标签: ${tabId}`)
-  
+
   if (dragState.isDragging) {
     addPendingOperation('close', tabId)
     return
   }
-  
+
   tabsStore.removeTab(tabId)
 }
 
 // ==================== 鼠标悬停处理 ====================
 function handleAreaMouseEnter() {
   mouseState.isHoveringTabArea = true
-  
+
   if (mouseState.hoverTimer) {
     clearTimeout(mouseState.hoverTimer)
     mouseState.hoverTimer = null
   }
-  
+
   console.log('[TabsBar] 鼠标进入标签区域')
 }
 
 function handleAreaMouseLeave() {
   mouseState.isHoveringTabArea = false
-  
+
   // 延迟200ms后重新计算宽度
   mouseState.hoverTimer = setTimeout(() => {
     if (!mouseState.isHoveringTabArea && !dragState.isDragging) {
@@ -665,7 +692,7 @@ function handleAreaMouseLeave() {
     }
     mouseState.hoverTimer = null
   }, 200)
-  
+
   console.log('[TabsBar] 鼠标离开标签区域')
 }
 
@@ -688,21 +715,21 @@ function handleResize() {
     endDrag(true) // 窗口大小变化时取消拖拽
     return
   }
-  
+
   updateAllTabWidths()
 }
 
 // ==================== 生命周期 ====================
 onMounted(() => {
   console.log('[TabsBar] 组件挂载')
-  
+
   // 初始化数据
   syncFromStore()
   updateAllTabWidths()
-  
+
   // 监听窗口大小变化
   window.addEventListener('resize', handleResize)
-  
+
   // 暴露组件实例供调试使用
   window.tabsBarInstance = {
     tabsStore,
@@ -732,19 +759,19 @@ onMounted(() => {
 
 onUnmounted(() => {
   console.log('[TabsBar] 组件卸载')
-  
+
   // 清理事件监听器
   window.removeEventListener('resize', handleResize)
-  
+
   if (mouseState.hoverTimer) {
     clearTimeout(mouseState.hoverTimer)
   }
-  
+
   // 清理拖拽相关监听器
   if (dragState.isDragging) {
     endDrag(true)
   }
-  
+
   // 清理全局暴露
   delete window.tabsBarInstance
 })
@@ -753,9 +780,9 @@ onUnmounted(() => {
 watch(() => tabsStore.tabs, (newTabs) => {
   const localTabIds = new Set(localTabs.value.map(t => t.id))
   const storeTabIds = new Set(newTabs.map(t => t.id))
-  
+
   // 检查是否需要重新渲染
-  if (localTabIds.size !== storeTabIds.size || 
+  if (localTabIds.size !== storeTabIds.size ||
       [...localTabIds].some(id => !storeTabIds.has(id))) {
     syncFromStore()
   } else {
@@ -951,6 +978,12 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   overflow: hidden;
 }
 
+/* 进入动画期间隐藏关闭按钮 */
+.tab-item.entering .tab-close-btn,
+.tab-item.entering .tab-overlay-close-btn {
+  display: none !important;
+}
+
 .tab-item.closing {
   animation: tab-close 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
   overflow: hidden;
@@ -1056,7 +1089,7 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
     padding: 0 4px;
     gap: 2px;
   }
-  
+
   .tab-icon,
   .tab-title {
     display: none;
