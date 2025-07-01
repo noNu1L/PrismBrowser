@@ -1,6 +1,6 @@
 <template>
   <div class="tabs-bar" @mousedown="handleBarMouseDown">
-    <!-- 标签区域 -->
+      <!-- 标签区域 -->
     <div
       class="tabs-area"
       ref="tabsAreaRef"
@@ -11,12 +11,12 @@
       <div class="tabs-container" ref="tabsContainerRef">
         <div
           v-for="tab in visibleTabs"
-          :key="tab.id"
+              :key="tab.id"
           :class="getTabClasses(tab)"
           :style="getTabStyle(tab)"
           @mousedown="handleTabMouseDown($event, tab.id)"
           @click="handleTabClick($event, tab.id)"
-          :id="`tab-${tab.id}`"
+              :id="`tab-${tab.id}`"
           :data-tab-id="tab.id"
         >
           <!-- 标签内容 -->
@@ -32,15 +32,15 @@
             </span>
 
             <!-- 常规关闭按钮（宽度≥80px时显示） -->
-            <button
+              <button
               v-if="shouldShowNormalCloseBtn(tab)"
-              class="tab-close-btn"
-              @click.stop="closeTab(tab.id)"
+                  class="tab-close-btn"
+                  @click.stop="closeTab(tab.id)"
               @mousedown.stop
-            >
-              <el-icon><Close /></el-icon>
-            </button>
-          </div>
+              >
+                <el-icon><Close /></el-icon>
+              </button>
+            </div>
 
           <!-- 浮层关闭按钮（激活且宽度<80px时显示） -->
           <button
@@ -51,14 +51,14 @@
           >
             <el-icon><Close /></el-icon>
           </button>
-        </div>
+          </div>
 
         <!-- 新增标签按钮 -->
         <el-button
           class="add-tab-btn"
-          size="small"
-          :icon="Plus"
-          @click="addTab"
+            size="small"
+            :icon="Plus"
+            @click="addTab"
           @mousedown.stop
         />
       </div>
@@ -280,12 +280,12 @@ function updateAllTabWidths() {
 
 function freezeTabWidths() {
   widthState.frozen = true
-  console.log('[TabsBar] 冻结标签宽度')
+  // console.log('[TabsBar] 冻结标签宽度')
 }
 
 function unfreezeTabWidths() {
   widthState.frozen = false
-  console.log('[TabsBar] 解冻标签宽度')
+  // console.log('[TabsBar] 解冻标签宽度')
   nextTick(() => {
     updateAllTabWidths()
   })
@@ -293,7 +293,7 @@ function unfreezeTabWidths() {
 
 // ==================== 数据同步 ====================
 function syncFromStore() {
-  console.log('[TabsBar] 从Store同步数据')
+  // console.log('[TabsBar] 从Store同步数据')
 
   if (dragState.isDragging) {
     addPendingOperation('sync', tabsStore.tabs)
@@ -365,7 +365,7 @@ function addTabWithAnimation(tab) {
 
     // 动画完成后确保宽度一致性
     if (!mouseState.isHoveringTabArea) {
-      updateAllTabWidths()
+  updateAllTabWidths()
     }
   }, CONFIG.openAnimationDuration)
 }
@@ -382,7 +382,7 @@ function removeTabWithAnimation(tabId) {
 
     // 只有在鼠标不在标签区域时才重新计算宽度
     if (!mouseState.isHoveringTabArea) {
-      updateAllTabWidths()
+  updateAllTabWidths()
     }
   }, CONFIG.closeAnimationDuration)
 }
@@ -392,7 +392,7 @@ function addPendingOperation(type, data) {
 }
 
 function processPendingOperations() {
-  console.log(`[TabsBar] 处理积压操作: ${pendingOperations.value.length}个`)
+  // console.log(`[TabsBar] 处理积压操作: ${pendingOperations.value.length}个`)
 
   // 按类型排序：先关闭，后打开
   const sortedOperations = pendingOperations.value.sort((a, b) => {
@@ -449,12 +449,13 @@ function checkDragStart(event, tabId, startPosition) {
   const deltaY = Math.abs(event.clientY - startPosition.y)
 
   if (deltaX > CONFIG.dragThreshold || deltaY > CONFIG.dragThreshold) {
+    document.removeEventListener('mousemove', checkDragStart) // Clean up listener
     startDrag(tabId, startPosition)
   }
 }
 
 function startDrag(tabId, startPosition) {
-  console.log(`[TabsBar] 开始拖拽: ${tabId}`)
+  // console.log(`[TabsBar] 开始拖拽: ${tabId}`)
 
   Object.assign(dragState, {
     isDragging: true,
@@ -671,7 +672,7 @@ function playExchangeAnimation(fromIndex, toIndex) {
         })
 
         // 动画结束后清理
-        setTimeout(() => {
+    setTimeout(() => {
           animatingTabs.forEach(({ tabId, element }) => {
             element.style.transition = ''
             element.style.transform = ''
@@ -804,11 +805,11 @@ function handleAreaMouseLeave() {
   mouseState.hoverTimer = setTimeout(() => {
     if (!mouseState.isHoveringTabArea && !dragState.isDragging) {
       // 强制重新计算宽度，处理可能积压的计算需求
-      updateAllTabWidths()
-    }
+        updateAllTabWidths()
+      }
     mouseState.hoverTimer = null
-  }, 200)
-}
+    }, 200)
+  }
 
 // ==================== 窗口控制 ====================
 function minimize() {
@@ -1096,8 +1097,8 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
 .tab-item:not(.active):last-child::after,
 .tab-item:not(.active):has(+ .tab-item.active)::after,
 .tab-item:not(.active).closing::after {
-  display: none;
-}
+    display: none;
+  }
 
 .tab-item:not(.active):hover::after,
 .tab-item:not(.active):has(+ .tab-item:hover)::after {
@@ -1275,4 +1276,4 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
   /* 启用CSS Containment减少重排范围 */
   contain: layout style;
 }
-</style> 
+</style>

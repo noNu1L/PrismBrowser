@@ -3,9 +3,9 @@
     <el-header height=60px style="padding: 0; margin: 0 ">
       <TabsBar />
     </el-header>
-<!--    <el-header height="auto" style="padding: 0;">-->
-<!--      <AddressBar />-->
-<!--    </el-header>-->
+    <el-header height="auto" style="padding: 0;">
+      <AddressBar />
+    </el-header>
     <el-main style="padding: 0;">
       <webview id="main-webview" src="https://www.bing.com" style="width: 100%; height: 100%;" webpreferences="contextIsolation=false"></webview>
     </el-main>
