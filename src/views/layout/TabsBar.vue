@@ -22,9 +22,7 @@
           <!-- 标签内容 -->
           <div class="tab-content">
             <!-- 图标 -->
-            <el-icon v-if="shouldShowIcon(tab)" class="tab-icon">
-              <Document />
-            </el-icon>
+            <File v-if="shouldShowIcon(tab)" class="tab-icon" :size="14" />
 
             <!-- 标题 -->
             <span v-if="shouldShowTitle(tab)" class="tab-title">
@@ -38,7 +36,7 @@
                   @click.stop="closeTab(tab.id)"
               @mousedown.stop
               >
-                <el-icon><Close /></el-icon>
+                <X :size="14" />
               </button>
             </div>
 
@@ -49,7 +47,7 @@
             @click.stop="closeTab(tab.id)"
             @mousedown.stop
           >
-            <el-icon><Close /></el-icon>
+            <X :size="14" />
           </button>
           </div>
 
@@ -57,18 +55,25 @@
         <el-button
           class="add-tab-btn"
             size="small"
-            :icon="Plus"
             @click="addTab"
           @mousedown.stop
-        />
+        >
+          <Plus :size="14" />
+        </el-button>
       </div>
     </div>
 
     <!-- 窗口控制按钮 -->
     <div class="window-controls">
-      <el-button class="window-btn" @click="minimize" title="最小化" size="small" :icon="Minus" />
-      <el-button class="window-btn" @click="maximize" title="最大化/还原" size="small" :icon="FullScreen" />
-      <el-button class="window-btn close" @click="close" title="关闭" size="small" :icon="Close" />
+      <el-button class="window-btn" @click="minimize" title="最小化" size="small">
+        <Minus :size="14" />
+      </el-button>
+      <el-button class="window-btn" @click="maximize" title="最大化/还原" size="small">
+        <Maximize :size="14" />
+      </el-button>
+      <el-button class="window-btn close" @click="close" title="关闭" size="small">
+        <X :size="14" />
+      </el-button>
     </div>
   </div>
 </template>
@@ -76,7 +81,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useTabsStore } from '../../store/tabsStore'
-import { Close, FullScreen, Minus, Plus, Document } from "@element-plus/icons-vue"
+import { X, Maximize, Minus, Plus, File } from "lucide-vue-next"
 
 // ==================== 配置参数 ====================
 const CONFIG = {
@@ -776,7 +781,12 @@ function setActiveTab(tabId) {
 }
 
 function addTab() {
-  tabsStore.addTab({ active: true, loading: true })
+  tabsStore.addTab({ 
+    title: '新标签页',
+    url: 'https://www.bing.com',
+    active: true, 
+    loading: true 
+  })
 }
 
 function closeTab(tabId) {

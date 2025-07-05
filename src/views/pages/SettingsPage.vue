@@ -21,15 +21,15 @@
           <span>启动、主页和新标签页设置</span>
         </el-menu-item>
         <el-menu-item index="toolbar">
-          <el-icon><Setting /></el-icon>
+          <el-icon><Settings /></el-icon>
           <span>自定义工具栏</span>
         </el-menu-item>
         <el-menu-item index="proxy">
-          <el-icon><Connection /></el-icon>
+          <el-icon><Wifi /></el-icon>
           <span>代理设置</span>
         </el-menu-item>
         <el-menu-item index="about">
-          <el-icon><Document /></el-icon>
+          <el-icon><File /></el-icon>
           <span>关于</span>
         </el-menu-item>
       </el-menu>
@@ -88,11 +88,11 @@
 </template>
 
 <script>
-import {Connection, Document, Setting} from "@element-plus/icons-vue";
+import { Wifi, File, Settings } from "lucide-vue-next";
 
 export default {
   name: 'SettingsPage',
-  components: {Setting, Connection, Document},
+  components: { Settings, Wifi, File },
   data() {
     return {
       activeSection: 'general',

@@ -131,6 +131,15 @@ function createWindow() {
         console.log('💾 JS Memory Limit:', Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024) + 'MB');
       }
     `);
+
+    // 开发环境下自动打开调试面板
+    if (process.env.NODE_ENV === 'development') {
+      setTimeout(() => {
+        mainWindow.webContents.executeJavaScript(`
+          window.open('debug/debug-panel.html', 'DebugPanel', 'width=800,height=600,resizable=yes,scrollbars=yes');
+        `);
+      }, 1000); // 延迟1秒打开，确保主界面完全加载
+    }
   });
 
   // 监听主程序开发者工具事件

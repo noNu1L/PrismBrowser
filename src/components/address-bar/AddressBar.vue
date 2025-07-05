@@ -4,24 +4,26 @@
       <BackButton />
       <ForwardButton />
       <RefreshButton />
-      <HomeButton />
+      <HomeButton v-if="buttonConfig.showHome" />
     </div>
 
     <AddressInput />
 
     <div class="right-buttons">
-      <FavoriteButton />
-      <BookmarksButton />
-      <HistoryButton />
-      <DownloadButton />
-      <ProxyButton />
+      <FavoriteButton v-if="buttonConfig.showFavorites" />
+      <BookmarksButton v-if="buttonConfig.showBookmarks" />
+      <HistoryButton v-if="buttonConfig.showHistory" />
+      <DownloadButton v-if="buttonConfig.showDownloads" />
+      <ProxyButton v-if="buttonConfig.showProxy" />
       <MoreMenuButton />
     </div>
   </div>
 </template>
 
 <script setup>
-import AddressInput from '../../components/address-bar/AddressInput.vue'
+import { ref, onMounted } from 'vue'
+import AddressInput from './AddressInput.vue'
+import addressBarService from '../../services/addressBarService'
 import {
   BackButton,
   ForwardButton,
@@ -33,7 +35,12 @@ import {
   DownloadButton,
   ProxyButton,
   MoreMenuButton
-} from '../../components/address-bar'
+} from './index'
+
+const buttonConfig = ref({})
+onMounted(() => {
+  buttonConfig.value = addressBarService.getButtonConfig()
+})
 </script>
 
 <style scoped>

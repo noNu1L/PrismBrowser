@@ -12,6 +12,8 @@ export interface TabEntity {
   groupId: string;      // 分组ID
   type: TabType;        // 标签类型
   muted: boolean;       // 是否静音
+  canGoBack?: boolean;  // 是否可以后退
+  canGoForward?: boolean; // 是否可以前进
 }
 
 export interface TabState {

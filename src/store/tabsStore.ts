@@ -17,7 +17,9 @@ function createDefaultTab(): TabEntity {
     pinned: false,
     groupId: '',
     type: TabType.NORMAL,
-    muted: false
+    muted: false,
+    canGoBack: false,
+    canGoForward: false
   }
 }
 

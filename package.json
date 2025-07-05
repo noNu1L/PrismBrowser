@@ -59,6 +59,7 @@
     "@element-plus/icons-vue": "^2.3.1",
     "electron-store": "^8.1.0",
     "element-plus": "^2.10.2",
+    "lucide-vue-next": "^0.525.0",
     "pinia": "^3.0.3",
     "uuid": "^11.1.0",
     "vue": "^3.5.17"
