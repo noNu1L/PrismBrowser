@@ -1,7 +1,7 @@
 <template>
-  <NavButton :icon="Folder" />
+  <NavButton :icon="AlignStartVertical" />
 </template>
 <script setup>
 import NavButton from './NavButton.vue'
-import { Folder } from 'lucide-vue-next'
+import { AlignStartVertical } from 'lucide-vue-next'
 </script> 

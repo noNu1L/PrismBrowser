@@ -7,6 +7,7 @@
 <style scoped>
 .address-input-wrapper {
   flex: 1;
+  min-width: 0; /* 修复flex布局下的宽度计算问题 */
   margin: 0 8px;
 }
 .address-input {
@@ -16,5 +17,6 @@
   border-radius: 14px;
   padding: 0 12px;
   background-color: white;
+  box-sizing: border-box; /* 确保padding和border不影响宽度 */
 }
 </style> 

@@ -1,6 +1,6 @@
 <template>
   <el-container style="height: 100vh;">
-    <el-header height=60px style="padding: 0; margin: 0 ">
+    <el-header height=40px style="padding: 0; margin: 0 ">
       <TabsBar />
     </el-header>
     <el-header height="auto" style="padding: 0;">

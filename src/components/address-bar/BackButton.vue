@@ -1,6 +1,6 @@
 <template>
   <NavButton
-    :icon="ChevronLeft"
+    :icon="ArrowLeft"
     :disabled="!canGoBack"
     @click="goBack"
     @longpress="showHistory"
@@ -10,7 +10,7 @@
 <script setup>
 import { computed } from 'vue'
 import NavButton from './NavButton.vue'
-import { ChevronLeft } from 'lucide-vue-next'
+import { ArrowLeft } from 'lucide-vue-next'
 import { useTabsStore } from '../../store/tabsStore'
 
 const tabsStore = useTabsStore()

@@ -10,7 +10,7 @@
     @touchend="handleMouseUp"
     @touchcancel="handleMouseLeave"
   >
-    <component :is="icon" :size="20" />
+    <component :is="icon" :size="19" stroke-width="1.5" />
   </button>
 </template>
 

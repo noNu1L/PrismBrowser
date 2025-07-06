@@ -1,7 +1,7 @@
 <template>
-  <NavButton :icon="MoreVertical" />
+  <NavButton :icon="Ellipsis" />
 </template>
 <script setup>
 import NavButton from './NavButton.vue'
-import { MoreVertical } from 'lucide-vue-next'
+import { Ellipsis } from 'lucide-vue-next'
 </script> 
