@@ -14,10 +14,9 @@
   width: 100%;
   height: 28px;
   border: 1px solid #ccc;
-  border-radius: 14px;
+  border-radius: 2px;
   padding: 0 12px;
   background-color: white;
   box-sizing: border-box; /* 确保padding和border不影响宽度 */
-  cursor: default;
 }
 </style> 

@@ -21,7 +21,7 @@ function createDefaultTab(url: string): TabEntity {
     title: '新标签页',
     url: url,
     icon: '',
-    loading: false,
+    loading: true,
     active: true,
     pinned: false,
     groupId: '',
