@@ -57,6 +57,22 @@ class DebugPanel {
         this.bindEvent('refresh-status', () => this.refreshStatus());
         this.bindEvent('export-logs', () => this.exportLogs());
         this.bindEvent('clear-logs', () => this.clearLogs());
+        this.bindEvent('reinitialize-app', async () => {
+            if (confirm('确定要清除所有数据并重新初始化吗？')) {
+                try {
+                    if (window.opener && window.opener.initService) {
+                        await window.opener.initService.reinitialize()
+                        this.log('应用已重置并重新初始化')
+                        this.log('Electron Store 和 Pinia Store 都已重置为默认值')
+                        alert('应用已重置，请刷新主窗口查看效果')
+                    } else {
+                        this.log('无法访问初始化服务', 'error')
+                    }
+                } catch (e) {
+                    this.log(`重置失败: ${e.message}`, 'error')
+                }
+            }
+        });
         
         // 拖拽测试按钮
         this.bindEvent('test-drag-performance', () => this.testDragPerformance());
@@ -66,6 +82,16 @@ class DebugPanel {
         this.bindEvent('test-url-validation', () => this.log('功能未实现'));
         this.bindEvent('test-search-suggest', () => this.log('功能未实现'));
         this.bindEvent('clear-history', () => this.log('功能未实现'));
+        
+        // 地址栏按钮配置测试
+        this.bindEvent('load-button-config', () => this.loadButtonConfig());
+        this.bindEvent('test-all-buttons-show', () => this.showAllButtons());
+        this.bindEvent('test-all-buttons-hide', () => this.hideAllButtons());
+        this.bindEvent('test-random-config', () => this.randomButtonConfig());
+        this.bindEvent('reset-to-defaults', () => this.resetToDefaults());
+        
+        // 绑定复选框事件
+        this.bindButtonToggleEvents();
         this.bindEvent('add-test-bookmarks', () => this.log('功能未实现'));
         this.bindEvent('clear-bookmarks', () => this.log('功能未实现'));
         this.bindEvent('export-bookmarks', () => this.log('功能未实现'));
@@ -641,6 +667,295 @@ class DebugPanel {
             this.log('已请求主程序开发者工具');
         } else {
             this.log('主窗口未暴露api.toggleMainDevTools，无法打开主程序开发者工具', 'error');
+        }
+    }
+
+    // 地址栏按钮配置测试功能
+    getAddressBarStore() {
+        // 尝试从主窗口获取 Pinia store
+        if (window.opener && window.opener.addressBarStore) {
+            return window.opener.addressBarStore;
+        }
+        if (window.addressBarStore) {
+            return window.addressBarStore;
+        }
+        return null;
+    }
+
+    async loadButtonConfig() {
+        try {
+            const store = this.getAddressBarStore();
+            if (!store) {
+                this.log('无法访问 addressBarStore', 'error');
+                return;
+            }
+
+            // 🎯 检查配置是否已初始化
+            if (!store.config) {
+                this.log('配置尚未初始化，尝试从 Electron Store 加载...', 'info');
+                await store.loadFromElectronStore();
+            }
+
+            const config = store.config;
+            if (!config) {
+                this.log('配置仍然为空，可能是首次启动', 'warn');
+                return;
+            }
+
+            this.log('当前地址栏按钮配置:', 'info');
+            this.log(JSON.stringify(config, null, 2));
+
+            // 更新复选框状态
+            this.updateCheckboxes(config);
+            
+            // 更新配置状态显示
+            this.updateConfigStatus(config);
+            
+        } catch (error) {
+            this.log(`加载按钮配置失败: ${error.message}`, 'error');
+        }
+    }
+
+    updateCheckboxes(config) {
+        const checkboxes = {
+            'toggle-home': config.showHome,
+            'toggle-favorites': config.showFavorites,
+            'toggle-bookmarks': config.showBookmarks,
+            'toggle-history': config.showHistory,
+            'toggle-downloads': config.showDownloads,
+            'toggle-proxy': config.showProxy
+        };
+
+        Object.entries(checkboxes).forEach(([id, checked]) => {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+                checkbox.checked = !!checked;
+            }
+        });
+    }
+
+    updateConfigStatus(config) {
+        const statusDiv = document.getElementById('button-config-status');
+        if (!statusDiv) return;
+
+        const buttons = [
+            { key: 'showHome', name: '主页按钮', forced: false },
+            { key: 'showFavorites', name: '收藏按钮', forced: false },
+            { key: 'showBookmarks', name: '收藏夹按钮', forced: false },
+            { key: 'showHistory', name: '历史记录按钮', forced: false },
+            { key: 'showDownloads', name: '下载按钮', forced: false },
+            { key: 'showProxy', name: '代理按钮', forced: false }
+        ];
+
+        let html = '<div><strong>当前配置状态:</strong></div>';
+        html += '<div><span style="color: #666;">✓ = 显示, ✗ = 隐藏, 🔒 = 强制显示</span></div><br>';
+        
+        // 强制显示的按钮
+        html += '<div><strong>强制显示按钮:</strong></div>';
+        html += '<div>🔒 后退按钮 (不可隐藏)</div>';
+        html += '<div>🔒 前进按钮 (不可隐藏)</div>';
+        html += '<div>🔒 刷新按钮 (不可隐藏)</div>';
+        html += '<div>🔒 更多菜单按钮 (不可隐藏)</div>';
+        html += '<br>';
+        
+        // 可配置的按钮
+        html += '<div><strong>可配置按钮:</strong></div>';
+        buttons.forEach(button => {
+            const status = config[button.key] ? '✓' : '✗';
+            const color = config[button.key] ? '#28a745' : '#dc3545';
+            html += `<div style="color: ${color};">${status} ${button.name}</div>`;
+        });
+
+        statusDiv.innerHTML = html;
+    }
+
+    bindButtonToggleEvents() {
+        const toggles = [
+            'toggle-home',
+            'toggle-favorites', 
+            'toggle-bookmarks',
+            'toggle-history',
+            'toggle-downloads',
+            'toggle-proxy'
+        ];
+
+        toggles.forEach(id => {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+                checkbox.addEventListener('change', (e) => {
+                    this.toggleButton(id, e.target.checked);
+                });
+            }
+        });
+    }
+
+    async toggleButton(toggleId, checked) {
+        const store = this.getAddressBarStore();
+        if (!store) {
+            this.log('无法访问 addressBarStore', 'error');
+            return;
+        }
+
+        // 🎯 简化：直接的配置键映射
+        const configMap = {
+            'toggle-home': 'showHome',
+            'toggle-favorites': 'showFavorites',
+            'toggle-bookmarks': 'showBookmarks', 
+            'toggle-history': 'showHistory',
+            'toggle-downloads': 'showDownloads',
+            'toggle-proxy': 'showProxy'
+        };
+
+        const configKey = configMap[toggleId];
+        if (!configKey) {
+            this.log(`未知的按钮配置: ${toggleId}`, 'error');
+            return;
+        }
+
+        try {
+            // 🔔 简化：直接使用配置键名
+            // 这个调用会：
+            // 1. 更新 store.config[configKey] 的值
+            // 2. 自动保存配置到 electron-store
+            // 3. Vue 响应式系统检测到状态变化
+            // 4. AddressBar.vue 自动重新渲染，显示/隐藏相应按钮
+            await store.setButtonVisible(configKey, checked);
+            this.log(`${checked ? '显示' : '隐藏'} ${configKey}: ${checked}`);
+            this.log('地址栏应该会自动更新按钮显示状态 🔄');
+            
+            // 延迟更新状态显示（这里是为了更新调试面板的显示）
+            setTimeout(() => this.loadButtonConfig(), 100);
+        } catch (error) {
+            this.log(`更新按钮配置失败: ${error.message}`, 'error');
+        }
+    }
+
+    async showAllButtons() {
+        const store = this.getAddressBarStore();
+        if (!store) {
+            this.log('无法访问 addressBarStore', 'error');
+            return;
+        }
+
+        try {
+            // 🎯 简化：直接使用配置键名
+            await store.setBatchVisible({
+                showHome: true,
+                showFavorites: true,
+                showBookmarks: true,
+                showHistory: true,
+                showDownloads: true,
+                showProxy: true
+            });
+            
+            this.log('已显示所有可配置按钮 ✨');
+            this.log('地址栏应该会自动更新按钮显示状态 🔄');
+            
+            // 延迟更新状态显示
+            setTimeout(() => this.loadButtonConfig(), 100);
+        } catch (error) {
+            this.log(`显示所有按钮失败: ${error.message}`, 'error');
+        }
+    }
+
+    async hideAllButtons() {
+        const store = this.getAddressBarStore();
+        if (!store) {
+            this.log('无法访问 addressBarStore', 'error');
+            return;
+        }
+
+        try {
+            // 🎯 简化：直接使用配置键名
+            await store.setBatchVisible({
+                showHome: false,
+                showFavorites: false,
+                showBookmarks: false,
+                showHistory: false,
+                showDownloads: false,
+                showProxy: false
+            });
+            
+            this.log('已隐藏所有可配置按钮 🙈');
+            this.log('地址栏应该会自动更新按钮显示状态 🔄');
+            this.log('注意: 后退、前进、刷新、更多菜单按钮仍然显示（强制显示）');
+            
+            // 延迟更新状态显示
+            setTimeout(() => this.loadButtonConfig(), 100);
+        } catch (error) {
+            this.log(`隐藏所有按钮失败: ${error.message}`, 'error');
+        }
+    }
+
+    async randomButtonConfig() {
+        const store = this.getAddressBarStore();
+        if (!store) {
+            this.log('无法访问 addressBarStore', 'error');
+            return;
+        }
+
+        try {
+            this.log('正在生成随机按钮配置... 🎲');
+            
+            // 🎯 简化：直接使用配置键名生成随机配置
+            const randomConfig = {
+                showHome: Math.random() > 0.5,
+                showFavorites: Math.random() > 0.5,
+                showBookmarks: Math.random() > 0.5,
+                showHistory: Math.random() > 0.5,
+                showDownloads: Math.random() > 0.5,
+                showProxy: Math.random() > 0.5
+            };
+            
+            // 记录每个按钮的配置
+            Object.entries(randomConfig).forEach(([button, show]) => {
+                this.log(`${button}: ${show ? '显示' : '隐藏'}`);
+            });
+            
+            // 批量应用配置
+            await store.setBatchVisible(randomConfig);
+            
+            this.log('随机配置已应用! 🎉');
+            this.log('地址栏应该会自动更新按钮显示状态 🔄');
+            
+            // 延迟更新状态显示
+            setTimeout(() => this.loadButtonConfig(), 100);
+        } catch (error) {
+            this.log(`应用随机配置失败: ${error.message}`, 'error');
+        }
+    }
+    
+    // 重置为默认配置
+    async resetToDefaults() {
+        const store = this.getAddressBarStore();
+        if (!store) {
+            this.log('无法访问 addressBarStore', 'error');
+            return;
+        }
+
+        try {
+            this.log('正在重置为默认配置... 🔄');
+            
+            // 🎯 默认配置：所有按钮都显示
+            const defaultConfig = {
+                showHome: true,
+                showFavorites: true,
+                showBookmarks: true,
+                showHistory: true,
+                showDownloads: true,
+                showProxy: true
+            };
+            
+            // 批量应用默认配置
+            await store.setBatchVisible(defaultConfig);
+            
+            this.log('已重置为默认配置 (所有按钮显示) ✨');
+            this.log('地址栏应该会自动更新按钮显示状态 🔄');
+            
+            // 延迟更新状态显示
+            setTimeout(() => this.loadButtonConfig(), 100);
+        } catch (error) {
+            this.log(`重置配置失败: ${error.message}`, 'error');
         }
     }
 }

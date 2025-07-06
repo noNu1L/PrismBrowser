@@ -1,5 +1,19 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const Store = require('electron-store');
+
+const store = new Store();
+
+// IPC通信，用于读写配置
+ipcMain.handle('getStore', (event, key) => {
+  return store.get(key);
+});
+ipcMain.handle('setStore', (event, key, value) => {
+  store.set(key, value);
+});
+ipcMain.handle('clearStore', () => {
+  store.clear();
+});
 
 let mainWindow = null;
 

@@ -41,8 +41,11 @@ import { computed, onMounted, watch, nextTick } from 'vue'
 import TabsBar from './TabsBar.vue'
 import AddressBar from './AddressBar.vue'
 import { useTabsStore } from '../../store/tabsStore'
+import { useAddressBarStore } from '../../store/addressBarStore'
+import initService from '../../services/initService'
 
 const tabsStore = useTabsStore()
+const addressBarStore = useAddressBarStore()
 
 const tabs = computed(() => tabsStore.tabs)
 const activeTabId = computed(() => tabsStore.activeTabId)
@@ -181,7 +184,14 @@ function setupWebviews() {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 暴露 Pinia store 和服务到全局对象，供调试面板使用
+  window.addressBarStore = addressBarStore
+  window.initService = initService
+  
+  // 🎯 关键：启动时调用统一的初始化服务
+  await initService.init()
+  
   // 初始化API处理
   if (window.api) {
     // 处理导航请求

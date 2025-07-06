@@ -308,14 +308,16 @@
     import 'element-plus/dist/index.css'
     import { createPinia } from 'pinia'
     import App from './App.vue'
-    // import prismPlugin from '../plugins/prism.js'
+    import initService from '../services/initService.js'
+
+    // 应用初始化
+    initService.init()
+    window.initService = initService // 暴露给调试面板
 
     const app = createApp(App)
     const pinia = createPinia()
     app.use(pinia)
     app.use(ElementPlus)
-    // // 全局挂载插件
-    // app.use(prismPlugin)
     app.mount('#app')
 
     console.log('主界面应用已启动 (ES 模块)')
