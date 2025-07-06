@@ -9,7 +9,7 @@
 import { computed } from 'vue'
 import NavButton from './NavButton.vue'
 import { RotateCw, X } from 'lucide-vue-next'
-import { useTabsStore } from '../../store/tabsStore'
+import { useTabsStore } from '../../../store/tabsStore'
 
 const tabsStore = useTabsStore()
 const isLoading = computed(() => {

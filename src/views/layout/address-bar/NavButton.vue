@@ -56,7 +56,7 @@ function handleMouseLeave() {
   border: none;
   background: transparent;
   border-radius: 4px;
-  cursor: pointer;
+  cursor: default;
   color: #333;
 }
 .nav-button:hover:not(:disabled) {

@@ -11,7 +11,7 @@
 import { computed } from 'vue'
 import NavButton from './NavButton.vue'
 import { ArrowRight } from 'lucide-vue-next'
-import { useTabsStore } from '../../store/tabsStore'
+import { useTabsStore } from '../../../store/tabsStore'
 
 const tabsStore = useTabsStore()
 const canGoForward = computed(() => {

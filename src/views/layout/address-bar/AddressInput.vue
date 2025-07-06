@@ -18,5 +18,6 @@
   padding: 0 12px;
   background-color: white;
   box-sizing: border-box; /* 确保padding和border不影响宽度 */
+  cursor: default;
 }
 </style> 

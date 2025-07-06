@@ -5,7 +5,7 @@
 <script setup>
 import NavButton from './NavButton.vue'
 import { Home } from 'lucide-vue-next'
-import { useTabsStore } from '../../store/tabsStore'
+import { useTabsStore } from '../../../store/tabsStore'
 
 const tabsStore = useTabsStore()
 const HOME_URL = 'https://www.bing.com'

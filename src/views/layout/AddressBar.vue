@@ -27,7 +27,7 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useAddressBarStore } from '../../store/addressBarStore'
-import AddressInput from '../../components/address-bar/AddressInput.vue'
+import AddressInput from './address-bar/AddressInput.vue'
 import {
   BackButton,
   ForwardButton,
@@ -39,7 +39,7 @@ import {
   DownloadButton,
   ProxyButton,
   MoreMenuButton
-} from '../../components/address-bar'
+} from './address-bar'
 
 // 🎯 使用简化的 Pinia store
 // 现在只需要关心按钮的显示/隐藏，其他逻辑由按钮组件自己处理
