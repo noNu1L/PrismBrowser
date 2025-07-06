@@ -138,6 +138,14 @@ function onWebviewReady(tabId) {
     }, 100)
   })
 
+  // 监听 favicon 更新
+  webview.addEventListener('page-favicon-updated', (event) => {
+    if (event.favicons && event.favicons.length > 0) {
+      // 使用第一个 favicon
+      tabsStore.setTabIcon(tabId, event.favicons[0])
+    }
+  })
+
   // 立即注入样式
   setTimeout(() => {
     webview.insertCSS(scrollbarCSS)

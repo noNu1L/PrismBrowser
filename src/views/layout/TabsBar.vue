@@ -22,7 +22,22 @@
           <!-- 标签内容 -->
           <div class="tab-content">
             <!-- 图标 -->
-            <File v-if="shouldShowIcon(tab)" class="tab-icon" :size="14" />
+            <LoaderCircle 
+              v-if="shouldShowIcon(tab) && tab.loading" 
+              class="tab-icon loading" 
+              :size="16" 
+            />
+            <img 
+              v-else-if="shouldShowIcon(tab) && tab.icon && tab.icon.startsWith('http')" 
+              :src="tab.icon" 
+              class="tab-favicon"
+              @error="handleFaviconError(tab)"
+            />
+            <Globe 
+              v-else-if="shouldShowIcon(tab)" 
+              class="tab-icon" 
+              :size="16" 
+            />
 
             <!-- 标题 -->
             <span v-if="shouldShowTitle(tab)" class="tab-title">
@@ -81,7 +96,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useTabsStore } from '../../store/tabsStore'
-import { X, Maximize, Minus, Plus, File } from "lucide-vue-next"
+import { X, Maximize, Minus, Plus, File, Globe, LoaderCircle } from "lucide-vue-next"
 
 // ==================== 配置参数 ====================
 const CONFIG = {
@@ -175,6 +190,11 @@ function shouldHideTab(tab) {
 function shouldShowIcon(tab) {
   const width = widthState.tabWidths[tab.id] || CONFIG.minTabWidth
   return width >= 60 // 图标需要至少60px宽度
+}
+
+function handleFaviconError(tab) {
+  // favicon 加载失败时，清空 icon 以显示默认图标
+  tabsStore.setTabIcon(tab.id, '')
 }
 
 function shouldShowTitle(tab) {
@@ -1018,6 +1038,28 @@ watch(() => tabsStore.activeTabId, (newActiveId) => {
 .tab-icon {
   font-size: 16px;
   color: #666;
+  flex-shrink: 0;
+}
+
+/* 加载中的旋转动画 */
+.tab-icon.loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* favicon 图标样式 */
+.tab-favicon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
   flex-shrink: 0;
 }
 
