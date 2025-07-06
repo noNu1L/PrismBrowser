@@ -29,9 +29,12 @@
             />
             <img 
               v-else-if="shouldShowIcon(tab) && tab.icon && tab.icon.startsWith('http')" 
-              :src="tab.icon" 
+              :src="getProxiedIconUrl(tab.icon)" 
               class="tab-favicon"
               @error="handleFaviconError(tab)"
+              @load="handleFaviconLoad(tab)"
+              crossorigin="anonymous"
+              referrerpolicy="no-referrer"
             />
             <Globe 
               v-else-if="shouldShowIcon(tab)" 
@@ -193,8 +196,81 @@ function shouldShowIcon(tab) {
 }
 
 function handleFaviconError(tab) {
-  // favicon 加载失败时，清空 icon 以显示默认图标
-  tabsStore.setTabIcon(tab.id, '')
+  console.warn(`[TabsBar] Favicon load error for tab ${tab.id}:`, tab.icon)
+  // favicon 加载失败时，尝试备用方案
+  tryAlternativeFavicon(tab)
+}
+
+function handleFaviconLoad(tab) {
+  console.log(`[TabsBar] Favicon loaded successfully for tab ${tab.id}:`, tab.icon)
+}
+
+function getProxiedIconUrl(iconUrl) {
+  if (!iconUrl) return ''
+  
+  // 对于HTTPS图标，直接使用
+  if (iconUrl.startsWith('https://')) {
+    return iconUrl
+  }
+  
+  // 对于HTTP图标，转换为HTTPS
+  if (iconUrl.startsWith('http://')) {
+    const httpsUrl = iconUrl.replace('http://', 'https://')
+    console.log(`[TabsBar] Converting HTTP icon to HTTPS: ${iconUrl} -> ${httpsUrl}`)
+    return httpsUrl
+  }
+  
+  return iconUrl
+}
+
+function tryAlternativeFavicon(tab) {
+  if (!tab.url) return
+  
+  try {
+    const url = new URL(tab.url)
+    const alternatives = [
+      // 尝试根域名的favicon.ico
+      `${url.protocol}//${url.hostname}/favicon.ico`,
+      // 尝试www子域名
+      `${url.protocol}//www.${url.hostname}/favicon.ico`,
+      // 尝试移除www前缀
+      `${url.protocol}//${url.hostname.replace('www.', '')}/favicon.ico`
+    ]
+    
+    // 逐个尝试备用图标
+    tryNextAlternative(tab, alternatives, 0)
+  } catch (error) {
+    console.warn(`[TabsBar] Failed to generate alternative favicon URLs:`, error)
+    // 最终回退到默认图标
+    tabsStore.setTabIcon(tab.id, '')
+  }
+}
+
+function tryNextAlternative(tab, alternatives, index) {
+  if (index >= alternatives.length) {
+    // 所有备用方案都失败，清空图标显示默认图标
+    console.log(`[TabsBar] All alternative favicons failed for tab ${tab.id}`)
+    tabsStore.setTabIcon(tab.id, '')
+    return
+  }
+  
+  const altUrl = alternatives[index]
+  console.log(`[TabsBar] Trying alternative favicon ${index + 1}/${alternatives.length} for tab ${tab.id}: ${altUrl}`)
+  
+  const img = new Image()
+  img.onload = () => {
+    console.log(`[TabsBar] Alternative favicon loaded successfully: ${altUrl}`)
+    tabsStore.setTabIcon(tab.id, altUrl)
+  }
+  img.onerror = () => {
+    console.log(`[TabsBar] Alternative favicon failed: ${altUrl}`)
+    // 尝试下一个备用方案
+    tryNextAlternative(tab, alternatives, index + 1)
+  }
+  
+  // 设置跨域属性
+  img.crossOrigin = 'anonymous'
+  img.src = altUrl
 }
 
 function shouldShowTitle(tab) {
