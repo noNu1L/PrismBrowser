@@ -7,7 +7,8 @@ const DEFAULT_CONFIGS = {
     showBookmarks: false,
     showHistory: false,
     showDownloads: false,
-    showProxy: true
+    showProxy: true,
+    showSettings: false
   },
   
   // 应用设置默认配置

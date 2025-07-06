@@ -7,30 +7,45 @@
       <AddressBar />
     </el-header>
     <el-main style="padding: 0; position: relative; background-color: #ffffff;">
-      <!-- 为每个标签创建独立的webview -->
+      <!-- 内部页面显示 -->
       <div 
-        v-for="tab in tabs"
-        :key="tab.id"
-        :style="{
-          width: '100%',
-          height: '100%',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          transform: tab.active ? 'translateX(0)' : 'translateX(-100vw)',
-          transition: 'none',
-          zIndex: tab.active ? 1 : 0,
-          backgroundColor: '#ffffff'
-        }"
+        v-if="showInternalPage"
+        style="width: 100%; height: 100%; overflow: hidden;"
       >
-        <webview
-          :id="`webview-${tab.id}`"
-          :src="tab.url"
-          :data-active="tab.active"
-          style="width: 100%; height: 100%; background-color: #ffffff;"
-          webpreferences="contextIsolation=false,scrollBounce=true"
-          @dom-ready="onWebviewReady(tab.id)"
-        ></webview>
+        <component 
+          :is="currentInternalPage" 
+          :key="currentActiveTab?.url"
+        />
+      </div>
+      
+      <!-- 普通网页的webview显示 -->
+      <div v-else>
+        <!-- 为每个标签创建独立的webview -->
+        <div 
+          v-for="tab in tabs"
+          :key="tab.id"
+          :style="{
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            transform: tab.active ? 'translateX(0)' : 'translateX(-100vw)',
+            transition: 'none',
+            zIndex: tab.active ? 1 : 0,
+            backgroundColor: '#ffffff'
+          }"
+        >
+          <webview
+            v-if="!tab.url?.startsWith('prism://')"
+            :id="`webview-${tab.id}`"
+            :src="tab.url"
+            :data-active="tab.active"
+            style="width: 100%; height: 100%; background-color: #ffffff;"
+            webpreferences="contextIsolation=false,scrollBounce=true"
+            @dom-ready="onWebviewReady(tab.id)"
+          ></webview>
+        </div>
       </div>
     </el-main>
   </el-container>
@@ -44,11 +59,37 @@ import { useTabsStore } from '../../store/tabsStore'
 import { useAddressBarStore } from '../../store/addressBarStore'
 import initService from '../../services/initService'
 
+// 导入内部页面组件
+import SettingsPage from '../pages/Settings.vue'
+import BookmarksPage from '../pages/Bookmarks.vue'
+import HistoryPage from '../pages/History.vue'
+import DownloadsPage from '../pages/Downloads.vue'
+
 const tabsStore = useTabsStore()
 const addressBarStore = useAddressBarStore()
 
 const tabs = computed(() => tabsStore.tabs)
 const activeTabId = computed(() => tabsStore.activeTabId)
+
+// 内部页面逻辑
+const currentActiveTab = computed(() => {
+  return tabsStore.tabs.find(tab => tab.id === tabsStore.activeTabId)
+})
+
+const showInternalPage = computed(() => {
+  return currentActiveTab.value?.url?.startsWith('prism://')
+})
+
+const currentInternalPage = computed(() => {
+  const url = currentActiveTab.value?.url
+  const pageMap = {
+    'prism://settings': SettingsPage,
+    'prism://bookmarks': BookmarksPage,
+    'prism://history': HistoryPage,
+    'prism://downloads': DownloadsPage
+  }
+  return pageMap[url] || null
+})
 
 // 监听标签变化，为新标签创建webview
 watch(() => tabs.value.length, async () => {
@@ -61,13 +102,29 @@ watch(() => tabs.value.map(tab => ({ id: tab.id, url: tab.url })), (newTabs, old
   newTabs.forEach(newTab => {
     const oldTab = oldTabs?.find(t => t.id === newTab.id)
     if (oldTab && oldTab.url !== newTab.url) {
-      const webview = document.getElementById(`webview-${newTab.id}`)
-      if (webview && webview.src !== newTab.url) {
-        webview.src = newTab.url
+      // 处理内部页面
+      if (newTab.url?.startsWith('prism://')) {
+        updateInternalPageTitle(newTab.id, newTab.url)
+        // 立即设置为加载完成状态
+        tabsStore.updateTab(newTab.id, { loading: false })
+      } else {
+        // 处理普通网页
+        const webview = document.getElementById(`webview-${newTab.id}`)
+        if (webview && webview.src !== newTab.url) {
+          webview.src = newTab.url
+        }
       }
     }
   })
 }, { deep: true })
+
+// 监听内部页面的显示状态变化
+watch(showInternalPage, (isInternal) => {
+  if (isInternal && currentActiveTab.value) {
+    // 内部页面立即设置为加载完成
+    tabsStore.updateTab(currentActiveTab.value.id, { loading: false })
+  }
+})
 
 function onWebviewReady(tabId) {
   const webview = document.getElementById(`webview-${tabId}`)
@@ -176,6 +233,19 @@ function updateTabInfo(tabId, webview) {
     url,
     title: title.length > 20 ? title.substring(0, 20) + '...' : title
   })
+}
+
+// 更新内部页面标题
+function updateInternalPageTitle(tabId, url) {
+  const titleMap = {
+    'prism://settings': '设置',
+    'prism://bookmarks': '书签',
+    'prism://history': '历史记录',
+    'prism://downloads': '下载'
+  }
+  
+  const title = titleMap[url] || '内部页面'
+  tabsStore.updateTab(tabId, { title })
 }
 
 function setupWebviews() {

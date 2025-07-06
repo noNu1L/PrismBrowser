@@ -9,6 +9,7 @@ interface AddressBarConfig {
   showHistory: boolean
   showDownloads: boolean
   showProxy: boolean
+  showSettings: boolean
 }
 
 export const useAddressBarStore = defineStore('addressBar', {

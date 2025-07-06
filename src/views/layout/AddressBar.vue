@@ -13,11 +13,11 @@
 
     <div class="right-buttons">
       <!--可配置的按钮：安全的配置访问-->
-      <FavoriteButton v-if="store.config?.showFavorites" />
       <BookmarksButton v-if="store.config?.showBookmarks" />
       <HistoryButton v-if="store.config?.showHistory" />
       <DownloadButton v-if="store.config?.showDownloads" />
       <ProxyButton v-if="store.config?.showProxy" />
+      <SettingsButton v-if="store.config?.showSettings" />
       <!--强制显示的按钮（不可隐藏）-->
       <MoreMenuButton />
     </div>
@@ -33,11 +33,11 @@ import {
   ForwardButton,
   RefreshButton,
   HomeButton,
-  FavoriteButton,
   BookmarksButton,
   HistoryButton,
   DownloadButton,
   ProxyButton,
+  SettingsButton,
   MoreMenuButton
 } from './address-bar'
 
