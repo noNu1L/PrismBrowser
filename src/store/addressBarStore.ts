@@ -20,20 +20,12 @@ export const useAddressBarStore = defineStore('addressBar', {
   actions: {
     // 🔧 设置单个按钮的显示状态
     async setButtonVisible(button: keyof AddressBarConfig, visible: boolean) {
-      if (!this.config) {
-        console.error('配置未初始化，请先调用 loadFromElectronStore()')
-        return
-      }
       this.config[button] = visible
       await this.saveToElectronStore()
     },
     
     // 🔧 批量设置按钮显示状态
     async setBatchVisible(settings: Partial<AddressBarConfig>) {
-      if (!this.config) {
-        console.error('配置未初始化，请先调用 loadFromElectronStore()')
-        return
-      }
       Object.assign(this.config, settings)
       await this.saveToElectronStore()
     },

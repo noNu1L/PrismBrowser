@@ -200,6 +200,10 @@ onMounted(async () => {
   // 🎯 关键：启动时调用统一的初始化服务
   await initService.init()
   
+  // 异步初始化标签页
+  const tabsStore = useTabsStore()
+  await tabsStore.initializeTabs()
+  
   // 初始化API处理
   if (window.api) {
     // 处理导航请求

@@ -88,8 +88,7 @@ class DebugPanel {
         this.bindEvent('test-all-buttons-show', () => this.showAllButtons());
         this.bindEvent('test-all-buttons-hide', () => this.hideAllButtons());
         this.bindEvent('test-random-config', () => this.randomButtonConfig());
-        this.bindEvent('reset-to-defaults', () => this.resetToDefaults());
-        
+
         // 绑定复选框事件
         this.bindButtonToggleEvents();
         this.bindEvent('add-test-bookmarks', () => this.log('功能未实现'));
@@ -924,40 +923,7 @@ class DebugPanel {
             this.log(`应用随机配置失败: ${error.message}`, 'error');
         }
     }
-    
-    // 重置为默认配置
-    async resetToDefaults() {
-        const store = this.getAddressBarStore();
-        if (!store) {
-            this.log('无法访问 addressBarStore', 'error');
-            return;
-        }
 
-        try {
-            this.log('正在重置为默认配置... 🔄');
-            
-            // 🎯 默认配置：所有按钮都显示
-            const defaultConfig = {
-                showHome: true,
-                showFavorites: true,
-                showBookmarks: true,
-                showHistory: true,
-                showDownloads: true,
-                showProxy: true
-            };
-            
-            // 批量应用默认配置
-            await store.setBatchVisible(defaultConfig);
-            
-            this.log('已重置为默认配置 (所有按钮显示) ✨');
-            this.log('地址栏应该会自动更新按钮显示状态 🔄');
-            
-            // 延迟更新状态显示
-            setTimeout(() => this.loadButtonConfig(), 100);
-        } catch (error) {
-            this.log(`重置配置失败: ${error.message}`, 'error');
-        }
-    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

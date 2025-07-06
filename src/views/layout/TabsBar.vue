@@ -801,12 +801,7 @@ function setActiveTab(tabId) {
 }
 
 function addTab() {
-  tabsStore.addTab({ 
-    title: '新标签页',
-    url: 'https://www.bing.com',
-    active: true, 
-    loading: true 
-  })
+  tabsStore.addTab({ active: true })
 }
 
 function closeTab(tabId) {

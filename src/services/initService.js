@@ -12,8 +12,8 @@ const DEFAULT_CONFIGS = {
   
   // 应用设置默认配置
   app: {
-    newTabUrl: 'https://www.bing.com',
-    homeUrl: 'https://www.bing.com',
+    newTabUrl: 'https://www.qq.com',
+    homeUrl: 'https://www.baidu.com',
     startupUrl: 'https://www.bing.com'
   }
 }
@@ -83,26 +83,6 @@ export default {
     }
   },
 
-  // 初始化地址栏配置到 Pinia（供首次启动使用）
-  initAddressBarToPinia() {
-    if (window.addressBarStore) {
-      window.addressBarStore.setConfig(DEFAULT_CONFIGS.addressBar)
-      console.log('地址栏默认配置已设置到 Pinia')
-    }
-  },
-
-  // 重置所有配置
-  async resetToDefaults() {
-    // 重置 Electron Store
-    await this.initAppSettings()
-    await this.initAddressBarToElectronStore()
-    
-    // 重置 Pinia Store
-    this.initAddressBarToPinia()
-    
-    console.log('所有配置已重置为默认值')
-  },
-
   // 清除所有数据并重新初始化
   async reinitialize() {
     await window.api.clearStore()
@@ -110,8 +90,5 @@ export default {
     await this.loadConfigsToPinia()
   },
 
-  // 获取默认配置（供其他模块使用）
-  getDefaultConfig(configName) {
-    return DEFAULT_CONFIGS[configName]
-  }
+
 } 
