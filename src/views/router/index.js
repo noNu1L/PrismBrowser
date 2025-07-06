@@ -2,12 +2,12 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import { getDefaultRoute } from './protocolMap.js'
 
 // 导入页面组件
-import SettingsPage from '../pages/SettingsPage.vue'
-import HistoryPage from '../pages/HistoryPage.vue'
-import BookmarksPage from '../pages/BookmarksPage.vue'
-import DownloadsPage from '../pages/DownloadsPage.vue'
-import AddressInputDemo from '../pages/AddressInputDemo.vue'
-import PrismPluginDemo from '../pages/PrismPluginDemo.vue'
+import SettingsPage from '../pages.bak/SettingsPage.vue'
+import HistoryPage from '../pages.bak/HistoryPage.vue'
+import BookmarksPage from '../pages.bak/BookmarksPage.vue'
+import DownloadsPage from '../pages.bak/DownloadsPage.vue'
+import AddressInputDemo from '../pages.bak/AddressInputDemo.vue'
+import PrismPluginDemo from '../pages.bak/PrismPluginDemo.vue'
 import { AddressBarButtonDemo } from '../../components/nav-button'
 
 // 路由配置
