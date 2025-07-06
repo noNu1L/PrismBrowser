@@ -163,10 +163,11 @@ function createWindow() {
     }
   });
 
-  // 转发前端开发者工具事件
-  ipcMain.on('toggle-renderer-devtools', () => {
+  // 监听 webview 开发者工具切换事件
+  ipcMain.on('toggle-webview-devtools', (event, tabId) => {
+    console.log(`[Main] Toggle webview devtools for tab: ${tabId}`);
     if (mainWindow && mainWindow.webContents) {
-      mainWindow.webContents.send('toggle-webview-devtools');
+      mainWindow.webContents.send('toggle-webview-devtools', tabId);
     }
   });
 

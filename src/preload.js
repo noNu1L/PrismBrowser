@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // 开发者工具
   toggleMainDevTools: () => ipcRenderer.send('toggle-main-devtools'),
-  toggleRendererDevTools: () => ipcRenderer.send('toggle-renderer-devtools'),
+  toggleWebViewDevTools: (tabId) => ipcRenderer.send('toggle-webview-devtools', tabId),
 
   // electron-store
   getStore: (key) => ipcRenderer.invoke('getStore', key),

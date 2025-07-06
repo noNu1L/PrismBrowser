@@ -254,17 +254,7 @@ onMounted(async () => {
       }
     }
     
-    // 处理开发者工具切换
-    window.api.onToggleWebViewDevTools?.(() => {
-      const activeWebview = document.getElementById(`webview-${activeTabId.value}`)
-      if (activeWebview) {
-        if (activeWebview.isDevToolsOpened()) {
-          activeWebview.closeDevTools()
-      } else {
-          activeWebview.openDevTools()
-      }
-    }
-  })
+    // 开发者工具切换逻辑已移至 App.vue 中处理
   }
   
   // 延迟设置webview事件监听器，确保DOM已渲染
