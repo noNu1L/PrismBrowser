@@ -10,6 +10,8 @@
 
 ![img.png](https://github.com/noNu1L/PrismBrowser/blob/master/document/img.png?raw=true)
 
+构建难度太高，不再继续开发，归档处理
+
 ---
 
 ## ✨ 主要功能
