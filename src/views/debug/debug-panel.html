@@ -15,8 +15,26 @@
         <h3>标签操作</h3>
         <button id="add-1-tab">添加1个标签</button>
         <button id="add-5-tabs">添加5个标签</button>
+        <button id="add-10-tabs">添加10个标签</button>
+        <br><br>
+        <button id="insert-tab-second">在第2位置插入标签</button>
+        <button id="insert-tab-fifth">在第5位置插入标签</button>
+        <button id="insert-tab-custom">在指定位置插入标签</button>
+        <br><br>
+        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px;">
+            <strong>指定位置插入:</strong>
+            <input type="number" id="insert-position" min="1" value="3" style="width: 60px; margin: 0 5px;">
+            <button id="insert-at-position">插入标签</button>
+            <span id="position-hint" style="margin-left: 10px; color: #666;">(当前标签数: 加载中...)</span>
+        </div>
         <button id="close-all-tabs">关闭所有标签</button>
+        <button id="close-half-tabs">关闭一半标签</button>
         <button id="close-last-tab">关闭最后一个</button>
+        
+        <h3>拖拽功能测试</h3>
+        <p style="color: #666; font-size: 12px;">💡 提示：直接用鼠标拖拽标签来测试拖拽功能</p>
+        <button id="test-drag-performance">测试拖拽性能</button>
+        <button id="show-drag-info">显示拖拽信息</button>
 
         <h3>状态监控</h3>
         <table border="1">
@@ -24,10 +42,24 @@
             <tr><td>总宽度:</td><td id="total-width">0px</td></tr>
             <tr><td>窗口宽度:</td><td id="window-width">0px</td></tr>
             <tr><td>鼠标悬停:</td><td id="hovering-status">否</td></tr>
+            <tr><td>关闭动画(◀️):</td><td id="closing-tabs">0</td></tr>
+            <tr><td>进入动画(▶️):</td><td id="entering-tabs">0</td></tr>
+            <tr><td>拖拽状态(🔄):</td><td id="dragging-status">未拖拽</td></tr>
         </table>
+        
+        <h3>当前标签列表</h3>
+        <div id="tabs-list" style="max-height: 150px; overflow-y: auto; border: 1px solid #ccc; padding: 5px; font-family: monospace; font-size: 12px; background: #fafafa;">
+            <div>加载中...</div>
+        </div>
         <br>
         <button id="refresh-status">刷新状态</button>
         <button id="export-logs">导出日志</button>
+        <button id="clear-logs">清空日志</button>
+        
+        <h3>实时日志</h3>
+        <div id="log-display" style="height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; font-family: monospace; font-size: 12px; background: #f9f9f9;">
+            <div>等待日志...</div>
+        </div>
     </fieldset>
     
     <!-- 地址栏模块 -->
@@ -37,6 +69,30 @@
         <button id="test-url-validation">测试URL验证</button>
         <button id="test-search-suggest">测试搜索建议</button>
         <button id="clear-history">清空历史记录</button>
+        
+        <h3>地址栏按钮配置测试</h3>
+        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px;">
+            <h4>按钮显示/隐藏控制</h4>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <label><input type="checkbox" id="toggle-home" /> 主页按钮</label>
+                <label><input type="checkbox" id="toggle-favorites" /> 收藏按钮</label>
+                <label><input type="checkbox" id="toggle-bookmarks" /> 收藏夹按钮</label>
+                <label><input type="checkbox" id="toggle-history" /> 历史记录按钮</label>
+                <label><input type="checkbox" id="toggle-downloads" /> 下载按钮</label>
+                <label><input type="checkbox" id="toggle-proxy" /> 代理按钮</label>
+            </div>
+            <br>
+            <button id="load-button-config">加载当前配置</button>
+            <button id="test-all-buttons-show">显示所有按钮</button>
+            <button id="test-all-buttons-hide">隐藏所有按钮</button>
+            <button id="test-random-config">随机配置</button>
+            <button id="reset-to-defaults">重置为默认配置</button>
+        </div>
+        
+        <h4>配置状态</h4>
+        <div id="button-config-status" style="font-family: monospace; font-size: 12px; background: #fafafa; padding: 10px; border: 1px solid #ccc; max-height: 150px; overflow-y: auto;">
+            <div>点击"加载当前配置"查看状态...</div>
+        </div>
     </fieldset>
 
     <!-- 书签模块 -->
@@ -60,10 +116,32 @@
     <fieldset>
         <legend>⚙️ 系统调试</legend>
         <h3>系统功能</h3>
-        <button id="show-devtools">显示开发者工具</button>
+        <button id="open-renderer-devtools">前端开发者工具</button>
+        <button id="open-main-devtools">主程序开发者工具</button>
         <button id="reload-app">重载应用</button>
         <button id="clear-cache">清空缓存</button>
     </fieldset>
+
+    <div class="module">
+      <h3 class="module-title">应用初始化</h3>
+      <div class="section">
+        <h4>重置应用</h4>
+        <div class="button-group">
+          <button id="reinitialize-app" class="btn btn-danger">重置并初始化</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="module">
+      <h3 class="module-title">日志</h3>
+      <div class="section">
+        <div class="button-group">
+          <button id="clear-logs" class="btn btn-warning">清空日志</button>
+          <button id="export-logs" class="btn btn-secondary">导出日志</button>
+        </div>
+        <div id="log-viewer" class="log-viewer"></div>
+      </div>
+    </div>
 
     <hr>
     <p><strong>说明:</strong> 这是PrismBrowser的开发调试面板，用于测试各种浏览器功能。</p>

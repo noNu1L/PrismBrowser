@@ -306,21 +306,29 @@
     import { createApp } from 'vue'
     import ElementPlus from 'element-plus'
     import 'element-plus/dist/index.css'
+    import { createPinia } from 'pinia'
     import App from './App.vue'
+    import initService from '../services/initService.js'
+
+    // 应用初始化
+    initService.init()
+    window.initService = initService // 暴露给调试面板
 
     const app = createApp(App)
+    const pinia = createPinia()
+    app.use(pinia)
     app.use(ElementPlus)
     app.mount('#app')
 
     console.log('主界面应用已启动 (ES 模块)')
 
     // 添加调试面板快捷键
-    document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.shiftKey && e.key === 'T') {
-            e.preventDefault();
+    // document.addEventListener('keydown', (e) => {
+    //     if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+    //         e.preventDefault();
             window.open('debug/debug-panel.html', 'DebugPanel', 'width=800,height=600,resizable=yes,scrollbars=yes');
-        }
-    });
+    //     }
+    // });
   </script>
 </body>
 </html> 

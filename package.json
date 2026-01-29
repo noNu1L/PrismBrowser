@@ -6,7 +6,10 @@
   "scripts": {
     "start": "cross-env NODE_ENV=development electron .",
     "start:prod": "npm run build:vue && electron .",
+    "start:debug": "cross-env NODE_ENV=development electron . --enable-logging --trace-warnings --enable-gpu-rasterization --disable-software-rasterizer",
     "dev": "vite",
+    "dev:electron": "concurrently --names \"VITE,ELECTRON\" --prefix-colors \"blue,green\" \"npm run dev\" \"npm run electron:dev\"",
+    "electron:dev": "cross-env NODE_ENV=development electron . --enable-logging --enable-gpu-rasterization",
     "build:vue": "vite build",
     "build": "npm run build:vue && electron-builder",
     "build:compressed": "npm run build:vue && electron-builder --config.compression=maximum",
@@ -21,6 +24,7 @@
   "license": "MIT",
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.4",
+    "concurrently": "^9.2.0",
     "cross-env": "^7.0.3",
     "electron": "^34.5.8",
     "electron-builder": "^25.1.8",
@@ -55,6 +59,9 @@
     "@element-plus/icons-vue": "^2.3.1",
     "electron-store": "^8.1.0",
     "element-plus": "^2.10.2",
+    "lucide-vue-next": "^0.525.0",
+    "pinia": "^3.0.3",
+    "uuid": "^11.1.0",
     "vue": "^3.5.17"
   }
 }
